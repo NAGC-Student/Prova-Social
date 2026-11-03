@@ -12,10 +12,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/backend/exam_publication_service.dart';
 import '../../core/backend/exam_media_repository.dart';
+import '../../core/import/answer_key_parser.dart';
 import '../../core/import/pdf_text_extractor.dart';
 import '../../core/import/import_quality_gate.dart';
 import '../../core/import/imported_document.dart';
 import '../../core/import/question_parser.dart';
+import '../../core/import/exam_layout_profile.dart';
 import '../../core/import/exam_metadata_suggester.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/emerald_backdrop.dart';
@@ -469,10 +471,18 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
       sourceName: widget.file.name,
     );
     processingStatus.value = 'Identificando questões e alternativas';
-    final questions = const QuestionParser().parsePages(
-      extraction.pages.map((page) => page.text).toList(growable: false),
-    );
+    final pageTexts = extraction.pages
+        .map((page) => page.text)
+        .toList(growable: false);
+    final questions = const QuestionParser().parsePages(pageTexts);
+    processingStatus.value = 'Lendo o gabarito impresso na prova';
+    const answerKeyParser = AnswerKeyParser();
+    final answerKey = answerKeyParser.parsePages(pageTexts);
+    final answerKeyApplication = answerKey.isEmpty
+        ? null
+        : answerKeyParser.apply(answerKey, questions);
     processingStatus.value = 'Conferindo estrutura e dados da prova';
+    final layoutProfile = const ExamLayoutProfiler().profile(pageTexts);
     const qualityGate = ImportQualityGate();
     qualityGate.markNumberingIssues(questions);
     final quality = qualityGate.assess(extraction, questions);
@@ -543,6 +553,9 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
       extraction: extraction,
       questions: questions,
       quality: quality,
+      answerKey: answerKey,
+      answerKeyApplication: answerKeyApplication,
+      layoutProfile: layoutProfile,
       suggestion: suggestion,
       document: ImportedDocument(
         metadata: {
@@ -550,6 +563,12 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
           'pageCount': extraction.pageCount,
           'expectedQuestionCount': null,
           'identifiedQuestionCount': questions.length,
+          'answerKeyHeading': answerKey.heading,
+          'answerKeyPages': answerKey.pages,
+          'answerKeyEntries': answerKey.length,
+          'answerKeyApplied': answerKeyApplication?.applied ?? 0,
+          'banca': layoutProfile.banca,
+          'questionLayout': layoutProfile.layout.name,
           'languages': questions
               .map((q) => q.language)
               .whereType<String>()
@@ -668,6 +687,14 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
         }
         final accepted =
             result.questions.length - quality.questionsNeedingReview;
+        final keyApplication = result.answerKeyApplication;
+        final answeredFromKey =
+            keyApplication != null && keyApplication.foundAnything;
+        final answerKeyNote = answeredFromKey
+            ? 'Gabarito reconhecido no arquivo: ${keyApplication.applied} de '
+                  '${keyApplication.keyable} questões já corrigidas'
+                  '${keyApplication.withoutKey.isEmpty ? '' : ', ${keyApplication.withoutKey.length} sem resposta no gabarito'}.'
+            : 'Nenhum gabarito reconhecido neste arquivo: marque a alternativa correta na revisão.';
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -690,6 +717,42 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                     if (quality.reasons.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Text(quality.reasons.join(' ')),
+                    ],
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          answeredFromKey
+                              ? Icons.fact_check_outlined
+                              : Icons.help_outline,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: Text(answerKeyNote)),
+                      ],
+                    ),
+                    if (result.layoutProfile.isKnown) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.dashboard_outlined,
+                            size: 20,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              'Formato reconhecido: ${result.layoutProfile.label}.',
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                     const SizedBox(height: AppSpacing.lg),
                     Text(
@@ -806,12 +869,18 @@ class _ImportResult {
     required this.extraction,
     required this.questions,
     required this.quality,
+    required this.answerKey,
+    required this.answerKeyApplication,
+    required this.layoutProfile,
     required this.suggestion,
     required this.document,
   });
   final PdfExtractionResult extraction;
   final List<ImportedQuestion> questions;
   final ImportQualityAssessment quality;
+  final AnswerKey answerKey;
+  final AnswerKeyApplication? answerKeyApplication;
+  final ExamLayoutProfile layoutProfile;
   final ExamMetadataSuggestion suggestion;
   final ImportedDocument document;
 }

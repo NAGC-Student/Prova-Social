@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/backend/attempt_draft_store.dart';
 import '../../core/backend/attempt_submission.dart';
 import '../../core/backend/attempt_sync_service.dart';
+import '../../core/backend/focus_timer_settings.dart';
 import '../../core/navigation/share_link_service.dart';
 import '../../core/widgets/question_media_gallery.dart';
 import '../../domain/models/exam.dart';
@@ -40,6 +41,8 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
   final answers = <int, int>{};
   final review = <int>{};
   final elapsed = ValueNotifier<int>(0);
+  final questionElapsed = ValueNotifier<int>(0);
+  FocusTimerSettings timerSettings = const FocusTimerSettings();
   Timer? timer;
   late Future<void> restoration;
   Future<void>? pauseFlush;
@@ -59,6 +62,13 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
     clientAttemptId = AttemptSyncService.newClientAttemptId();
     WidgetsBinding.instance.addObserver(this);
     restoration = _restoreDraft();
+    unawaited(_loadTimerSettings());
+  }
+
+  Future<void> _loadTimerSettings() async {
+    final loaded = await FocusTimerSettings.load();
+    if (!mounted) return;
+    setState(() => timerSettings = loaded);
   }
 
   Future<void> _restoreDraft() async {
@@ -125,10 +135,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
         restoring = false;
         restoreFailed = false;
       });
-      timer = Timer.periodic(
-        const Duration(seconds: 1),
-        (_) => elapsed.value++,
-      );
+      _startTicker();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -136,6 +143,14 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
         restoreFailed = true;
       });
     }
+  }
+
+  void _startTicker() {
+    timer?.cancel();
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      elapsed.value++;
+      questionElapsed.value++;
+    });
   }
 
   Future<void> _persistDraft() => draftStore.save(
@@ -175,6 +190,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     elapsed.dispose();
+    questionElapsed.dispose();
     unawaited(() async {
       try {
         await pauseFlush;
@@ -244,7 +260,20 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
               },
               icon: const Icon(Icons.ios_share_rounded),
             ),
-          _ExamTimer(elapsed: elapsed),
+          _ExamTimer(
+            elapsed: elapsed,
+            questionElapsed: questionElapsed,
+            settings: timerSettings,
+          ),
+          IconButton(
+            tooltip: 'Configurar tempo do Modo Foco',
+            onPressed: _openTimerSettings,
+            icon: Icon(
+              timerSettings.limitSeconds == null
+                  ? Icons.schedule_rounded
+                  : Icons.timer_rounded,
+            ),
+          ),
           const SizedBox(width: AppSpacing.sm),
         ],
         bottom: PreferredSize(
@@ -453,6 +482,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
 
   void _selectQuestion(int index) {
     if (finishing) return;
+    questionElapsed.value = 0;
     setState(() => current = index);
     unawaited(_persistDraft());
   }
@@ -526,6 +556,17 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
       ),
     );
     if (finish == true) await _finish();
+  }
+
+  Future<void> _openTimerSettings() async {
+    final updated = await showModalBottomSheet<FocusTimerSettings>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _FocusTimerEditor(settings: timerSettings),
+    );
+    if (!mounted || updated == null) return;
+    setState(() => timerSettings = updated);
   }
 
   Future<void> _finish() async {
@@ -613,10 +654,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
         await draftStore.flush();
       } catch (_) {}
       if (!mounted) return;
-      timer = Timer.periodic(
-        const Duration(seconds: 1),
-        (_) => elapsed.value++,
-      );
+      _startTicker();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
@@ -631,8 +669,14 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
 }
 
 class _ExamTimer extends StatefulWidget {
-  const _ExamTimer({required this.elapsed});
+  const _ExamTimer({
+    required this.elapsed,
+    required this.questionElapsed,
+    required this.settings,
+  });
   final ValueListenable<int> elapsed;
+  final ValueListenable<int> questionElapsed;
+  final FocusTimerSettings settings;
 
   @override
   State<_ExamTimer> createState() => _ExamTimerState();
@@ -640,25 +684,249 @@ class _ExamTimer extends StatefulWidget {
 
 class _ExamTimerState extends State<_ExamTimer> {
   bool hidden = false;
+  bool expiredAnnounced = false;
+
+  /// Segundos restantes do limite ativo; null quando o relógio só conta.
+  int? get _remaining {
+    final limit = widget.settings.limitSeconds;
+    if (limit == null) return null;
+    return limit - _spent;
+  }
+
+  int get _spent => widget.settings.limit == FocusTimeLimit.perQuestion
+      ? widget.questionElapsed.value
+      : widget.elapsed.value;
+
+  ValueListenable<int> get _counted =>
+      widget.settings.limit == FocusTimeLimit.perQuestion
+      ? widget.questionElapsed
+      : widget.elapsed;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<int>(
-    valueListenable: widget.elapsed,
-    builder: (_, seconds, _) => Semantics(
-      label: hidden ? 'Revelar cronômetro' : 'Ocultar cronômetro',
-      child: TextButton.icon(
-        onPressed: () => setState(() => hidden = !hidden),
-        icon: Icon(
-          hidden ? Icons.visibility_off_outlined : Icons.timer_outlined,
-          size: 18,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ValueListenableBuilder<int>(
+      valueListenable: _counted,
+      builder: (context, _, _) {
+        final remaining = _remaining;
+        final expired = remaining != null && remaining <= 0;
+        if (expired && !expiredAnnounced) {
+          expiredAnnounced = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Tempo esgotado. Você pode continuar respondendo.',
+                ),
+              ),
+            );
+          });
+        } else if (!expired) {
+          expiredAnnounced = false;
+        }
+        final shown = remaining ?? widget.elapsed.value;
+        return Semantics(
+          liveRegion: remaining != null,
+          label: switch ((hidden, remaining)) {
+            (true, _) => 'Revelar cronômetro',
+            (false, null) => 'Ocultar cronômetro',
+            (false, final left?) =>
+              expired ? 'Tempo esgotado' : 'Tempo restante: ${_time(left)}',
+          },
+          child: TextButton.icon(
+            onPressed: () => setState(() => hidden = !hidden),
+            style: TextButton.styleFrom(
+              foregroundColor: expired ? scheme.error : null,
+            ),
+            icon: Icon(
+              hidden ? Icons.visibility_off_outlined : Icons.timer_outlined,
+              size: 18,
+            ),
+            label: Text(hidden ? 'Oculto' : _time(shown)),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _time(int value) {
+    final seconds = value < 0 ? 0 : value;
+    return '${(seconds ~/ 60).toString().padLeft(2, '0')}:'
+        '${(seconds % 60).toString().padLeft(2, '0')}';
+  }
+}
+
+class _FocusTimerEditor extends StatefulWidget {
+  const _FocusTimerEditor({required this.settings});
+  final FocusTimerSettings settings;
+
+  @override
+  State<_FocusTimerEditor> createState() => _FocusTimerEditorState();
+}
+
+class _FocusTimerEditorState extends State<_FocusTimerEditor> {
+  late var settings = widget.settings;
+  bool saving = false;
+
+  Future<void> _save() async {
+    setState(() => saving = true);
+    try {
+      await settings.save();
+      if (!mounted) return;
+      Navigator.pop(context, settings);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível salvar o tempo no aparelho.'),
         ),
-        label: Text(hidden ? 'Oculto' : _time(seconds)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Tempo do Modo Foco',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'A escolha vale para todas as provas e fica salva no aparelho.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SegmentedButton<FocusTimeLimit>(
+            segments: const [
+              ButtonSegment(
+                value: FocusTimeLimit.none,
+                label: Text('Livre'),
+                icon: Icon(Icons.schedule_rounded),
+              ),
+              ButtonSegment(
+                value: FocusTimeLimit.total,
+                label: Text('Prova'),
+                icon: Icon(Icons.hourglass_bottom_rounded),
+              ),
+              ButtonSegment(
+                value: FocusTimeLimit.perQuestion,
+                label: Text('Questão'),
+                icon: Icon(Icons.timer_rounded),
+              ),
+            ],
+            selected: {settings.limit},
+            onSelectionChanged: (selection) => setState(
+              () => settings = settings.copyWith(limit: selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _TimeStepper(
+            label: 'Tempo total da prova',
+            value: settings.totalMinutes,
+            unit: 'min',
+            min: FocusTimerSettings.minTotalMinutes,
+            max: FocusTimerSettings.maxTotalMinutes,
+            step: FocusTimerSettings.totalMinutesStep,
+            enabled: settings.limit == FocusTimeLimit.total,
+            onChanged: (minutes) => setState(
+              () => settings = settings.copyWith(totalMinutes: minutes),
+            ),
+          ),
+          _TimeStepper(
+            label: 'Tempo por questão',
+            value: settings.questionSeconds,
+            unit: 's',
+            min: FocusTimerSettings.minQuestionSeconds,
+            max: FocusTimerSettings.maxQuestionSeconds,
+            step: FocusTimerSettings.questionSecondsStep,
+            enabled: settings.limit == FocusTimeLimit.perQuestion,
+            onChanged: (seconds) => setState(
+              () => settings = settings.copyWith(questionSeconds: seconds),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          FilledButton.icon(
+            onPressed: saving ? null : _save,
+            icon: const Icon(Icons.check_rounded),
+            label: Text(saving ? 'Salvando' : 'Salvar tempo'),
+          ),
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+        ],
       ),
     ),
   );
+}
 
-  static String _time(int value) =>
-      '${(value ~/ 60).toString().padLeft(2, '0')}:${(value % 60).toString().padLeft(2, '0')}';
+class _TimeStepper extends StatelessWidget {
+  const _TimeStepper({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.enabled,
+    required this.onChanged,
+  });
+  final String label;
+  final int value;
+  final String unit;
+  final int min;
+  final int max;
+  final int step;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: enabled ? 1 : .45,
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.titleMedium),
+        ),
+        IconButton(
+          tooltip: 'Diminuir $label',
+          onPressed: enabled && value > min
+              ? () => onChanged((value - step).clamp(min, max))
+              : null,
+          icon: const Icon(Icons.remove_circle_outline_rounded),
+        ),
+        SizedBox(
+          width: 72,
+          child: Semantics(
+            liveRegion: true,
+            label: '$label: $value $unit',
+            child: Text(
+              '$value $unit',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Aumentar $label',
+          onPressed: enabled && value < max
+              ? () => onChanged((value + step).clamp(min, max))
+              : null,
+          icon: const Icon(Icons.add_circle_outline_rounded),
+        ),
+      ],
+    ),
+  );
 }
 
 class _QuestionStatus extends StatelessWidget {

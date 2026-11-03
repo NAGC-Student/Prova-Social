@@ -480,4 +480,225 @@ D: D
     expect(questions, hasLength(2));
     expect(questions.map((q) => q.number), [1, 2]);
   });
+
+  test('não transforma valor isolado de tabela em questão', () {
+    const source = '''
+60
+Qual alternativa descreve o fenômeno apresentado na prova?
+(A) Primeira possibilidade.
+(B) Segunda possibilidade.
+(C) Terceira possibilidade.
+(D) Quarta possibilidade.
+
+61
+O coeficiente de dilatação térmica aparece na tabela abaixo.
+Platina
+9
+Ferro
+12
+Cobre
+17
+24
+Alumínio
+29
+Chumbo
+Considere duas hastes metálicas, P e Q, e responda.
+(A) chumbo e platina.
+(B) cobre e ferro.
+(C) alumínio e platina.
+(D) alumínio e ferro.
+(E) chumbo e alumínio.
+
+62
+A figura mostra os sentidos e valores de correntes elétricas.
+(A) 15 mA.
+(B) 30 mA.
+(C) 35 mA.
+(D) 55 mA.
+(E) 105 mA.
+''';
+    final questions = parser.parse(source);
+
+    expect(questions.map((question) => question.number), [60, 61, 62]);
+    expect(questions.last.statement, contains('correntes elétricas'));
+  });
+
+  test('não estende a trilha de idioma além do intervalo declarado', () {
+    const source = '''
+1
+Qual é a capital do Brasil?
+(A) Brasília
+(B) Recife
+
+Língua Inglesa Read the text to answer the questions
+39 a 41.
+The 2020s brought a degree of chaos. Read the text carefully.
+
+39
+What is the answer to this one?
+(A) First
+(B) Second
+(C) Third
+(D) Fourth
+
+40
+What is the answer to that one?
+(A) First
+(B) Second
+(C) Third
+(D) Fourth
+
+41
+What is the answer to the last one?
+(A) First
+(B) Second
+(C) Third
+(D) Fourth
+
+Língua Espanhola Lea el texto para responder a las questões de 39 a 41.
+39
+¿Cuál es la respuesta a esta?
+(A) Primera
+(B) Segunda
+(C) Tercera
+(D) Cuarta
+
+40
+¿Cuál es la respuesta a esa?
+(A) Primera
+(B) Segunda
+(C) Tercera
+(D) Cuarta
+
+41
+¿Cuál es la respuesta a la última?
+(A) Primera
+(B) Segunda
+(C) Tercera
+(D) Cuarta
+
+42
+Quantos habitantes tem a cidade seguinte?
+(A) Um
+(B) Dois
+(C) Três
+(D) Quatro
+''';
+    final questions = parser.parse(source);
+
+    expect(questions.map((question) => question.number), [1, 39, 40, 41, 42]);
+    expect(questions.first.language, isNull);
+    final parallel = questions.firstWhere((question) => question.number == 39);
+    expect(parallel.versionLabel, 'Inglês');
+    expect(parallel.language, 'Inglês');
+    expect(parallel.alternateVersions.single.label, 'Espanhol');
+    // A trilha de idioma termina no número 41: a questão seguinte é da prova.
+    expect(questions.last.language, isNull);
+    expect(questions.last.versionLabel, 'Versão principal');
+  });
+
+  test('não confunde o rótulo de intervalo com uma questão', () {
+    const source = '''
+Leia o texto para responder às questões
+39 a 41.
+Examine a tirinha publicada no site do autor em 08.04.2024.
+
+39
+What is the answer to this one?
+(A) First
+(B) Second
+(C) Third
+(D) Fourth
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(1));
+    expect(questions.first.number, 39);
+  });
+
+  test('não cola o gabarito no enunciado da última questão', () {
+    const source = '''
+01
+Qual alternativa apresenta a solução correta?
+A) Primeira opção.
+B) Segunda opção.
+C) Terceira opção.
+D) Quarta opção.
+
+02
+Considere o texto e responda.
+A) Primeira opção.
+B) Segunda opção.
+C) Terceira opção.
+D) Quarta opção.
+
+GABARITO
+1-B
+2-C
+3-A
+4-D
+5-B
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(2));
+    expect(questions.last.statement, isNot(contains('GABARITO')));
+    expect(questions.last.options, hasLength(4));
+    expect(questions.last.options.last, contains('Quarta'));
+  });
+
+  test('lê itens CEBRASPE marcados pela caixa de resposta vazia', () {
+    const source = '''
+Julgue os itens que se seguem, relativos ao regime jurídico dos servidores.
+
+1. ( ) O servidor é estável após três anos de efetivo exercício.
+2. ( ) A reversão depende de processo administrativo.
+3. (C) (E) A vacância decorre, entre outras causas, de falecimento.
+4. ( ) A readaptação é aproveitamento em cargo compatível.
+5. ( ) A recondução decorre de inabilitação no estágio probatório.
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(5));
+    expect(questions.map((question) => question.format.name), [
+      for (var item = 1; item <= 5; item++) 'trueFalse',
+    ]);
+    expect(questions.first.options, ['CERTO', 'ERRADO']);
+    expect(questions[2].statement, contains('vacância'));
+    expect(questions[2].statement, isNot(contains('(C)')));
+    expect(
+      questions.every((question) => !question.statement.contains('( )')),
+      isTrue,
+    );
+    expect(questions.first.statement, startsWith('O servidor'));
+  });
+
+  test('mantém a caixa de julgamento quando o sinal vem depois do item', () {
+    const source = '''
+Julgue o item a seguir.
+
+1. A administração direta compreende as autarquias. ( )
+2. As fundações integram a administração indireta. ( )
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(2));
+    expect(questions.every((q) => q.format.name == 'trueFalse'), isTrue);
+    expect(questions.first.statement, contains('administração direta'));
+  });
+
+  test('não confunde lacuna do enunciado com caixa de julgamento', () {
+    const source = '''
+Questão 1. Complete a lacuna: “o prazo de validade é de ( ) dias”.
+A) cinco
+B) dez
+C) vinte
+D) trinta
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(1));
+    expect(questions.single.format.name, 'multipleChoice');
+    expect(questions.single.options, hasLength(4));
+  });
 }

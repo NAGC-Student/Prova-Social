@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'text_normalizer.dart';
+
 /// Universal-ish exam/question parser.
 ///
 /// Structural uncertainty is kept on the resulting question for human review;
@@ -262,7 +264,10 @@ class QuestionParser {
     final candidateVariantLabels = <int, String>{};
     final sourcePagesByLine = <int, int>{};
     var currentVariantLabel = 'Versão principal';
+    var inInstructions = false;
     var previousNumber = -1;
+    int? variantLow;
+    int? variantHigh;
     int? currentSourcePage;
 
     for (var i = 0; i < lines.length; i++) {
@@ -273,11 +278,27 @@ class QuestionParser {
         continue;
       }
       if (currentSourcePage != null) sourcePagesByLine[i] = currentSourcePage;
+      if (_startsAnswerKeySection(lines, i)) break;
+      if (_isInstructionHeading(line)) {
+        inInstructions = true;
+        continue;
+      }
       final sectionVariant = _languageVariantHeading(line);
       if (sectionVariant != null) {
+        inInstructions = false;
         currentVariantLabel = sectionVariant;
+        final range = _extendedVariantRange(lines, i, null, null);
+        variantLow = range.$1;
+        variantHigh = range.$2;
       } else if (_isMajorSectionHeading(line)) {
+        inInstructions = false;
         currentVariantLabel = 'Versão principal';
+        variantLow = null;
+        variantHigh = null;
+      } else if (currentVariantLabel != 'Versão principal') {
+        final range = _extendedVariantRange(lines, i, variantLow, variantHigh);
+        variantLow = range.$1;
+        variantHigh = range.$2;
       }
       final hasFollowingOptions = _hasFollowingOptions(lines, i + 1);
       final trueFalseContext = _looksLikeTrueFalse(lines.take(i).join('\n'));
@@ -292,12 +313,32 @@ class QuestionParser {
         hasLeadingGap: hasLeadingGap,
         seenVariantsByNumber: seenVariantsByNumber,
         currentVariantLabel: currentVariantLabel,
+        variantLow: variantLow,
+        variantHigh: variantHigh,
       );
       if (candidate == null) continue;
+      if (inInstructions) {
+        // The numbered commands that open a caderno are not questions. Only a
+        // marker the board itself wrote, or a section title, ends that block.
+        if (!candidate.explicit) continue;
+        inInstructions = false;
+      }
 
       // A numeric marker is much more trustworthy when the sequence is
       // coherent or the block eventually contains options.
       if (candidate.number != null) {
+        if (_endsVariantTrack(
+          number: candidate.number!,
+          explicitMarker: candidate.explicit,
+          label: currentVariantLabel,
+          low: variantLow,
+          high: variantHigh,
+          seenVariantsByNumber: seenVariantsByNumber,
+        )) {
+          currentVariantLabel = 'Versão principal';
+          variantLow = null;
+          variantHigh = null;
+        }
         previousNumber = candidate.number!;
         seenVariantsByNumber
             .putIfAbsent(candidate.number!, () => <String>{})
@@ -306,6 +347,28 @@ class QuestionParser {
       }
       candidates.add(candidate.copyWith(lineIndex: i));
     }
+
+    // A cover page is full of numbers — the booklet code, the colour of the
+    // caderno, the day, the table of the answer sheet. When the board itself
+    // writes “Questão 12”, that marker owns the number and every candidate the
+    // scan inferred for it is noise from the pages around it.
+    final explicitNumbers = <int, Set<String>>{};
+    for (final candidate in candidates) {
+      final number = candidate.number;
+      if (number == null || !candidate.explicit) continue;
+      explicitNumbers
+          .putIfAbsent(number, () => <String>{})
+          .add(
+            candidateVariantLabels[candidate.lineIndex] ?? 'Versão principal',
+          );
+    }
+    candidates.removeWhere((candidate) {
+      final number = candidate.number;
+      if (number == null || candidate.explicit) return false;
+      final label =
+          candidateVariantLabels[candidate.lineIndex] ?? 'Versão principal';
+      return explicitNumbers[number]?.contains(label) == true;
+    });
 
     final questions = <ImportedQuestion>[];
     var inheritedTrueFalse =
@@ -403,16 +466,182 @@ class QuestionParser {
     return null;
   }
 
+  /// The question range a line declares, either inline (“responder às
+  /// questões 43 e 44”) or as its own label (“39 a 44.”). Sections of a
+  /// parallel language track use these to state which numbers they cover.
+  (int, int)? _rangeDeclaration(String line) {
+    final inline = RegExp(
+      r'(?:quest(?:ão|ões|oes|ao)|itens?)\s*(?:de|das|dos)?\s*(\d{1,4})\s*(?:a|até|to|hasta|e)\s*(\d{1,4})',
+      caseSensitive: false,
+    );
+    final label = RegExp(
+      r'^\s*(\d{1,4})\s*(?:a|até|to|hasta|e)\s*(\d{1,4})\s*[.:)]?\s*$',
+      caseSensitive: false,
+    );
+    for (final pattern in [label, inline]) {
+      final match = pattern.firstMatch(line);
+      if (match == null) continue;
+      final low = int.tryParse(match.group(1) ?? '');
+      final high = int.tryParse(match.group(2) ?? '');
+      if (low == null || high == null || high < low) continue;
+      return (low, high);
+    }
+    return null;
+  }
+
+  /// The range an active language track accumulates: a heading declares its
+  /// own range, the label on the next line belongs to it, and every later
+  /// instruction widens it, because one language can be split into passages
+  /// that each name their own numbers.
+  (int?, int?) _extendedVariantRange(
+    List<String> lines,
+    int index,
+    int? low,
+    int? high,
+  ) {
+    (int?, int?) union((int, int)? range) {
+      if (range == null) return (low, high);
+      return (
+        low == null ? range.$1 : (low < range.$1 ? low : range.$1),
+        high == null ? range.$2 : (high > range.$2 ? high : range.$2),
+      );
+    }
+
+    final merged = union(_rangeDeclaration(lines[index]));
+    low = merged.$1;
+    high = merged.$2;
+    for (
+      var offset = index + 1;
+      offset <= index + 3 && offset < lines.length;
+      offset++
+    ) {
+      final next = lines[offset];
+      if (_pageMarker.hasMatch(next)) break;
+      if (next.trim().isEmpty) continue;
+      final mergedNext = union(_rangeDeclaration(next));
+      low = mergedNext.$1;
+      high = mergedNext.$2;
+      break;
+    }
+    return (low, high);
+  }
+
+  bool _withinVariantRange(int? number, int? low, int? high) {
+    if (low == null || high == null) return true;
+    if (number == null) return false;
+    return number >= low && number <= high;
+  }
+
+  /// A mirrored language track ends as soon as a marker leaves its declared
+  /// range; without a range it ends when an inferred marker introduces a
+  /// number that no other track published. An explicit marker such as
+  /// “Questão 39” always belongs to the section that states it.
+  bool _endsVariantTrack({
+    required int number,
+    required bool explicitMarker,
+    required String label,
+    required int? low,
+    required int? high,
+    required Map<int, Set<String>> seenVariantsByNumber,
+  }) {
+    if (label == 'Versão principal') return false;
+    if (low != null && high != null) return number < low || number > high;
+    if (explicitMarker) return false;
+    return seenVariantsByNumber[number]?.any((other) => other != label) != true;
+  }
+
+  /// Boards number a caderno in one direction, so an inferred marker has to
+  /// stay near the number already found. A page whose columns are read out of
+  /// order (78, 80, 79) fits inside the slack; a stray measurement does not.
+  static const int _numberingSlack = 5;
+
+  bool _inNumberingSlack(int? number, int previousNumber) {
+    if (number == null) return false;
+    if (previousNumber < 0) return true;
+    return (number - previousNumber).abs() <= _numberingSlack;
+  }
+
+  /// Whether the lines above a bare number are other bare numbers, which is
+  /// the shape of a numeric table column and never of a question marker.
+  bool _numericRunBefore(List<String> lines, int lineIndex) {
+    final bare = RegExp(r'^\s*\d{1,4}\s*$');
+    var checked = 0;
+    var values = 0;
+    for (var index = lineIndex - 1; index >= 0 && checked < 4; index--) {
+      final line = lines[index];
+      if (line.trim().isEmpty || _pageMarker.hasMatch(line)) continue;
+      checked++;
+      if (bare.hasMatch(line)) values++;
+    }
+    return values >= 2;
+  }
+
   bool _isMajorSectionHeading(String line) {
     final heading = line.trim();
     if (heading.length < 8 || heading != heading.toUpperCase()) return false;
     return RegExp(r'[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3}').hasMatch(heading);
   }
 
+  /// Sections printed after the last question. The answer key belongs here:
+  /// without the cut its grid is read as the tail of the final statement.
   bool _isNonQuestionSectionBoundary(String line) => RegExp(
-    r'^(?:REDA[CÇ][AÃ]O|PROPOSTA DE REDA[CÇ][AÃ]O|RASCUNHO|FOLHA DE RASCUNHO|CLASSIFICA[CÇ][AÃ]O PERI[ÓO]DICA|TABELA PERI[ÓO]DICA|FOLHA DE RESPOSTAS)\b',
+    r'^(?:REDA[CÇ][AÃ]O|PROPOSTA DE REDA[CÇ][AÃ]O|RASCUNHO|FOLHA DE RASCUNHO'
+    r'|CLASSIFICA[CÇ][AÃ]O PERI[ÓO]DICA|TABELA PERI[ÓO]DICA|FOLHA DE RESPOSTAS'
+    r'|GABARITO|CHAVE DE RESPOSTAS|RESPOSTAS OFICIAIS'
+    r'|RESULTADO (?:PRELIMINAR|DEFINITIVO))\b',
     caseSensitive: false,
   ).hasMatch(line.trim());
+
+  static final RegExp _answerKeyTitle = RegExp(
+    r'^(?:gabarito|chave\s+de\s+(?:respostas?|gabarito)'
+    r'|respostas?\s+(?:oficiais?|do\s+candidato)'
+    r'|resultado\s+(?:preliminar|definitivo)|answer\s+key)\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _keyPairLine = RegExp(
+    r'\d{1,3}\s*[).:\-–—/|\]]?\s*\(?\s*'
+    r'(?:[A-Ha-hVvFf]|cert[oa]|errad[oa]|verdadeir[oa]|fals[oa])\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _instructionHeading = RegExp(
+    r'^(?:leia\s+(?:com\s+)?(?:atentamente\s+)?(?:as\s+|a\s+)?(?:instru|procedimento)'
+    r'|instru(?:ç|c)(?:õ|o)es|procedimentos|comandos\s+para\s+(?:a\s+)?prova'
+    r'|orienta(?:ç|c)(?:õ|o)es\s+(?:gerais|da\s+prova))',
+    caseSensitive: false,
+  );
+
+  /// The page of commands every caderno prints before the first question. Its
+  /// items are numbered one, two, three, and each of them is shaped like a
+  /// question — they are the most common source of invented questions.
+  bool _isInstructionHeading(String line) {
+    final text = line.trim();
+    if (text.isEmpty || text.length > 70) return false;
+    if (!_instructionHeading.hasMatch(text)) return false;
+    return text.endsWith(':') || text == text.toUpperCase();
+  }
+
+  /// Whether the questionnaire ends here. The printed key is a list of
+  /// number-and-letter lines, and each of them is shaped exactly like a
+  /// one-line question, so the scan has to stop before it invents questions.
+  /// The title alone is not enough — a notice that “o gabarito será divulgado”
+  /// appears in the instructions — the lines under it have to be pairs.
+  bool _startsAnswerKeySection(List<String> lines, int index) {
+    final title = lines[index].trim();
+    if (!_answerKeyTitle.hasMatch(title)) return false;
+    var checked = 0;
+    var paired = 0;
+    for (var i = index + 1; i < lines.length && checked < 6; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty || _pageMarker.hasMatch(line)) continue;
+      checked++;
+      if (line.length > 120) continue;
+      if (_keyPairLine.hasMatch(line)) paired++;
+    }
+    if (paired < 2) return false;
+    return paired >= (checked * .7).ceil();
+  }
 
   List<ImportedQuestion> _coalesceParallelNumberedVersions(
     List<ImportedQuestion> questions,
@@ -518,25 +747,7 @@ class QuestionParser {
     return false;
   }
 
-  String _normalize(String source) {
-    return source
-        .replaceAll('\u00a0', ' ')
-        .replaceAll('\u200b', '')
-        .replaceAll('\u200c', '')
-        .replaceAll('\u200d', '')
-        .replaceAll('\ufeff', '')
-        .replaceAll('\u2010', '-')
-        .replaceAll('\u2011', '-')
-        .replaceAll('\u2012', '-')
-        .replaceAll('\u2013', '-')
-        .replaceAll('\u2014', '-')
-        .replaceAll('\u2212', '-')
-        .replaceAll('\r\n', '\n')
-        .replaceAll('\r', '\n')
-        .split('\n')
-        .map((line) => line.replaceAll(RegExp(r'[ \t]+'), ' ').trimRight())
-        .join('\n');
-  }
+  String _normalize(String source) => ExamTextNormalizer.normalize(source);
 
   _QuestionStart? _detectQuestionStart(
     String line,
@@ -548,15 +759,31 @@ class QuestionParser {
     required bool hasLeadingGap,
     required Map<int, Set<String>> seenVariantsByNumber,
     required String currentVariantLabel,
+    required int? variantLow,
+    required int? variantHigh,
   }) {
     final explicit = RegExp(
       r'^\s*(?:quest(?:ão|ao)|q(?:uestão|uestao)?\.?)[ \t]*(?:n[º°.]?[ \t]*)?(\d{1,4})\s*(?:[.:)\-]+)?\s*(.*)$',
       caseSensitive: false,
     ).firstMatch(line);
     if (explicit != null) {
+      // “Q 12 · Q” is the charge Q12 of a physics formula, not the compact
+      // “Q12” the boards write: a bare letter, a space, and no marker
+      // punctuation after the number. Such a start is only believed when it
+      // continues the numbering of the caderno.
+      final number = int.tryParse(explicit.group(1)!);
+      final floatingLetter =
+          RegExp(
+            r'^\s*[Qq]\.?[ \t]+(?:n[º°.]?[ \t]*)?\d{1,4}(?!\s*[.:)\-–—])',
+            caseSensitive: false,
+          ).hasMatch(line) &&
+          !RegExp(r'^\s*quest', caseSensitive: false).hasMatch(line);
+      if (floatingLetter && !_inNumberingSlack(number, previousNumber)) {
+        return null;
+      }
       return _QuestionStart(
         lineIndex: -1,
-        number: int.tryParse(explicit.group(1)!),
+        number: number,
         content: explicit.group(2)?.trim() ?? '',
         confidence: 1,
         explicit: true,
@@ -606,16 +833,27 @@ class QuestionParser {
     final followsQuestionNumber =
         bareQuestionNumber != null && bareQuestionNumber == previousNumber + 1;
     final hasQuestionBody = _hasQuestionBodyAfter(lines, lineIndex);
+    // A parallel language track mirrors numbers another track already
+    // published, and it covers only the range its heading declares.
+    final mirrorsOtherVariant =
+        currentVariantLabel != 'Versão principal' &&
+        _withinVariantRange(bareQuestionNumber, variantLow, variantHigh) &&
+        seenVariantsByNumber[bareQuestionNumber]?.any(
+              (label) => label != currentVariantLabel,
+            ) ==
+            true;
+    // Values of a data table also occupy their own line. Unlike a marker,
+    // they keep other bare numbers stacked just above them.
+    final isTableValue =
+        !followsQuestionNumber && _numericRunBefore(lines, lineIndex);
     if (bareNumber != null &&
+        !isTableValue &&
         ((followsQuestionNumber && (hasQuestionBody || hasFollowingOptions)) ||
             (hasFollowingOptions &&
                 (previousNumber < 0 ||
                     hasLeadingGap ||
-                    (currentVariantLabel != 'Versão principal' &&
-                        seenVariantsByNumber[bareQuestionNumber]?.any(
-                              (label) => label != currentVariantLabel,
-                            ) ==
-                            true))))) {
+                    mirrorsOtherVariant ||
+                    _inNumberingSlack(bareQuestionNumber, previousNumber))))) {
       return _QuestionStart(
         lineIndex: -1,
         number: int.tryParse(bareNumber.group(1)!),
@@ -653,6 +891,13 @@ class QuestionParser {
         !trueFalseContext) {
       return null;
     }
+    // A caderno numbers its questions in one direction, so a marker that does
+    // not continue the sequence needs the board's own label to be believed.
+    // Without this, the “12” a formula leaves on its own line becomes a
+    // question and swallows the two printed around it.
+    if (!sequential && !_inNumberingSlack(number, previousNumber)) {
+      return null;
+    }
 
     return _QuestionStart(
       lineIndex: -1,
@@ -668,23 +913,37 @@ class QuestionParser {
     _QuestionStart start, {
     bool inheritedTrueFalse = false,
   }) {
-    final content = start.content.isEmpty
+    var content = start.content.isEmpty
         ? _removeMarker(block, start)
         : _joinContent(block, start.content);
     if (content.trim().length < 4) return _uncertainQuestion(content, start);
 
+    content = _reattachGluedTrailingOption(content);
     final optionScan = _findOptionMarkers(content);
     if (optionScan.markers.length >= 2) {
       final parsed = _parseOptions(content, optionScan.markers);
       if (parsed == null) return _uncertainQuestion(content, start);
       final statement = _cleanStatement(parsed.statement);
-      if (!_plausibleStatement(statement)) {
-        return _uncertainQuestion(content, start);
-      }
-      final warnings = <String>[];
       final missingOptionText = parsed.options.every(
         (option) => option.isEmpty,
       );
+      // A two-column caderno can print the command in the neighbouring column,
+      // leaving the block that carries the marker with nothing but the
+      // alternatives. Those are still worth keeping: the reviewer completes the
+      // stem instead of losing a question with no structure at all.
+      final stemIsMissing =
+          !_plausibleStatement(statement) &&
+          parsed.options.length >= 4 &&
+          !missingOptionText;
+      if (!_plausibleStatement(statement) && !stemIsMissing) {
+        return _uncertainQuestion(content, start);
+      }
+      final warnings = <String>[];
+      if (stemIsMissing) {
+        warnings.add(
+          'Enunciado não foi separado das alternativas; revisar na página de origem.',
+        );
+      }
       if (parsed.options.length < 4) {
         warnings.add(
           'Foram detectadas ${parsed.options.length} alternativas; revisar estrutura.',
@@ -711,6 +970,8 @@ class QuestionParser {
         format: QuestionFormat.multipleChoice,
         confidence: missingOptionText
             ? .65
+            : stemIsMissing
+            ? .6
             : _optionConfidence(
                 start,
                 parsed.options.length,
@@ -720,7 +981,9 @@ class QuestionParser {
       );
     }
 
-    if (_looksLikeTrueFalse(content) || inheritedTrueFalse) {
+    if (_hasJudgementMarks(content) ||
+        _looksLikeTrueFalse(content) ||
+        inheritedTrueFalse) {
       final statement = _cleanTrueFalseStatement(content);
       if (statement.length < 8) return _uncertainQuestion(statement, start);
       return ImportedQuestion(
@@ -863,26 +1126,15 @@ class QuestionParser {
       ..clear()
       ..addAll(sequenceFiltered);
 
-    // Also accept inline markers produced by some PDF text extractors, but
-    // only when the sequence is coherent (A -> B -> C ...).
-    if (result.length < 2) {
-      final inline = RegExp(
-        r'(?:^|\s)(?:\(([A-Z])\)|([A-Z]))\s*[.):\-–]\s+',
-        caseSensitive: false,
-      ).allMatches(block).toList();
-      if (inline.length >= 2) {
+    // Boards that print “A denunciar …” with no punctuation, and text layers
+    // that return the whole list on one line, leave the markers inside the
+    // statement. Look for them there whenever the line scan came up short.
+    if (result.length < 5) {
+      final inline = _inlineMarkers(block);
+      if (inline.length > result.length) {
         result
           ..clear()
-          ..addAll(
-            inline.map(
-              (m) => _OptionMarker(
-                start: m.start,
-                contentStart: m.end,
-                letter: (m.group(1) ?? m.group(2)!).toUpperCase(),
-                text: '',
-              ),
-            ),
-          );
+          ..addAll(inline);
       }
     }
 
@@ -917,6 +1169,97 @@ class QuestionParser {
           !hasCompleteFilledSequence &&
           (coherent.length != result.length || hasLabelGap),
     );
+  }
+
+  /// Markers found inside a run of text instead of at the start of a line.
+  ///
+  /// Punctuation after the letter is enough evidence. A bare letter only is,
+  /// because “A” opens sentences and “E” joins clauses, so the bare scan keeps
+  /// the longest stretch that walks A, B, C, D in order and throws it away when
+  /// fewer than four alternatives answer to it.
+  List<_OptionMarker> _inlineMarkers(String block) {
+    final punctuated = RegExp(
+      r'(?:^|\s)(?:\(([A-Z])\)|([A-Z]))\s*[.):\-–]\s+',
+      caseSensitive: false,
+    ).allMatches(block).toList();
+    if (punctuated.length >= 2) {
+      return punctuated
+          .map(
+            (match) => _OptionMarker(
+              start: match.start,
+              contentStart: match.end,
+              letter: (match.group(1) ?? match.group(2)!).toUpperCase(),
+              text: '',
+            ),
+          )
+          .toList();
+    }
+
+    final bare = RegExp(r'(?:^|\s)([A-E])\s+\S').allMatches(block).toList();
+    var best = <RegExpMatch>[];
+    var run = <RegExpMatch>[];
+    for (final match in bare) {
+      final letter = match.group(1)!.codeUnitAt(0);
+      if (run.isEmpty) {
+        if (letter == 'A'.codeUnitAt(0)) run = [match];
+        continue;
+      }
+      if (letter == run.last.group(1)!.codeUnitAt(0) + 1) {
+        run.add(match);
+      } else {
+        if (run.length > best.length) best = run;
+        run = letter == 'A'.codeUnitAt(0) ? [match] : <RegExpMatch>[];
+      }
+    }
+    if (run.length > best.length) best = run;
+    if (best.length < 4) return const [];
+    return best
+        .map(
+          (match) => _OptionMarker(
+            start: match.start,
+            contentStart: match.end - 1,
+            letter: match.group(1)!,
+            text: '',
+          ),
+        )
+        .toList();
+  }
+
+  /// A justified column sometimes ends the command on the same line as the
+  /// last alternative: “Questão 38 … o(a) E fragmento …”. The line scan then
+  /// reads A to D and the letter that closes the list is swallowed by the
+  /// statement. Move that tail back to the end of the block so the normal
+  /// marker rules can see it as an alternative again.
+  String _reattachGluedTrailingOption(String block) {
+    final lines = block.split('\n');
+    final run = <String>[];
+    for (final line in lines) {
+      final match = RegExp(r'^([A-E])\s+\S').firstMatch(line.trim());
+      if (match == null) continue;
+      final letter = match.group(1)!;
+      if (run.isEmpty) {
+        if (letter == 'A') run.add(letter);
+      } else if (letter.codeUnitAt(0) == run.last.codeUnitAt(0) + 1) {
+        run.add(letter);
+      }
+    }
+    if (run.length < 3 || run.last == 'E') return block;
+    final missing = String.fromCharCode(run.last.codeUnitAt(0) + 1);
+
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.trim().startsWith('$missing ')) continue;
+      final glued = RegExp(r'\s' + missing + r'\s+\S').firstMatch(line);
+      if (glued == null) continue;
+      final start = glued.start;
+      final tail = line.substring(start).trim();
+      final head = line.substring(0, start).trimRight();
+      if (head.isEmpty || tail.length < 8) continue;
+      lines[i] = head;
+      lines.add(tail);
+      return lines.join('\n');
+    }
+    return block;
   }
 
   List<_OptionMarker> _coherentOptions(List<_OptionMarker> markers) {
@@ -969,6 +1312,9 @@ class QuestionParser {
       final end = i + 1 < markers.length ? markers[i + 1].start : block.length;
       var text = block.substring(marker.contentStart, end).trim();
       text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+      // AOCP and Instituto MAIS write “A - alternativa”. The dash is the label's
+      // punctuation, not part of the answer, while “-19.” keeps its sign.
+      text = text.replaceFirst(RegExp(r'^[-–—]\s+'), '').trim();
       options.add(text);
     }
     if (options.length < 2) return null;
@@ -996,6 +1342,33 @@ class QuestionParser {
     return true;
   }
 
+  /// CEBRASPE-style items carry their own answer boxes: “1. ( ) O servidor…”.
+  /// The empty parens, or the “(C) (E)” pair printed side by side, say more
+  /// about the format than any keyword in the command, which may sit pages
+  /// away from the item.
+  bool _hasJudgementMarks(String content) =>
+      _judgementMarks.allMatches(content).isNotEmpty &&
+      !_hasOptionPunctuation(content);
+
+  static final RegExp _judgementMarks = RegExp(
+    r'(?:\b[CE]\s+)?\(\s*\)(?:\s+[CE]\s+\(\s*\))?'
+    r'|\(\s*[cC]\s*\)\s*\(\s*[eE]\s*\)'
+    r'|\(\s*[eE]\s*\)\s*\(\s*[cC]\s*\)',
+  );
+
+  /// A stem with a real alternative list is never a judgement item, however
+  /// many empty parentheses the command uses for blanks to fill.
+  bool _hasOptionPunctuation(String content) {
+    final markers = RegExp(
+      r'(?:(?:^|\s)(?:\(([A-F])\)|([A-F]))\s*[.):])',
+      caseSensitive: false,
+    ).allMatches(content);
+    final letters = markers
+        .map((match) => (match.group(1) ?? match.group(2)!).toUpperCase())
+        .toSet();
+    return letters.length >= 2 && letters.contains('A');
+  }
+
   bool _looksLikeTrueFalse(String content) {
     final lower = content.toLowerCase();
     return RegExp(
@@ -1005,7 +1378,7 @@ class QuestionParser {
   }
 
   String _cleanTrueFalseStatement(String content) {
-    return content
+    var statement = content
         .replaceFirst(
           RegExp(
             r'^.*?(?:julgue os itens[^.]*\.|julgue o item[^.]*\.)',
@@ -1013,7 +1386,18 @@ class QuestionParser {
           ),
           '',
         )
+        .replaceAll(_judgementMarks, ' ')
         .trim();
+    // The item number lives in the marker, so a leftover “2.” in the body is
+    // the answer box of the previous line, not part of the sentence.
+    statement = statement.replaceFirst(RegExp(r'^\d{1,3}[).:]\s*'), '');
+    if (_judgementMarks.hasMatch(statement)) {
+      statement = statement
+          .replaceAll(RegExp(r'\s*\(\s*\)\s*'), ' ')
+          .replaceAll(RegExp(r'\s{2,}'), ' ')
+          .trim();
+    }
+    return statement;
   }
 
   bool _looksLikeAssertion(String content) {
