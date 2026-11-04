@@ -28,25 +28,28 @@ class ImportedDocument {
   final List<ImportedQuestion> questions;
   final List<String> qualityNotices;
 
-  ImportedDocument copyWith({List<ImportedQuestion>? questions}) =>
-      ImportedDocument(
-        id: id,
-        schemaVersion: schemaVersion,
-        metadata: metadata,
-        pages: pages,
-        sections: sections,
-        supportingMaterials: supportingMaterials
-            .where(
-              (material) =>
-                  material.questionId == null ||
-                  (questions ?? this.questions).any(
-                    (question) => question.id == material.questionId,
-                  ),
-            )
-            .toList(growable: false),
-        questions: questions ?? this.questions,
-        qualityNotices: qualityNotices,
-      );
+  ImportedDocument copyWith({
+    Map<String, Object?>? metadata,
+    List<ImportedQuestion>? questions,
+    List<String>? qualityNotices,
+  }) => ImportedDocument(
+    id: id,
+    schemaVersion: schemaVersion,
+    metadata: metadata ?? this.metadata,
+    pages: pages,
+    sections: sections,
+    supportingMaterials: supportingMaterials
+        .where(
+          (material) =>
+              material.questionId == null ||
+              (questions ?? this.questions).any(
+                (question) => question.id == material.questionId,
+              ),
+        )
+        .toList(growable: false),
+    questions: questions ?? this.questions,
+    qualityNotices: qualityNotices ?? this.qualityNotices,
+  );
 
   Map<String, Object?> toJson() => {
     'schemaVersion': schemaVersion,

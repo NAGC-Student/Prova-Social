@@ -4,6 +4,14 @@
 próprio projeto exclusivamente para validar a extração de texto e a importação
 de 80 questões distribuídas em duas colunas.
 
+O manifesto `import_corpus.json` registra o hash do PDF, a procedência e os
+limites de uso, além do hash do parser e das expectativas usadas como snapshot
+de regressão. Mudanças intencionais no fixture ou no parser exigem revisar e
+atualizar esse snapshot junto dos testes. O PDF VUNESP também consta no
+manifesto como fornecido pelo responsável para QA local; o status de licença
+está explicitamente não verificado, e isso não autoriza catálogo ou
+redistribuição.
+
 - Não contém prova real, questão de concurso, banca, instituição ou texto
   extraído da internet.
 - Não usar no catálogo, na home, em screenshots que o apresentem como conteúdo

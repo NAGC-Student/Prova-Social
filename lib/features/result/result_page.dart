@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/source_badge.dart';
 import '../../core/backend/attempt_sync_service.dart';
+import '../../core/review/wrong_question_practice_service.dart';
 import '../../domain/models/exam.dart';
 import 'review_page.dart';
 import '../quiz/quiz_page.dart';
@@ -188,8 +189,9 @@ class _PendingResultPageState extends State<PendingResultPage>
 }
 
 class ResultPage extends StatelessWidget {
-  const ResultPage({required this.result, super.key});
+  const ResultPage({required this.result, this.syncService, super.key});
   final ExamResult result;
+  final AttemptSyncService? syncService;
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +228,9 @@ class ResultPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${result.scorePercent}%',
+                            result.correctableCount == 0
+                                ? '—'
+                                : '${result.scorePercent}%',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 64,
@@ -235,7 +239,9 @@ class ResultPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${result.correct} de ${result.exam.questions.length} acertos',
+                            result.correctableCount == 0
+                                ? 'Nenhuma questão tem gabarito para corrigir'
+                                : '${result.correct} de ${result.correctableCount} questões corrigíveis',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -293,6 +299,11 @@ class ResultPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 8),
+                  _HistoryWrongPracticeButton(
+                    result: result,
+                    syncService: syncService,
+                  ),
                   const SizedBox(height: 22),
                   Wrap(
                     spacing: 16,
@@ -371,6 +382,298 @@ class ResultPage extends StatelessWidget {
 
   static String _time(int value) =>
       '${(value ~/ 60).toString().padLeft(2, '0')}:${(value % 60).toString().padLeft(2, '0')}';
+}
+
+class _HistoryWrongPracticeButton extends StatefulWidget {
+  const _HistoryWrongPracticeButton({required this.result, this.syncService});
+
+  final ExamResult result;
+  final AttemptSyncService? syncService;
+
+  @override
+  State<_HistoryWrongPracticeButton> createState() =>
+      _HistoryWrongPracticeButtonState();
+}
+
+class _HistoryWrongPracticeButtonState
+    extends State<_HistoryWrongPracticeButton> {
+  final _service = const WrongQuestionPracticeService();
+  late Future<Map<String, ExamResult>> _history;
+  String? _topic;
+  String? _examId;
+  int? _days;
+  int _questionLimit = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _history = _loadHistory();
+  }
+
+  Future<Map<String, ExamResult>> _loadHistory() async {
+    final history = await (widget.syncService ?? AttemptSyncService()).store
+        .completed();
+    final allCandidates = _service.generate(
+      history: history.values,
+      currentResult: widget.result,
+      request: const WrongQuestionPracticeRequest(questionLimit: 100),
+    );
+    if (allCandidates.availableCount > 0) {
+      _questionLimit = allCandidates.availableCount.clamp(1, 10);
+    }
+    return history;
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, ExamResult>>(
+    future: _history,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Não foi possível ler o histórico de erros salvo neste aparelho.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            TextButton(
+              onPressed: () => setState(() => _history = _loadHistory()),
+              child: const Text('Tentar carregar novamente'),
+            ),
+          ],
+        );
+      }
+      if (!snapshot.hasData) {
+        return const Text('Lendo histórico de erros salvo neste aparelho...');
+      }
+
+      final outcome = _service.generate(
+        history: snapshot.data!.values,
+        currentResult: widget.result,
+        request: WrongQuestionPracticeRequest(
+          questionLimit: _questionLimit,
+          topic: _topic,
+          examId: _examId,
+          since: _days == null
+              ? null
+              : DateTime.now().subtract(Duration(days: _days!)),
+        ),
+      );
+      if (outcome.availableCount == 0) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ainda não há questões respondidas incorretamente que atendam a esses filtros.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (_topic != null || _examId != null || _days != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _editFilters(history: snapshot.data!.values),
+                  icon: const Icon(Icons.tune_rounded),
+                  label: const Text('Ajustar filtros'),
+                ),
+              ),
+          ],
+        );
+      }
+
+      final insufficient = !outcome.isSufficient;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: insufficient
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => QuizPage(exam: outcome.exam!),
+                    ),
+                  ),
+            icon: const Icon(Icons.history_rounded),
+            label: Text(
+              'Refazer ${outcome.selectedCount} questão(ões) dos erros',
+            ),
+          ),
+          if (insufficient) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Há ${outcome.availableCount} questão(ões), mas o filtro pede ${outcome.requestedCount}. Ajuste os filtros ou a quantidade.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _editFilters(history: snapshot.data!.values),
+              icon: const Icon(Icons.tune_rounded),
+              label: const Text('Filtros e quantidade'),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  Future<void> _editFilters({required Iterable<ExamResult> history}) async {
+    final results = {
+      for (final result in [...history, widget.result]) result.exam.id: result,
+    }.values.toList(growable: false);
+    final topics =
+        results
+            .expand(
+              (result) => result.exam.questions.map((question) {
+                final topic = question.topic.trim();
+                return topic.isEmpty ? 'Geral' : topic;
+              }),
+            )
+            .toSet()
+            .toList()
+          ..sort();
+    final exams = {
+      for (final result in results) result.exam.id: result.exam.title,
+    };
+    final countController = TextEditingController(
+      text: _questionLimit.toString(),
+    );
+    var topic = _topic;
+    var examId = _examId;
+    var days = _days;
+    final selected = await showDialog<_WrongPracticeFilter>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Filtrar questões para revisar'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String?>(
+                  initialValue: topic,
+                  decoration: const InputDecoration(labelText: 'Assunto'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Todos os assuntos'),
+                    ),
+                    ...topics.map(
+                      (value) => DropdownMenuItem<String?>(
+                        value: value,
+                        child: Text(value),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setDialogState(() => topic = value),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: examId,
+                  decoration: const InputDecoration(
+                    labelText: 'Prova original',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Todas as provas'),
+                    ),
+                    ...exams.entries.map(
+                      (entry) => DropdownMenuItem<String?>(
+                        value: entry.key,
+                        child: Text(
+                          entry.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setDialogState(() => examId = value),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int?>(
+                  initialValue: days,
+                  decoration: const InputDecoration(labelText: 'Período'),
+                  items: const [
+                    DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Todo o histórico'),
+                    ),
+                    DropdownMenuItem<int?>(
+                      value: 7,
+                      child: Text('Últimos 7 dias'),
+                    ),
+                    DropdownMenuItem<int?>(
+                      value: 30,
+                      child: Text('Últimos 30 dias'),
+                    ),
+                    DropdownMenuItem<int?>(
+                      value: 90,
+                      child: Text('Últimos 90 dias'),
+                    ),
+                  ],
+                  onChanged: (value) => setDialogState(() => days = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: countController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Quantidade desejada (1–100)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final count = int.tryParse(countController.text.trim());
+                if (count == null || count < 1 || count > 100) return;
+                Navigator.pop(
+                  context,
+                  _WrongPracticeFilter(
+                    topic: topic,
+                    examId: examId,
+                    days: days,
+                    questionLimit: count,
+                  ),
+                );
+              },
+              child: const Text('Aplicar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    countController.dispose();
+    if (!mounted || selected == null) return;
+    setState(() {
+      _topic = selected.topic;
+      _examId = selected.examId;
+      _days = selected.days;
+      _questionLimit = selected.questionLimit;
+    });
+  }
+}
+
+class _WrongPracticeFilter {
+  const _WrongPracticeFilter({
+    required this.questionLimit,
+    this.topic,
+    this.examId,
+    this.days,
+  });
+
+  final int questionLimit;
+  final String? topic;
+  final String? examId;
+  final int? days;
 }
 
 class _TopicPerformance extends StatelessWidget {

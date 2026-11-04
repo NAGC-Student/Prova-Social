@@ -28,6 +28,8 @@ Transforme provas em aprendizado real. Não é apenas outro app de estudos — �
 - Imagens
 - Criação manual de questões
 - Dashboard de progresso da importação
+- Questões completas podem ser resolvidas sem concluir toda a revisão; questões incompletas ficam de fora da tentativa após confirmação
+- Revisão do gabarito continua obrigatória antes de publicar para a comunidade
 
 ### ⏱️ Modo Foco
 - Cronômetro configurável: livre, tempo total da prova ou tempo por questão

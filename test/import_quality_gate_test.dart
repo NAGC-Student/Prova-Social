@@ -35,8 +35,13 @@ ImportedQuestion question({
   double confidence = .99,
   String? warning,
   int? number,
+  String? statement,
 }) => ImportedQuestion(
-  statement: 'A question with enough text?',
+  statement:
+      statement ??
+      (number == null
+          ? 'A question with enough text?'
+          : 'A question with enough text, number $number?'),
   options: const ['First option', 'Second option'],
   confidence: confidence,
   warning: warning,
@@ -92,6 +97,104 @@ void main() {
       contains(ImportFailureCode.inconsistentNumbering),
     );
   });
+
+  test('detects duplicate question content and requires human review', () {
+    final duplicate = [
+      question(),
+      ImportedQuestion(
+        statement: 'A question\nwith enough text?',
+        options: const ['First option', 'Second option'],
+        confidence: .99,
+      ),
+    ];
+
+    final result = gate.assess(extraction(), duplicate);
+
+    expect(result.status, ImportQualityStatus.review);
+    expect(result.duplicateQuestionCount, 1);
+    expect(result.questionsNeedingReview, 2);
+    expect(
+      duplicate.every(
+        (item) => item.reviewState == QuestionReviewState.needsAttention,
+      ),
+      isTrue,
+    );
+    expect(
+      result.diagnostics.map((event) => event.failure),
+      contains(ImportFailureCode.duplicateQuestion),
+    );
+    expect(
+      result.reasons,
+      contains('1 questão duplicada no texto extraído; confira antes de usar.'),
+    );
+  });
+
+  test(
+    'flags malformed objective questions but allows open-ended questions',
+    () {
+      final questions = [
+        ImportedQuestion(
+          statement: 'Questão sem opções suficientes?',
+          options: const ['Única alternativa'],
+          correctIndex: 2,
+          confidence: .99,
+        ),
+        ImportedQuestion(
+          statement: 'Explique o raciocínio utilizado.',
+          options: const [],
+          format: QuestionFormat.openEnded,
+          confidence: .99,
+        ),
+      ];
+
+      final result = gate.assess(extraction(), questions);
+
+      expect(result.status, ImportQualityStatus.review);
+      expect(result.incompleteQuestionCount, 1);
+      expect(result.questionsNeedingReview, 1);
+      expect(questions.first.reviewState, QuestionReviewState.needsAttention);
+      expect(questions.last.warning, isNull);
+      expect(
+        result.diagnostics.map((event) => event.failure),
+        contains(ImportFailureCode.incompleteQuestionStructure),
+      );
+    },
+  );
+
+  test('compares extraction with a user-confirmed expected count', () {
+    final result = gate.assess(extraction(), [
+      question(),
+    ], expectedQuestionCount: 3);
+
+    expect(result.status, ImportQualityStatus.review);
+    expect(result.expectedQuestionCount, 3);
+    expect(result.questionCountMismatch, isTrue);
+    expect(result.missingExpectedQuestionCount, 2);
+    expect(
+      result.reasons,
+      contains(
+        'Você informou 3 questões, mas o sistema identificou 1. Confira possíveis perdas ou questões excedentes.',
+      ),
+    );
+    expect(
+      result.diagnostics.map((event) => event.failure),
+      contains(ImportFailureCode.questionCountMismatch),
+    );
+  });
+
+  test(
+    'reports extra questions without claiming that questions are missing',
+    () {
+      final result = gate.assess(extraction(), [
+        question(number: 1),
+        question(number: 2),
+      ], expectedQuestionCount: 1);
+
+      expect(result.questionCountMismatch, isTrue);
+      expect(result.missingExpectedQuestionCount, 0);
+      expect(result.status, ImportQualityStatus.review);
+    },
+  );
 
   test(
     'creates a content-free diagnostic fingerprint for unknown structure',
@@ -162,7 +265,10 @@ Mais uma linha particular para o diagnóstico.
     () {
       final result = gate.assess(extraction(), [
         question(confidence: double.nan),
-        question(confidence: .99),
+        question(
+          confidence: .99,
+          statement: 'A different question with enough text?',
+        ),
       ]);
 
       expect(result.status, ImportQualityStatus.review);

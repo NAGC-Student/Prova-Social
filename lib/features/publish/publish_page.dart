@@ -21,6 +21,7 @@ import '../../core/import/exam_layout_profile.dart';
 import '../../core/import/exam_metadata_suggester.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/emerald_backdrop.dart';
+import '../quiz/quiz_page.dart';
 
 class PublishPage extends StatelessWidget {
   const PublishPage({super.key});
@@ -442,6 +443,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
   final sourceUrl = TextEditingController();
   final year = TextEditingController();
   final duration = TextEditingController(text: '120');
+  final expectedQuestionCount = TextEditingController();
   bool suggestionsApplied = false;
 
   @override
@@ -458,6 +460,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
     sourceUrl.dispose();
     year.dispose();
     duration.dispose();
+    expectedQuestionCount.dispose();
     processingStatus.dispose();
     super.dispose();
   }
@@ -679,7 +682,21 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
           );
         }
         final extraction = result.extraction;
-        final quality = result.quality;
+        final expectedText = expectedQuestionCount.text.trim();
+        final parsedExpectedCount = int.tryParse(expectedText);
+        final expectedCount =
+            parsedExpectedCount != null && parsedExpectedCount > 0
+            ? parsedExpectedCount
+            : null;
+        final quality = const ImportQualityGate().assess(
+          extraction,
+          result.questions,
+          expectedQuestionCount: expectedCount,
+        );
+        final expectedCountError =
+            expectedText.isNotEmpty && expectedCount == null
+            ? 'Informe um número inteiro maior que zero ou deixe vazio.'
+            : null;
         if (!suggestionsApplied) {
           title.text = result.suggestion.title;
           year.text = result.suggestion.year?.toString() ?? '';
@@ -712,12 +729,23 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      '${extraction.pageCount} páginas · ${result.questions.length} questões encontradas · $accepted validadas automaticamente (confiança ≥ 99%) · ${quality.questionsNeedingReview} para conferir.',
+                      '${extraction.pageCount} páginas · ${result.questions.length} questões identificadas · $accepted validadas automaticamente (confiança ≥ 99%) · ${quality.questionsNeedingReview} para revisar. Você pode iniciar uma tentativa privada sem revisar tudo.',
                     ),
                     if (quality.reasons.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Text(quality.reasons.join(' ')),
                     ],
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      controller: expectedQuestionCount,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Quantidade esperada de questões (opcional)',
+                        helperText: 'Use o total indicado no caderno para conferir possíveis questões ausentes.',
+                        errorText: expectedCountError,
+                      ),
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,6 +842,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                     const SizedBox(height: AppSpacing.lg),
                     FilledButton.icon(
                       onPressed: () {
+                        if (expectedCountError != null) return;
                         if (title.text.trim().isEmpty ||
                             category.text.trim().isEmpty ||
                             source.text.trim().isEmpty ||
@@ -830,6 +859,21 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                           );
                           return;
                         }
+                        final importedDocument = result.document.copyWith(
+                          metadata: {
+                            ...result.document.metadata,
+                            'expectedQuestionCount': expectedCount,
+                            if (expectedCount != null)
+                              'expectedQuestionCountSource': 'user',
+                          },
+                          qualityNotices: [
+                            ...result.document.qualityNotices.where(
+                              (notice) =>
+                                  !result.quality.reasons.contains(notice),
+                            ),
+                            ...quality.reasons,
+                          ],
+                        );
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute<void>(
                             builder: (_) => ImportReviewPage(
@@ -841,7 +885,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                               durationMinutes:
                                   int.tryParse(duration.text) ?? 120,
                               questions: result.questions,
-                              importedDocument: result.document,
+                              importedDocument: importedDocument,
                             ),
                           ),
                         );
@@ -849,9 +893,14 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                       icon: const Icon(Icons.fact_check_outlined),
                       label: Text(
                         quality.questionsNeedingReview == 0
-                            ? 'Continuar para revisão da prova'
-                            : 'Conferir ${quality.questionsNeedingReview} questões necessárias',
+                            ? 'Revisar prova'
+                            : 'Revisar ${quality.questionsNeedingReview} questões',
                       ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Questões incompletas poderão ser corrigidas ou removidas no editor.',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -1293,13 +1342,119 @@ class _ImportReviewPageState extends State<ImportReviewPage>
             q.correctIndex! >= 0 &&
             q.correctIndex! < q.options.length,
       );
+
+  List<ImportedQuestion> get _playableQuestions => questions
+      .where(
+        (question) =>
+            question.statement.trim().length >= 2 &&
+            question.options.length >= 2 &&
+            question.options.every((option) => option.trim().isNotEmpty) &&
+            (question.correctIndex == null ||
+                (question.correctIndex! >= 0 &&
+                    question.correctIndex! < question.options.length)),
+      )
+      .toList(growable: false);
+
+  String _questionCountLabel(int count) =>
+      '$count ${count == 1 ? 'questão' : 'questões'}';
+
+  Future<void> _startLocally() async {
+    if (busy) return;
+    final playableQuestions = _playableQuestions;
+    if (playableQuestions.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Adicione ou corrija pelo menos uma questão completa para começar.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (playableQuestions.length < questions.length) {
+      final omitted = questions.length - playableQuestions.length;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Começar com questões completas?'),
+          content: Text(
+            '$omitted questão(ões) ainda não têm estrutura utilizável e ficarão fora desta tentativa. As demais podem ser resolvidas mesmo sem revisão final ou gabarito.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Continuar editando'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                'Iniciar com ${_questionCountLabel(playableQuestions.length)}',
+              ),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => busy = true);
+    try {
+      if (!await _save(pending: false) || !mounted) {
+        if (!mounted) return;
+        final startWithoutSaving = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Rascunho não salvo'),
+            content: const Text(
+              'Não foi possível guardar as alterações desta prova. Você ainda pode começar agora; as respostas da tentativa serão salvas separadamente neste aparelho.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Voltar ao editor'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Começar mesmo assim'),
+              ),
+            ],
+          ),
+        );
+        if (startWithoutSaving != true || !mounted) return;
+      }
+
+      final normalizedTitle = title.text.trim();
+      final normalizedCategory = category.text.trim();
+      final localExam = LocalExam(
+        id: localId,
+        title: normalizedTitle.isEmpty ? 'Prova sem título' : normalizedTitle,
+        category: normalizedCategory.isEmpty ? 'Geral' : normalizedCategory,
+        source: source.text.trim(),
+        sourceUrl: sourceUrl.text.trim().isEmpty ? null : sourceUrl.text.trim(),
+        durationMinutes: int.tryParse(duration.text) ?? 0,
+        year: int.tryParse(year.text),
+        questions: playableQuestions,
+        importedDocument: widget.importedDocument?.copyWith(
+          questions: playableQuestions,
+        ),
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => QuizPage(exam: localExam.exam)),
+      );
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Future<void> _publish() async {
     if (busy) return;
     if (!_valid()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Preencha os dados e o gabarito; confirme as questões que pedem revisão.',
+            'Para publicar, preencha os dados, complete o gabarito e confirme a revisão. Para resolver agora, use “Começar prova”.',
           ),
         ),
       );
@@ -1416,36 +1571,70 @@ class _ImportReviewPageState extends State<ImportReviewPage>
     }
   }
 
-  Widget _header() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      const Text(
-        'Privada neste aparelho. Limpar dados ou desinstalar pode apagar suas provas. Exporte uma cópia. Não há sincronização de provas privadas.',
-      ),
-      const SizedBox(height: 12),
-      Text(status, semanticsLabel: status),
-      if (status.startsWith('Falha'))
-        TextButton(
-          onPressed: _save,
-          child: const Text('Tentar salvar novamente'),
-        ),
-      for (final field in [
-        (title, 'Título'),
-        (category, 'Concurso / matéria'),
-        (source, 'Banca ou origem'),
-        (duration, 'Duração em minutos'),
-        (year, 'Ano (opcional)'),
-      ])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: TextField(
-            controller: field.$1,
-            enabled: !busy,
-            decoration: InputDecoration(labelText: field.$2),
+  Widget _header() {
+    final metadataSummary = [
+      title.text.trim(),
+      source.text.trim(),
+      category.text.trim(),
+    ].where((value) => value.isNotEmpty).join(' · ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(status, semanticsLabel: status),
           ),
         ),
-    ],
-  );
+        if (status.startsWith('Falha'))
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _save,
+              child: const Text('Tentar salvar novamente'),
+            ),
+          ),
+        ExpansionTile(
+          initiallyExpanded: widget.title.trim().isEmpty,
+          leading: const Icon(Icons.tune_rounded),
+          title: const Text('Dados da prova'),
+          subtitle: Text(
+            metadataSummary.isEmpty
+                ? 'Título, banca e matéria'
+                : metadataSummary,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Rascunho privado, salvo automaticamente neste aparelho. Publicar é opcional.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final field in [
+              (title, 'Título'),
+              (category, 'Concurso / matéria'),
+              (source, 'Banca ou origem'),
+              (duration, 'Duração em minutos'),
+              (year, 'Ano (opcional)'),
+            ])
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TextField(
+                  controller: field.$1,
+                  enabled: !busy,
+                  decoration: InputDecoration(labelText: field.$2),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
 
   List<String> get _importedVersionLabels {
     final labels = <String>{};
@@ -1541,7 +1730,7 @@ class _ImportReviewPageState extends State<ImportReviewPage>
           LinearProgressIndicator(value: total == 0 ? 0 : reviewed / total),
           const SizedBox(height: 8),
           Text(
-            '$needingReview para conferir · questões com confiança de 99% ou mais já foram validadas automaticamente.',
+            '$needingReview para conferir · questões com confiança de 99% ou mais já foram validadas automaticamente. A revisão pendente não impede começar uma tentativa privada.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -1875,28 +2064,6 @@ class _ImportReviewPageState extends State<ImportReviewPage>
                   ],
                 ),
               ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed:
-                    busy || question.reviewState == QuestionReviewState.reviewed
-                    ? null
-                    : () {
-                        question.reviewState = QuestionReviewState.reviewed;
-                        _changed();
-                      },
-                icon: Icon(
-                  question.reviewState == QuestionReviewState.reviewed
-                      ? Icons.check_circle
-                      : Icons.check_circle_outline,
-                ),
-                label: Text(
-                  question.reviewState == QuestionReviewState.reviewed
-                      ? 'Questão revisada'
-                      : 'Marcar questão como revisada',
-                ),
-              ),
-            ),
             TextFormField(
               key: ObjectKey(question),
               initialValue: question.statement,
@@ -1974,6 +2141,33 @@ class _ImportReviewPageState extends State<ImportReviewPage>
                       },
                 child: const Text('Adicionar alternativa'),
               ),
+            const SizedBox(height: 8),
+            Text(
+              'Confira o enunciado e as alternativas antes de confirmar a revisão.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed:
+                    busy || question.reviewState == QuestionReviewState.reviewed
+                    ? null
+                    : () {
+                        question.reviewState = QuestionReviewState.reviewed;
+                        _changed();
+                      },
+                icon: Icon(
+                  question.reviewState == QuestionReviewState.reviewed
+                      ? Icons.check_circle
+                      : Icons.check_circle_outline,
+                ),
+                label: Text(
+                  question.reviewState == QuestionReviewState.reviewed
+                      ? 'Questão revisada'
+                      : 'Confirmar questão revisada',
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -2003,6 +2197,10 @@ class _ImportReviewPageState extends State<ImportReviewPage>
         label: const Text('Adicionar questão'),
       ),
       const SizedBox(height: 16),
+      const Text(
+        'As alterações são salvas automaticamente. Você pode iniciar a prova sem publicar.',
+      ),
+      const SizedBox(height: 8),
       FilledButton(
         onPressed: busy
             ? null
@@ -2015,12 +2213,12 @@ class _ImportReviewPageState extends State<ImportReviewPage>
                   );
                 }
               },
-        child: const Text('Salvar só para mim'),
+        child: const Text('Salvar na biblioteca'),
       ),
       const SizedBox(height: 8),
       OutlinedButton(
         onPressed: busy ? null : _publish,
-        child: Text(busy ? 'Aguarde…' : 'Publicar para todos — requer conta'),
+        child: Text(busy ? 'Aguarde…' : 'Publicar para todos'),
       ),
       ExpansionTile(
         initiallyExpanded: sourceUrl.text.isNotEmpty,
@@ -2052,7 +2250,7 @@ class _ImportReviewPageState extends State<ImportReviewPage>
     },
     child: Scaffold(
       appBar: AppBar(
-        title: const Text('Editar e revisar prova'),
+        title: const Text('Revisar prova'),
         actions: [
           IconButton(
             tooltip: 'Exportar JSON',
@@ -2075,6 +2273,25 @@ class _ImportReviewPageState extends State<ImportReviewPage>
               _questionNavigation(),
               _footer(),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FilledButton.icon(
+                key: const ValueKey('start-local-exam'),
+                onPressed: busy ? null : _startLocally,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(
+                  'Começar prova · ${_questionCountLabel(_playableQuestions.length)}',
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -97,4 +97,40 @@ void main() {
     );
     expect(empty.scorePercent, 0);
   });
+
+  test('pontuação considera apenas questões que têm gabarito válido', () {
+    const exam = Exam(
+      id: 'misto',
+      category: 'Geral',
+      title: 'Prova',
+      description: '',
+      author: 'Fonte',
+      durationMinutes: 30,
+      attempts: 0,
+      questions: [
+        Question(
+          topic: 'Geral',
+          statement: 'Questão corrigível',
+          options: ['A', 'B'],
+          correctIndex: 1,
+        ),
+        Question(
+          topic: 'Geral',
+          statement: 'Questão sem gabarito',
+          options: ['A', 'B'],
+        ),
+      ],
+    );
+    final result = ExamResult(
+      exam: exam,
+      answers: const {0: 1, 1: 0},
+      markedForReview: const {},
+      durationSeconds: 30,
+      finishedAt: DateTime.utc(2026, 11, 3),
+    );
+
+    expect(result.correctableCount, 1);
+    expect(result.correct, 1);
+    expect(result.scorePercent, 100);
+  });
 }

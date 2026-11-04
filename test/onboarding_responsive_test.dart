@@ -5,6 +5,27 @@ import 'package:prova_social/core/theme/app_theme.dart';
 import 'package:prova_social/features/onboarding/onboarding_page.dart';
 
 void main() {
+  testWidgets('onboarding desktop keeps a readable width and advances', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.dark, home: const OnboardingPage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byType(PageView)).width, lessThanOrEqualTo(960));
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resolva sem distrações'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('onboarding fits a landscape phone without overflow', (
     tester,
   ) async {

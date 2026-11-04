@@ -12,6 +12,8 @@ void main() {
       metadata: const {
         'pageCount': 1,
         'languages': ['pt', 'en'],
+        'expectedQuestionCount': 80,
+        'expectedQuestionCountSource': 'user',
       },
       pages: [
         ImportedDocumentPage(
@@ -83,6 +85,8 @@ void main() {
     final restored = restoredExam.importedDocument!;
 
     expect(restored.id, source.id);
+    expect(restored.metadata['expectedQuestionCount'], 80);
+    expect(restored.metadata['expectedQuestionCountSource'], 'user');
     expect(restored.pages.single.regions.single['text'], 'Questão 1.');
     expect(restored.pages.single.previewBytes, [0xff, 0xd8, 0xff, 0xd9]);
     expect(restored.sections.single.questionIds, ['q-1']);
@@ -95,6 +99,20 @@ void main() {
     expect(restored.questions.single.supportingMaterialIds, ['mat-1']);
     final withoutQuestion = restored.copyWith(questions: []);
     expect(withoutQuestion.supportingMaterials, isEmpty);
+
+    final withExpectedCount = restored.copyWith(
+      metadata: {
+        ...restored.metadata,
+        'expectedQuestionCount': 80,
+        'expectedQuestionCountSource': 'user',
+      },
+      qualityNotices: const [
+        'Você informou 80 questões, mas o sistema identificou 1.',
+      ],
+    );
+    expect(withExpectedCount.metadata['expectedQuestionCount'], 80);
+    expect(withExpectedCount.metadata['expectedQuestionCountSource'], 'user');
+    expect(withExpectedCount.qualityNotices, hasLength(1));
   });
 
   test('keeps legacy question JSON readable and creates a stable ID', () {
