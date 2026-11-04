@@ -136,7 +136,18 @@ class ExamResult {
 
   int get scorePercent => exam.questions.isEmpty
       ? 0
-      : (correct / exam.questions.length * 100).round();
+      : correctableCount == 0
+      ? 0
+      : (correct / correctableCount * 100).round();
+
+  int get correctableCount => exam.questions
+      .where(
+        (question) =>
+            question.correctIndex != null &&
+            question.correctIndex! >= 0 &&
+            question.correctIndex! < question.options.length,
+      )
+      .length;
 
   List<int> get wrongQuestionIndices => [
     for (var index = 0; index < exam.questions.length; index++)

@@ -66,108 +66,135 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final last = page == slides.length - 1;
+    final horizontalInset = MediaQuery.sizeOf(context).width >= 960
+        ? 24.0
+        : 20.0;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 12, 0),
-              child: Row(
-                children: [
-                  const BrandLockup(),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => _finish(),
-                    child: const Text('Pular'),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(horizontalInset, 18, 12, 0),
+                  child: Row(
+                    children: [
+                      const BrandLockup(),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => _finish(),
+                        child: const Text('Pular'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             Expanded(
-              child: PageView.builder(
-                controller: controller,
-                itemCount: slides.length,
-                onPageChanged: (value) => setState(() => page = value),
-                itemBuilder: (context, index) =>
-                    _OnboardingSlide(data: slides[index], index: index),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: PageView.builder(
+                    controller: controller,
+                    itemCount: slides.length,
+                    onPageChanged: (value) => setState(() => page = value),
+                    itemBuilder: (context, index) =>
+                        _OnboardingSlide(data: slides[index], index: index),
+                  ),
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Semantics(
-                    label: 'Etapa ${page + 1} de ${slides.length}',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        slides.length,
-                        (index) => AnimatedContainer(
-                          duration: AppMotion.of(context, AppMotion.fast),
-                          width: index == page ? 24 : 7,
-                          height: 7,
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          decoration: BoxDecoration(
-                            color: index == page
-                                ? AppColors.brand
-                                : Theme.of(context).colorScheme.outline,
-                            borderRadius: BorderRadius.circular(8),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Semantics(
+                        label: 'Etapa ${page + 1} de ${slides.length}',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            slides.length,
+                            (index) => AnimatedContainer(
+                              duration: AppMotion.of(context, AppMotion.fast),
+                              width: index == page ? 24 : 7,
+                              height: 7,
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                color: index == page
+                                    ? AppColors.brand
+                                    : Theme.of(context).colorScheme.outline,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      if (page == 0)
+                        FilledButton(
+                          onPressed: () => _goToPage(page + 1),
+                          child: const Text('Continuar'),
+                        )
+                      else if (last) ...[
+                        FilledButton(
+                          onPressed: () => _finish(),
+                          child: const Text('Explorar sem conta'),
+                        ),
+                        const SizedBox(height: 4),
+                        TextButton(
+                          onPressed: () => _finish(login: true),
+                          child: const Text('Já tenho uma conta'),
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _goToPage(page - 1),
+                                icon: const Icon(Icons.arrow_back_rounded),
+                                label: const Text('Voltar'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () => _goToPage(page + 1),
+                                child: const Text('Continuar'),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  if (page == 0)
-                    FilledButton(
-                      onPressed: () => controller.nextPage(
-                        duration: AppMotion.of(context, AppMotion.normal),
-                        curve: Curves.easeOutCubic,
-                      ),
-                      child: const Text('Continuar'),
-                    )
-                  else if (last) ...[
-                    FilledButton(
-                      onPressed: () => _finish(),
-                      child: const Text('Explorar sem conta'),
-                    ),
-                    const SizedBox(height: 4),
-                    TextButton(
-                      onPressed: () => _finish(login: true),
-                      child: const Text('Já tenho uma conta'),
-                    ),
-                  ] else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => controller.previousPage(
-                              duration: AppMotion.of(context, AppMotion.normal),
-                              curve: Curves.easeOutCubic,
-                            ),
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            label: const Text('Voltar'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => controller.nextPage(
-                              duration: AppMotion.of(context, AppMotion.normal),
-                              curve: Curves.easeOutCubic,
-                            ),
-                            child: const Text('Continuar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _goToPage(int target) {
+    final boundedTarget = target.clamp(0, slides.length - 1).toInt();
+    if (!controller.hasClients) {
+      setState(() => page = boundedTarget);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && controller.hasClients) {
+          controller.jumpToPage(boundedTarget);
+        }
+      });
+      return;
+    }
+    controller.animateToPage(
+      boundedTarget,
+      duration: AppMotion.of(context, AppMotion.normal),
+      curve: Curves.easeOutCubic,
     );
   }
 }

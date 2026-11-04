@@ -8,6 +8,9 @@ enum ImportFailureCode {
   unreadablePage,
   inconsistentNumbering,
   uncertainQuestionStructure,
+  duplicateQuestion,
+  incompleteQuestionStructure,
+  questionCountMismatch,
 }
 
 class ImportDiagnosticEvent {
@@ -56,6 +59,9 @@ class ImportDiagnosticEvent {
     required int numberingIssues,
     required int questionsNeedingReview,
     required double? parserConfidence,
+    required int duplicateQuestionCount,
+    required int incompleteQuestionCount,
+    required bool questionCountMismatch,
   }) {
     final failures = <ImportFailureCode>[];
     if (questions.isEmpty &&
@@ -71,6 +77,15 @@ class ImportDiagnosticEvent {
     }
     if (questionsNeedingReview > 0) {
       failures.add(ImportFailureCode.uncertainQuestionStructure);
+    }
+    if (duplicateQuestionCount > 0) {
+      failures.add(ImportFailureCode.duplicateQuestion);
+    }
+    if (incompleteQuestionCount > 0) {
+      failures.add(ImportFailureCode.incompleteQuestionStructure);
+    }
+    if (questionCountMismatch) {
+      failures.add(ImportFailureCode.questionCountMismatch);
     }
     if (failures.isEmpty) return const [];
 
@@ -95,6 +110,10 @@ class ImportDiagnosticEvent {
     ImportFailureCode.unreadablePage => 'UNREADABLE_PAGE_V1',
     ImportFailureCode.inconsistentNumbering => 'QUESTION_SEQUENCE_V1',
     ImportFailureCode.uncertainQuestionStructure => 'QUESTION_STRUCTURE_V1',
+    ImportFailureCode.duplicateQuestion => 'DUPLICATE_QUESTION_V1',
+    ImportFailureCode.incompleteQuestionStructure =>
+      'INCOMPLETE_QUESTION_STRUCTURE_V1',
+    ImportFailureCode.questionCountMismatch => 'QUESTION_COUNT_MISMATCH_V1',
   };
 
   static String _structuralSignature(PdfExtractionResult extraction) {

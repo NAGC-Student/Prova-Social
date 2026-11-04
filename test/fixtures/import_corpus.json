@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "benchmarks": [
+    {
+      "id": "synthetic-two-column-80",
+      "source": {
+        "kind": "synthetic",
+        "description": "Fixture sintético gerado pelo projeto para QA local.",
+        "allowedForTesting": true,
+        "allowedForProductContent": false
+      },
+      "document": {
+        "path": "test/fixtures/synthetic_two_column_80_questions.pdf",
+        "sha256": "6bd984047b7810bd4dfb77c828618be1a8dfb3835e791b7c5be6093aefe1a473"
+      },
+      "parserSnapshot": {
+        "path": "lib/core/import/question_parser.dart",
+        "sha256": "942dd7947c9b2437dd25490734107909f66077b21530aec9347e628eb2c30ceb",
+        "expectedPages": 8,
+        "expectedQuestions": 80,
+        "expectedUnreadablePages": 0,
+        "expectedQuestionsNeedingReview": 0
+      }
+    },
+    {
+      "id": "user-provided-vunesp-2024-pm-sp",
+      "source": {
+        "kind": "user-provided-benchmark",
+        "description": "PDF fornecido pelo responsável para QA estrutural local.",
+        "licenseStatus": "not-verified",
+        "allowedForTesting": true,
+        "allowedForProductContent": false
+      },
+      "document": {
+        "path": "test/fixtures/vunesp_2024_pm_sp.pdf",
+        "sha256": "1a21836c69e9cc31c246d4f393aa234be340fb16a2de576d8e7dfe1e5108609d"
+      },
+      "parserSnapshot": {
+        "path": "lib/core/import/question_parser.dart",
+        "sha256": "942dd7947c9b2437dd25490734107909f66077b21530aec9347e628eb2c30ceb",
+        "expectedPages": 32,
+        "expectedQuestions": 80,
+        "expectedUnreadablePages": 0,
+        "expectedQuestionsNeedingReview": 4
+      }
+    }
+  ]
+}

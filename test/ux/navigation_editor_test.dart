@@ -17,6 +17,7 @@ import 'package:prova_social/core/import/question_parser.dart';
 import 'package:prova_social/features/home/home_page.dart';
 import 'package:prova_social/features/auth/auth_page.dart';
 import 'package:prova_social/features/publish/publish_page.dart';
+import 'package:prova_social/features/quiz/quiz_page.dart';
 
 final requests = <http.Request>[];
 bool failCatalogRequest = false;
@@ -258,12 +259,12 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
       expect(find.text('Questão 200'), findsNothing);
       await tester.scrollUntilVisible(
-        find.text('Marcar questão como revisada'),
+        find.text('Confirmar questão revisada'),
         300,
         scrollable: editorScroll,
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Marcar questão como revisada'));
+      await tester.tap(find.text('Confirmar questão revisada'));
       await tester.pumpAndSettle();
 
       await tester.drag(editorScroll, const Offset(0, 600));
@@ -536,7 +537,7 @@ void main() {
       await tester.pumpAndSettle();
       expect((await LocalExamStore().load()).single.title, 'Prova privada');
       expect(requests.where((r) => r.method == 'POST'), isEmpty);
-      final publishButton = find.text('Publicar para todos — requer conta');
+      final publishButton = find.text('Publicar para todos');
       await tester.scrollUntilVisible(
         publishButton,
         300,
@@ -590,7 +591,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: editor(questions: [question])));
     await tester.pumpAndSettle();
 
-    final publishButton = find.text('Publicar para todos — requer conta');
+    final publishButton = find.text('Publicar para todos');
     await tester.scrollUntilVisible(
       publishButton,
       300,
@@ -610,6 +611,55 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'starts with complete identified questions while incomplete ones stay in the draft',
+    (tester) async {
+      final questions = [
+        ImportedQuestion(
+          statement: 'Questão identificada, ainda sem revisão?',
+          options: const ['Primeira alternativa', 'Segunda alternativa'],
+          confidence: .55,
+        ),
+        ImportedQuestion(statement: '', options: const ['', ''], confidence: 0),
+      ];
+      await tester.pumpWidget(MaterialApp(home: editor(questions: questions)));
+      await tester.pumpAndSettle();
+
+      final startButton = find.byKey(const ValueKey('start-local-exam'));
+      expect(find.text('Começar prova · 1 questão'), findsOneWidget);
+      await tester.tap(startButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Começar com questões completas?'), findsOneWidget);
+      await tester.tap(find.text('Iniciar com 1 questão'));
+      for (
+        var attempt = 0;
+        attempt < 50 && find.byType(QuizPage).evaluate().isEmpty;
+        attempt++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.byType(QuizPage), findsOneWidget);
+      expect(
+        tester.widget<QuizPage>(find.byType(QuizPage)).exam.questions,
+        hasLength(1),
+      );
+      expect(
+        tester
+            .widget<QuizPage>(find.byType(QuizPage))
+            .exam
+            .questions
+            .single
+            .statement,
+        'Questão identificada, ainda sem revisão?',
+      );
+      expect(requests.where((request) => request.method == 'POST'), isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'OAuth reload restores pending draft but never publishes automatically',
     (tester) async {

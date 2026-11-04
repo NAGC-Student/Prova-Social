@@ -1,6 +1,7 @@
 import 'pdf_text_extractor.dart';
 import 'import_diagnostic_event.dart';
 import 'question_parser.dart';
+import 'text_normalizer.dart';
 
 enum ImportQualityStatus { good, review, retry }
 
@@ -11,6 +12,11 @@ class ImportQualityAssessment {
     required this.ocrConfidence,
     required this.questionsNeedingReview,
     required this.questionsWithVariants,
+    required this.duplicateQuestionCount,
+    required this.incompleteQuestionCount,
+    required this.expectedQuestionCount,
+    required this.questionCountMismatch,
+    required this.missingExpectedQuestionCount,
     required this.unreadablePages,
     required this.numberingIssues,
     required this.diagnostics,
@@ -22,6 +28,11 @@ class ImportQualityAssessment {
   final double? ocrConfidence;
   final int questionsNeedingReview;
   final int questionsWithVariants;
+  final int duplicateQuestionCount;
+  final int incompleteQuestionCount;
+  final int? expectedQuestionCount;
+  final bool questionCountMismatch;
+  final int missingExpectedQuestionCount;
   final int unreadablePages;
   final int numberingIssues;
   final List<ImportDiagnosticEvent> diagnostics;
@@ -71,8 +82,26 @@ class ImportQualityGate {
 
   ImportQualityAssessment assess(
     PdfExtractionResult extraction,
-    List<ImportedQuestion> questions,
-  ) {
+    List<ImportedQuestion> questions, {
+    int? expectedQuestionCount,
+  }) {
+    if (expectedQuestionCount != null && expectedQuestionCount < 1) {
+      throw ArgumentError.value(
+        expectedQuestionCount,
+        'expectedQuestionCount',
+        'Must be positive when provided.',
+      );
+    }
+    final duplicateQuestionCount = _markDuplicateQuestions(questions);
+    final incompleteQuestionCount = _markIncompleteQuestions(questions);
+    final questionCountMismatch =
+        expectedQuestionCount != null &&
+        expectedQuestionCount != questions.length;
+    final missingExpectedQuestionCount = expectedQuestionCount == null
+        ? 0
+        : expectedQuestionCount > questions.length
+        ? expectedQuestionCount - questions.length
+        : 0;
     final unreadablePages = extraction.unreadablePages;
     final confidenceThreshold = reviewConfidenceThreshold.isFinite
         ? reviewConfidenceThreshold.clamp(0, 1).toDouble()
@@ -121,7 +150,30 @@ class ImportQualityGate {
     }
     if (questionsNeedingReview > 0) {
       reasons.add(
-        '$questionsNeedingReview questão(ões) com estrutura incerta.',
+        '$questionsNeedingReview '
+        '${questionsNeedingReview == 1 ? 'questão precisa' : 'questões precisam'} '
+        'de revisão por estrutura incerta.',
+      );
+    }
+    if (duplicateQuestionCount > 0) {
+      reasons.add(
+        '$duplicateQuestionCount '
+        '${duplicateQuestionCount == 1 ? 'questão duplicada' : 'questões duplicadas'} '
+        'no texto extraído; confira antes de usar.',
+      );
+    }
+    if (incompleteQuestionCount > 0) {
+      reasons.add(
+        '$incompleteQuestionCount '
+        '${incompleteQuestionCount == 1 ? 'questão está' : 'questões estão'} '
+        'com estrutura incompleta; confira enunciado, alternativas e gabarito.',
+      );
+    }
+    if (questionCountMismatch) {
+      reasons.add(
+        'Você informou $expectedQuestionCount questões, mas o sistema '
+        'identificou ${questions.length}. Confira possíveis perdas ou '
+        'questões excedentes.',
       );
     }
     if (numberingIssues > 0) {
@@ -146,6 +198,9 @@ class ImportQualityGate {
       numberingIssues: numberingIssues,
       questionsNeedingReview: questionsNeedingReview,
       parserConfidence: parserConfidence,
+      duplicateQuestionCount: duplicateQuestionCount,
+      incompleteQuestionCount: incompleteQuestionCount,
+      questionCountMismatch: questionCountMismatch,
     );
     return ImportQualityAssessment(
       status: status,
@@ -153,6 +208,11 @@ class ImportQualityGate {
       ocrConfidence: ocrConfidence,
       questionsNeedingReview: questionsNeedingReview,
       questionsWithVariants: questionsWithVariants,
+      duplicateQuestionCount: duplicateQuestionCount,
+      incompleteQuestionCount: incompleteQuestionCount,
+      expectedQuestionCount: expectedQuestionCount,
+      questionCountMismatch: questionCountMismatch,
+      missingExpectedQuestionCount: missingExpectedQuestionCount,
       unreadablePages: unreadablePages,
       numberingIssues: numberingIssues,
       diagnostics: diagnostics,
@@ -179,5 +239,87 @@ class ImportQualityGate {
       previousNumber = number;
     }
     return issues;
+  }
+
+  int _markDuplicateQuestions(List<ImportedQuestion> questions) {
+    final indicesByContent = <String, List<int>>{};
+    for (var index = 0; index < questions.length; index++) {
+      final question = questions[index];
+      final statement = _normalizeForComparison(question.statement);
+      if (statement.isEmpty) continue;
+      final options = question.options
+          .map(_normalizeForComparison)
+          .toList(growable: false);
+      final fingerprint = [
+        question.format.name,
+        statement,
+        ...options,
+      ].join('\u0000');
+      indicesByContent.putIfAbsent(fingerprint, () => []).add(index);
+    }
+
+    var duplicates = 0;
+    for (final indices in indicesByContent.values.where(
+      (indices) => indices.length > 1,
+    )) {
+      duplicates += indices.length - 1;
+      for (final index in indices) {
+        _flagForReview(
+          questions[index],
+          'Conteúdo duplicado no texto extraído; confirme se a questão aparece mais de uma vez na prova.',
+        );
+      }
+    }
+    return duplicates;
+  }
+
+  int _markIncompleteQuestions(List<ImportedQuestion> questions) {
+    var incomplete = 0;
+    for (final question in questions) {
+      final hasInvalidAnswer =
+          question.correctIndex != null &&
+          (question.correctIndex! < 0 ||
+              question.correctIndex! >= question.options.length);
+      final hasInvalidStatement = question.statement.trim().length < 2;
+      final requiresOptions = switch (question.format) {
+        QuestionFormat.multipleChoice ||
+        QuestionFormat.trueFalse ||
+        QuestionFormat.assertion => true,
+        QuestionFormat.openEnded || QuestionFormat.unknown => false,
+      };
+      final hasInvalidOptions =
+          requiresOptions &&
+          (question.options.length < 2 ||
+              question.options.any((option) => option.trim().isEmpty));
+      final hasUnknownFormat = question.format == QuestionFormat.unknown;
+      if (!hasInvalidAnswer &&
+          !hasInvalidStatement &&
+          !hasInvalidOptions &&
+          !hasUnknownFormat) {
+        continue;
+      }
+      incomplete++;
+      _flagForReview(
+        question,
+        'Estrutura incompleta ou formato não identificado; confira enunciado, alternativas e gabarito.',
+      );
+    }
+    return incomplete;
+  }
+
+  String _normalizeForComparison(String value) =>
+      ExamTextNormalizer.normalize(value)
+          .toLowerCase()
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+  void _flagForReview(ImportedQuestion question, String warning) {
+    if (!question.warnings.contains(warning)) question.warnings.add(warning);
+    if (question.warning == null) {
+      question.warning = warning;
+    } else if (!question.warning!.contains(warning)) {
+      question.warning = '${question.warning} $warning';
+    }
+    question.reviewState = QuestionReviewState.needsAttention;
   }
 }

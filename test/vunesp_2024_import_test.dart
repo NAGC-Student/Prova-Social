@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
@@ -16,11 +18,31 @@ void main() {
       );
 
   test('imports the user-provided 2024 VUNESP exam structurally', () async {
-    final bytes = await File('test/fixtures/vunesp_2024_pm_sp.pdf')
-        .readAsBytes();
+    final corpus = jsonDecode(
+      await File('test/fixtures/import_corpus.json').readAsString(),
+    ) as Map<String, dynamic>;
+    final benchmark = (corpus['benchmarks'] as List)
+        .cast<Map<String, dynamic>>()
+        .singleWhere((item) => item['id'] == 'user-provided-vunesp-2024-pm-sp');
+    final source = benchmark['source'] as Map<String, dynamic>;
+    expect(source['kind'], 'user-provided-benchmark');
+    expect(source['licenseStatus'], 'not-verified');
+    expect(source['allowedForTesting'], isTrue);
+    expect(source['allowedForProductContent'], isFalse);
+    final document = benchmark['document'] as Map<String, dynamic>;
+    final parserSnapshot = benchmark['parserSnapshot'] as Map<String, dynamic>;
+    final bytes = await File(document['path'] as String).readAsBytes();
+    expect(sha256.convert(bytes).toString(), document['sha256']);
+    expect(
+      sha256
+          .convert(await File(parserSnapshot['path'] as String).readAsBytes())
+          .toString(),
+      parserSnapshot['sha256'],
+      reason: 'Update the parser snapshot after intentional review.',
+    );
     final extraction = await const PdfTextExtractor().extract(
       bytes,
-      sourceName: 'vunesp_2024_pm_sp.pdf',
+      sourceName: document['path'] as String,
     );
     final questions = const QuestionParser().parsePages(
       extraction.pages.map((page) => page.text).toList(growable: false),
@@ -29,11 +51,14 @@ void main() {
     qualityGate.markNumberingIssues(questions);
     final quality = qualityGate.assess(extraction, questions);
 
-    expect(extraction.pageCount, 32);
-    expect(extraction.pagesWithText, 32);
+    expect(extraction.pageCount, parserSnapshot['expectedPages']);
+    expect(extraction.pagesWithText, parserSnapshot['expectedPages']);
     expect(extraction.ocrPages, 0);
-    expect(extraction.unreadablePages, 0);
-    expect(questions, hasLength(80));
+    expect(
+      extraction.unreadablePages,
+      parserSnapshot['expectedUnreadablePages'],
+    );
+    expect(questions, hasLength(parserSnapshot['expectedQuestions'] as int));
     expect(questions.every((question) => question.sourcePage != null), isTrue);
     expect(questions.map((question) => question.number), [
       for (var number = 1; number <= 80; number++) number,
@@ -80,7 +105,10 @@ void main() {
     expect(extraction.pages[31].text, contains('CLASSIFICAÇÃO'));
     expect(extraction.pages[31].text, contains('ÓDICA'));
     expect(quality.status, ImportQualityStatus.review);
-    expect(quality.questionsNeedingReview, 4);
+    expect(
+      quality.questionsNeedingReview,
+      parserSnapshot['expectedQuestionsNeedingReview'],
+    );
 
     final questionPages = byNumber.values
         .where((question) => question.warning != null)

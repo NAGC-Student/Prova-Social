@@ -5,10 +5,12 @@ import 'package:image/image.dart' as img;
 
 import 'package:pdfrx/pdfrx.dart';
 
+import 'page_furniture_filter.dart';
 import 'ocr_service.dart';
 import 'ocr_layout_orderer.dart';
 import 'ocr_router.dart';
 import 'ocr_recognition.dart';
+import 'text_normalizer.dart';
 
 enum PdfPageTextSource { nativeText, onDeviceOcr, none }
 
@@ -24,6 +26,7 @@ class PdfPageExtraction {
     this.engineUsed,
     this.confidence,
     this.regions = const [],
+    this.footerLines = const <int>{},
     this.warning,
   });
 
@@ -37,19 +40,48 @@ class PdfPageExtraction {
   final OcrEngine? engineUsed;
   final double? confidence;
   final List<OcrTextRegion> regions;
+
+  /// Indexes of the lines that sit in the bottom band of the sheet, where a
+  /// page number or a column footer is printed.
+  final Set<int> footerLines;
+
   final String? warning;
 
   bool get hasText => text.trim().isNotEmpty;
 
   bool get hasUsableText =>
       text.trim().length >= PdfTextExtractor.minimumNativeTextLength;
+
+  PdfPageExtraction withText(String cleaned, {String? warning}) =>
+      PdfPageExtraction(
+        pageNumber: pageNumber,
+        nativeText: nativeText,
+        text: cleaned,
+        source: source,
+        ocrAttempted: ocrAttempted,
+        route: route,
+        routeReason: routeReason,
+        engineUsed: engineUsed,
+        confidence: confidence,
+        regions: regions,
+        footerLines: footerLines,
+        warning: warning ?? this.warning,
+      );
 }
 
 class PdfExtractionResult {
-  const PdfExtractionResult({required this.pages, required this.ocrAvailable});
+  const PdfExtractionResult({
+    required this.pages,
+    required this.ocrAvailable,
+    this.furnitureLines = const [],
+  });
 
   final List<PdfPageExtraction> pages;
   final bool ocrAvailable;
+
+  /// Running headers, footers and page numbers that were dropped before the
+  /// parser saw the text.
+  final List<String> furnitureLines;
 
   int get pageCount => pages.length;
 
@@ -110,6 +142,10 @@ class PdfTextExtractor {
 
   static const minimumNativeTextLength = OcrRouter.minimumNativeTextLength;
   static const defaultMaxPages = 500;
+
+  /// Fraction of the sheet height, measured from its bottom edge, where a page
+  /// number or the footer of a column sits.
+  static const footerBand = .14;
   static Future<void>? _pdfrxInitialization;
   final OcrRouter router;
   final OcrLayoutOrderer layoutOrderer;
@@ -156,11 +192,12 @@ class PdfTextExtractor {
       final pageResults = <PdfPageExtraction>[];
       for (final page in document.pages) {
         final structuredText = await page.loadStructuredText();
-        final nativeText = _nativeTextInReadingOrder(
+        final native = _nativeTextInReadingOrder(
           structuredText,
           pageWidth: page.width,
           pageHeight: page.height,
-        ).trim();
+        );
+        final nativeText = native.text;
         final decision = router.decide(
           nativeText: nativeText,
           availableEngines: ocr.availableEngines,
@@ -175,6 +212,7 @@ class PdfTextExtractor {
               ocrAttempted: false,
               route: decision.route,
               routeReason: decision.reason,
+              footerLines: native.footerLines,
             ),
           );
           continue;
@@ -192,6 +230,7 @@ class PdfTextExtractor {
               ocrAttempted: false,
               route: decision.route,
               routeReason: decision.reason,
+              footerLines: native.footerLines,
               warning: decision.reason,
             ),
           );
@@ -240,6 +279,9 @@ class PdfTextExtractor {
             engineUsed: recognized?.engine,
             confidence: recognized?.confidence,
             regions: recognized?.regions ?? const [],
+            // The footer coordinates belong to the text layer: an OCR page has
+            // its own lines and falls back to the position-based edge rule.
+            footerLines: hasRecognizedText ? const <int>{} : native.footerLines,
             warning: hasRecognizedText
                 ? null
                 : engineFailed
@@ -248,9 +290,11 @@ class PdfTextExtractor {
           ),
         );
       }
+      final cleaned = _cleanExtractedPages(pageResults);
       return PdfExtractionResult(
-        pages: List.unmodifiable(pageResults),
+        pages: cleaned.pages,
         ocrAvailable: ocr.availableEngines.isNotEmpty,
+        furnitureLines: cleaned.furnitureLines,
       );
     } finally {
       try {
@@ -259,6 +303,30 @@ class PdfTextExtractor {
         await ocr.dispose();
       }
     }
+  }
+
+  /// Removes the running furniture and then normalizes the characters.
+  ///
+  /// A line is only proven to be a header once it keeps returning to the edge
+  /// of page after page, so that evidence has to be gathered while the column
+  /// wrapping is still visible: unwrapping first would glue a header to the
+  /// sentence above it and hide the repetition.
+  ({List<PdfPageExtraction> pages, List<String> furnitureLines})
+  _cleanExtractedPages(List<PdfPageExtraction> pageResults) {
+    final furniture = PageFurnitureFilter().apply(
+      pageResults.map((page) => page.text),
+      footers: pageResults.map((page) => page.footerLines).toList(),
+    );
+    final pages = <PdfPageExtraction>[
+      for (var index = 0; index < pageResults.length; index++)
+        pageResults[index].withText(
+          ExamTextNormalizer.normalize(furniture.pages[index]),
+        ),
+    ];
+    return (
+      pages: List.unmodifiable(pages),
+      furnitureLines: furniture.removedLines,
+    );
   }
 
   /// Renders only requested source pages for image based question review.
@@ -343,12 +411,14 @@ class PdfTextExtractor {
     }
   }
 
-  String _nativeTextInReadingOrder(
+  ({String text, Set<int> footerLines}) _nativeTextInReadingOrder(
     PdfPageText pageText, {
     required double pageWidth,
     required double pageHeight,
   }) {
-    if (pageText.fragments.isEmpty) return pageText.fullText;
+    if (pageText.fragments.isEmpty) {
+      return (text: pageText.fullText, footerLines: const <int>{});
+    }
 
     final lines = <_NativeTextLine>[];
     for (final fragment in pageText.fragments) {
@@ -380,13 +450,6 @@ class PdfTextExtractor {
     for (final line in lines) {
       line.sortFragments();
     }
-    lines.removeWhere((line) {
-      if (line.centerY >= pageHeight * .06) return false;
-      final text = line.text.trim();
-      return RegExp(r'^\d{1,3}$').hasMatch(text) ||
-          text.contains('Confidencial') ||
-          text.contains('PMES2401');
-    });
     final columnLines = lines
         .where((line) => line.width < pageWidth * .58)
         .toList(growable: false);
@@ -394,7 +457,7 @@ class PdfTextExtractor {
     if (splitX == null) {
       final singleColumn = [...lines]
         ..sort((a, b) => b.centerY.compareTo(a.centerY));
-      return singleColumn.map((line) => line.text).join('\n');
+      return _joinReadingBlocks([singleColumn], pageHeight: pageHeight);
     }
 
     final left = columnLines.where((line) => line.centerX < splitX).toList()
@@ -412,16 +475,38 @@ class PdfTextExtractor {
               2;
     final topSpanning = spanning
         .where((line) => line.centerY >= bodyMidpoint)
-        .map((line) => line.text);
+        .toList(growable: false);
     final bottomSpanning = spanning
         .where((line) => line.centerY < bodyMidpoint)
-        .map((line) => line.text);
-    return [
-      topSpanning.join('\n'),
-      left.map((line) => line.text).join('\n'),
-      right.map((line) => line.text).join('\n'),
-      bottomSpanning.join('\n'),
-    ].where((column) => column.isNotEmpty).join('\n\n');
+        .toList(growable: false);
+    return _joinReadingBlocks([
+      topSpanning,
+      left,
+      right,
+      bottomSpanning,
+    ], pageHeight: pageHeight);
+  }
+
+  /// Flattens the column blocks into one page text and reports which lines sit
+  /// in the bottom band of the sheet. A footer is furniture wherever a column
+  /// ends, and only the geometry knows that the tail of the left column is a
+  /// page number rather than the end of a sentence.
+  ({String text, Set<int> footerLines}) _joinReadingBlocks(
+    List<List<_NativeTextLine>> blocks, {
+    required double pageHeight,
+  }) {
+    final lines = <String>[];
+    final footerLines = <int>{};
+    final foot = pageHeight * footerBand;
+    for (final block in blocks) {
+      if (block.isEmpty) continue;
+      if (lines.isNotEmpty) lines.add('');
+      for (final line in block) {
+        if (line.centerY <= foot) footerLines.add(lines.length);
+        lines.add(line.text);
+      }
+    }
+    return (text: lines.join('\n'), footerLines: Set.unmodifiable(footerLines));
   }
 
   double? _findNativeColumnSplit(

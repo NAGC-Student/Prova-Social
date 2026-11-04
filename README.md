@@ -28,9 +28,12 @@ Transforme provas em aprendizado real. Não é apenas outro app de estudos — �
 - Imagens
 - Criação manual de questões
 - Dashboard de progresso da importação
+- Questões completas podem ser resolvidas sem concluir toda a revisão; questões incompletas ficam de fora da tentativa após confirmação
+- Revisão do gabarito continua obrigatória antes de publicar para a comunidade
 
 ### ⏱️ Modo Foco
-- Cronômetro configurável (total e por questão)
+- Cronômetro configurável: livre, tempo total da prova ou tempo por questão
+- Contagem regressiva com aviso de tempo esgotado e cronômetro ocultável
 - Interface limpa, sem distrações
 - Navegação entre questões
 - Marcar para revisão
@@ -39,13 +42,13 @@ Transforme provas em aprendizado real. Não é apenas outro app de estudos — �
 - Percentual sobre questões corrigíveis
 - Contagem de acertos, erros e questões sem gabarito
 - **Prova das erradas**: gere uma prova apenas com questões que errou
-- Revisão questão a questão com explicação
+- Revisão questão a questão com gabarito (ainda sem explicação)
 
 ### 👤 Perfil e Sociais
-- Perfil com estatísticas reais
-- Seguir assuntos e provas
+- Perfil com conta, provas salvas e histórico de resultados
+- Seguir assuntos
 - Discussão por questão
-- Comunidades sugeridas
+- Provas publicadas pela comunidade, com origem visível
 
 ## 📱 Experiência Móvel
 
@@ -53,7 +56,7 @@ O aplicativo foi desenvolvido para celular primeiro:
 
 - Interface rápida e responsiva
 - Target de toque ~48×48 px
-- Tema claro e escuro
+- Tema escuro em todo o app (a escolha de tema ainda não existe)
 - Suporte à redução de movimento
 - Loading que preserva o formato da página
 
@@ -113,7 +116,7 @@ cp .env.supabase.json.example .env.supabase.json
 - Resultados em lista compacta
 
 ### Modo Foco
-- Cronômetro configurável
+- Cronômetro configurável (livre, total da prova ou por questão)
 - Questão atual e progresso
 - Alternativas com resposta instantânea
 - Marcar para revisão
@@ -122,7 +125,7 @@ cp .env.supabase.json.example .env.supabase.json
 - Percentual sobre questões corrigíveis
 - Contagem: acertos, erros, em branco, sem gabarito
 - **Prova das erradas**: gere nova prova com questões erradas
-- Cada questão: sua resposta, correta, explicação
+- Cada questão: sua resposta e o gabarito correto
 
 ### Importação
 - Dashboard de progresso em etapas reais
@@ -139,6 +142,16 @@ cp .env.supabase.json.example .env.supabase.json
 - **Modo Foco**: cronômetro isolado, não bloqueia ações
 - **Redução de movimento**: respeita configuração do sistema
 - **Uma ação principal por tela**: não sobrecarrega o usuário
+
+## 🧭 O que ainda não existe
+
+Listado para que a promessa do produto e o estado real do app não se confundam:
+
+- **Explicação de questão**: `Question` não tem campo de explicação e a revisão mostra apenas o gabarito. Depende de conteúdo, não só de interface.
+- **Seguir provas, bancas e concursos**: só `topic_follows` (assuntos) é usado pelo app. As tabelas `profile_follows`, `collections` e `collection_exams` existem apenas no desenho de backend (`supabase/prova_social_backend_v1.sql`), sem migração aplicada.
+- **Comunidades**: não há entidade, tela ou consulta de comunidade.
+- **Questões discursivas**: o modelo de questão aceita uma única alternativa correta.
+- **Tema claro**: `AppTheme.light` existe, mas o app força `ThemeMode.dark` e o Modo Foco ainda usa cores escuras fixas. Uma tela de preferência é pré-requisito.
 
 ## 📦 Distribuição
 

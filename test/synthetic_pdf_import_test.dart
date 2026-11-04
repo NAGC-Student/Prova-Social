@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/import/import_quality_gate.dart';
@@ -16,21 +18,44 @@ void main() {
   test(
     'imports all 80 original synthetic questions from a two-column PDF',
     () async {
-      final pdf = await File(
-        'test/fixtures/synthetic_two_column_80_questions.pdf',
-      ).readAsBytes();
+      final corpus = jsonDecode(
+        await File('test/fixtures/import_corpus.json').readAsString(),
+      ) as Map<String, dynamic>;
+      expect(corpus['schemaVersion'], 1);
+      final benchmark = (corpus['benchmarks'] as List)
+          .cast<Map<String, dynamic>>()
+          .singleWhere((item) => item['id'] == 'synthetic-two-column-80');
+      final source = benchmark['source'] as Map<String, dynamic>;
+      expect(source['kind'], 'synthetic');
+      expect(source['allowedForTesting'], isTrue);
+      expect(source['allowedForProductContent'], isFalse);
+      final document = benchmark['document'] as Map<String, dynamic>;
+      final parserSnapshot =
+          benchmark['parserSnapshot'] as Map<String, dynamic>;
+      final pdf = await File(document['path'] as String).readAsBytes();
+      expect(sha256.convert(pdf).toString(), document['sha256']);
+      final parserSource = await File(parserSnapshot['path'] as String)
+          .readAsBytes();
+      expect(
+        sha256.convert(parserSource).toString(),
+        parserSnapshot['sha256'],
+        reason: 'Update the parser snapshot after intentional review.',
+      );
       final extraction = await const PdfTextExtractor().extract(
         pdf,
-        sourceName: 'synthetic_two_column_80_questions.pdf',
+        sourceName: document['path'] as String,
       );
       final questions = const QuestionParser().parsePages(
         extraction.pages.map((page) => page.text).toList(growable: false),
       );
       final quality = const ImportQualityGate().assess(extraction, questions);
 
-      expect(extraction.pageCount, 8);
-      expect(extraction.unreadablePages, 0);
-      expect(questions, hasLength(80));
+      expect(extraction.pageCount, parserSnapshot['expectedPages']);
+      expect(
+        extraction.unreadablePages,
+        parserSnapshot['expectedUnreadablePages'],
+      );
+      expect(questions, hasLength(parserSnapshot['expectedQuestions'] as int));
       expect(questions.map((question) => question.number), [
         for (var number = 1; number <= 80; number++) number,
       ]);
@@ -55,7 +80,10 @@ void main() {
           'Código ${(3 * number + 2).toString().padLeft(3, '0')}',
       ]);
       expect(quality.status, ImportQualityStatus.good);
-      expect(quality.questionsNeedingReview, 0);
+      expect(
+        quality.questionsNeedingReview,
+        parserSnapshot['expectedQuestionsNeedingReview'],
+      );
     },
   );
 
