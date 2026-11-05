@@ -293,6 +293,27 @@ atualizado: 2026-11-05
   ordem original e 0 na reordenada; índice além do novo tamanho desaparece sem
   aviso; o `clientAttemptId` é preservado na retomada e a fila recusa payload
   diferente sob o mesmo ID.
+- **Régua de qualidade e auditoria medida (2026-11-05):** nova etapa da Fase 2 —
+  pesquisar o cânone (SOLID nas fontes primárias, Clean Code verificável,
+  Ousterhout, princípios de componente, canon de teste de Feathers) e aplicar ao
+  `lib/`. Duas notas:
+  [[../05 - Qualidade/Critérios de Qualidade de Código]] (normativa, 10 regras de
+  porta, cada regra com *como verificar*) e
+  [[../05 - Qualidade/Auditoria de Clean Code e SOLID medida]] (dívida com
+  `arquivo:linha`). Medidas novas: as 111 regras já habilitadas dão **0**
+  diagnósticos — a dívida está toda no que ferramenta nenhuma vê; com 33 regras de
+  arquitetura extras, **901** (796 de documentação de widget, 105 reais: 51 `catch`
+  sem `on`, 8 futuros descartados, 8 IO lento em async, 6 `Map` cru, 4 atribuições
+  de parâmetro); **2 ciclos** de import (`quiz↔result` e
+  `publish→home→auth→publish`), o que corrige a leitura anterior de que "o problema
+  não é ciclo"; amplificação de mudança **7,03 arquivos/commit** (máx. 32) nos 40
+  últimos commits de `lib/`; 4 portas no `lib/` inteiro (3 `abstract class` + 1
+  `abstract interface class`) contra 8 serviços com default concreto, 214 classes
+  com 60 dentro dos 4 arquivos de tela. A config de
+  lints foi **restaurada** depois da medição (`git status` limpo; ativá-las na
+  esteira é mudança de gate e pede aval). A nota
+  [[../02 - Arquitetura/Mapa de Dependências]] ganhou a seção "Ciclos — correção
+  desta nota".
 - **Próxima fase técnica — strangler, não big-bang:** a refatoração *global* de uma
   vez continua descartada (risco 12 da
   [[../09 - Auditoria/Síntese da Refatoração|Síntese]]); o movimento certo é construir

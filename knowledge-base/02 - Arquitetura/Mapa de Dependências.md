@@ -46,12 +46,26 @@ mede.
 Leituras relevantes:
 
 - **`domain` não importa ninguém** (fan-out interno 0). A pureza existe; o
-  problema não é ciclo, é **escopo**: 236 linhas para todo o modelo.
+  problema de `domain` é **escopo**: 236 linhas para todo o modelo. Ciclos existem,
+  mas em outro lugar — ver "Ciclos — correção desta nota" abaixo.
 - **`core/import` só é alcançado por `features/publish`** (7 arestas). É a única
   fronteira limpa do app — extrair a importação para um pacote próprio é
   mecanicamente possível.
 - **`core/backend` é alcançado por 6 features** (`publish`, `quiz`, `home`,
   `share`, `result`, `search`, `auth`). É onde a UI e o fornecedor se misturam.
+
+## Ciclos — correção desta nota (2026-11-05)
+
+A frase "o problema não é ciclo" vale só para `domain` (fan-out 0, confirmado).
+Rodando strongly-connected components sobre as 144 arestas internas, **existem 2
+ciclos**: `quiz_page.dart` ↔ `result_page.dart`, e
+`publish_page.dart → home_page.dart → auth_page.dart → publish_page.dart`. Há 16
+arestas entre features vizinhas e a instabilidade por área é `domain` 0,00 /
+`core/import` 0,39 / `core/backend` 0,43 / `features/publish` 0,94. Consequência:
+extrair `quiz` sem tocar `result` não é refatoração, é mudança de comportamento —
+pelo ADP os dois são um módulo só hoje. Medição, comandos e o item da
+recomendação estão em
+[[../05 - Qualidade/Auditoria de Clean Code e SOLID medida]].
 
 ## Fan-in / fan-out extremos
 

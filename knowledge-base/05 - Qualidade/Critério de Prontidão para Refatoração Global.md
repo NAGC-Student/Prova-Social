@@ -121,10 +121,19 @@ Encerrar "investigar e acumular" e abrir "planejar o app novo sobre o atual"
 - [ ] As migrations reproduzirem 100 % das tabelas que o cliente toca (nenhuma
       dependência de SQL solto), com `local_db_test.sh` no CI.
 - [x] O vault estiver commitado — `eebb2b0`, 76 arquivos versionados.
+- [x] Houver régua normativa de qualidade com método de verificação por regra —
+      [[Critérios de Qualidade de Código]] (10 "regras de porta" para a camada
+      nova) e a dívida localizada em [[Auditoria de Clean Code e SOLID medida]].
+- [ ] As 33 regras extras de arquitetura estarem **ligadas na esteira** com os 105
+      diagnósticos reais zerados — é mudança de gate e pede aval; a medição foi
+      feita com config temporária já restaurada.
 - [ ] Houver um `integration_test/` mínimo (documento sintético) percorrendo
       importar → revisar → publicar → fazer → finalizar.
 
-Restam, portanto, três itens de produto e de teste — não mais "coletar conteúdo".
+Restam, portanto, cinco itens — três de decisão/teste (ADRs, caracterização de
+tela, `integration_test`) e dois de esteira (migrations reproduzíveis, lints de
+arquitetura ligados). Nenhum deles é "coletar mais conteúdo": a investigação já
+produce régua, medidas e evidência suficientes para planejar o app novo.
 
 ## O que a caracterização congelou (`ff3be0c`)
 
@@ -171,12 +180,15 @@ recusa payload diferente sob o mesmo ID.
 | [[../03 - Domínios/Modelo de Domínio Atual]] | domínio real, 236 linhas, políticas espalhadas | VALIDADO |
 | [[../03 - Domínios/Contratos de Domínio Alvo]] | C1–C7 com invariantes e testes exigidos | INTENÇÃO |
 | [[../04 - Infraestrutura/Inventário de Persistência e Dados]] | 3 trilhas de SQL, chaves locais, RPCs | VALIDADO |
-| [[../02 - Arquitetura/Mapa de Dependências]] | arestas, vendor, singletons, classes por arquivo | VALIDADO |
+| [[../02 - Arquitetura/Mapa de Dependências]] | arestas, ciclos, vendor, singletons, classes por arquivo | VALIDADO |
 | [[../02 - Arquitetura/Fluxos Reais]] | F1–F4 com estados de falha | VALIDADO |
 | [[../01 - Produto/Inventário de Telas e Cobertura]] | 17 telas, navegação, cobertura | VALIDADO |
+| [[Critérios de Qualidade de Código]] | régua normativa + como verificar cada regra | VALIDADO |
+| [[Auditoria de Clean Code e SOLID medida]] | onde cada violação está, com números | VALIDADO |
 
 ## Links
 
 [[../00 - Central/Roadmap]] · [[../09 - Auditoria/Síntese da Refatoração]] ·
 [[../06 - Decisões/ADR/README]] · [[../00 - Central/Estado Atual]] ·
-[[Validação Atual]]
+[[Validação Atual]] · [[Critérios de Qualidade de Código]] ·
+[[Auditoria de Clean Code e SOLID medida]]

@@ -39,6 +39,8 @@ requisitos sem autorização.
 - [[../04 - Infraestrutura/Inventário de Persistência e Dados|Inventário de persistência e dados]] — três trilhas de SQL, chaves locais e contratos de RPC.
 - [[../05 - Qualidade/Validação Atual|Qualidade]] — verificações, limites e regressões.
 - [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|Critério de prontidão]] — quando parar de acumular e começar a planejar.
+- [[../05 - Qualidade/Critérios de Qualidade de Código|Critérios de qualidade (SOLID/Clean Code)]] — a régua normativa da camada nova, com o método de verificação de cada regra.
+- [[../05 - Qualidade/Auditoria de Clean Code e SOLID medida|Auditoria de qualidade medida]] — onde cada violação está, com números reproduzíveis.
 - [[../06 - Decisões/ADR/README|Decisões / ADRs]] — 12 ADRs propostos e template.
 - [[../07 - Histórico/Releases/README|Histórico / releases]].
 - [[../07 - Histórico/Refatorações/README|Histórico / refatorações]].
