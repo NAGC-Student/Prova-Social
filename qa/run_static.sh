@@ -17,5 +17,6 @@ run "Dart format" dart format --output=none --set-exit-if-changed lib test tool 
 run "Flutter analyze" flutter analyze
 run "Supabase build configuration" python3 tool/test_supabase_build_config.py
 run "Public SEO pages" python3 tool/test_generate_seo_pages.py
+run "Site tests" node --test site/tests/site.test.cjs
 
 exit "$failed"
