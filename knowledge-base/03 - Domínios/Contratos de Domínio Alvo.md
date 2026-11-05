@@ -41,7 +41,7 @@ contentVersion: ContentVersion
   `digital_exam_service.dart:193-203`.
 - **Custo real medido:** isto **não é só Dart**. `public.questions` não tem coluna
   `format` e tem `check (jsonb_array_length(options) between 2 and 8)`
-  (`202609210001_core.sql:44-46`), então `openEnded` com 0 alternativas é
+  (`202609210001_core.sql:45-47`), então `openEnded` com 0 alternativas é
   **rejeitada pelo banco**. Ver seção 2 de
   [[../04 - Infraestrutura/Inventário de Persistência e Dados]].
   O ADR-0002 precisa de migration, não de classe.
@@ -88,6 +88,10 @@ Estados, um por questão resolvida:
   denominação única. Isto ainda é intenção, não spec aprovada.
 - **Testes exigidos:** 1 asserção por estado; 1 teste de contradição
   local × servidor; 1 teste de que `unknownAnswer` não reduz percentual.
+- **Rede já existente:** a contradição que C3 resolve está congelada em
+  `test/scoring_definitions_characterization_test.dart` (`ff3be0c`). Ao adotar C3,
+  aqueles 10 testes são a lista deliberada de expectativas que **mudam** — reescrevê-los
+  é ato de projeto, não ajuste para passar.
 
 ## C4 — `Attempt` (entidade que não existe)
 
@@ -153,6 +157,11 @@ Decisão única, hoje duplicada em `publish_page.dart:1317-1344` e
 - **Testes exigidos:** serviço recusa não revisado; discursiva passa; sem gabarito
   fica privada; `p_source_type` preservado (hoje fixo em `'community'`,
   `exam_publication_service.dart:80`).
+- **Rede já existente:** o estado atual deste contrato é executado por
+  `test/publication_characterization_test.dart` (`ff3be0c`) — rejeição de
+  `openEnded` antes de qualquer RPC, reprovação da prova inteira por uma questão,
+  `topic` → `Geral`, `p_source_type` fixo, troca de RPC pela URL de origem e
+  publicação devolvida mesmo com o pacote digital falhando.
 
 ## C7 — `Provenance`
 

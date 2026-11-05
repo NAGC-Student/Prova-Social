@@ -16,29 +16,44 @@ atualizado: 2026-11-05
 
 Medido em 2026-11-03 e **revido em 2026-11-05** depois do Lote 0:
 
-- `flutter analyze`: limpo.
+- `flutter analyze`: limpo em `05a8fc1`; **quebrou com o próprio Lote 0**
+  (`unused_local_variable` em `test/manual/corpus_probe.dart:182`, criado ao mover
+  a saída do probe para buffer) e voltou a limpo em `46eb9a0`.
 - `dart format --output=none --set-exit-if-changed lib test tool packages`:
-  **exit 0** em 2026-11-05. Antes falhava nos três probes
+  **exit 0** em 2026-11-05 (115 arquivos). Antes falhava nos três probes
   `test/_corpus_*_test.dart`, agora movidos para `test/manual/corpus_*.dart`
   (sem sufixo `_test`), com corpus por variável de ambiente e saída em
   `build/qa/probes/`.
-- `flutter test`: **290 aprovados + 1 ignorado** em 43 arquivos `*_test.dart`
-  (era 296; a diferença são os probes fora da suíte automatizada).
-- `bash qa/run_static.sh`: **exit 0**, incluindo agora
+- `flutter test`: **313 aprovados + 1 ignorado** em 46 arquivos `*_test.dart`
+  (era 296 no SHA publicado; 290 depois de tirar os probes da suíte e 313 com as
+  23 expectativas de caracterização de `ff3be0c`).
+- `bash qa/run_static.sh`: **exit 0 medido no próprio script**, incluindo agora
   `node --test site/tests/site.test.cjs` (4 testes) ao lado das 7 verificações
-  Supabase e 11 SEO.
+  Supabase e 11 SEO. A medição anterior usou `| tail` e leu o `$?` do `tail`, o
+  que mascarou o issue do analyzer.
 - Nenhum caminho `/home/nikolas` permanece em `test/`, `tool/`, `qa/`,
   `scripts/`, `site/`, `web/` ou `.github/`.
 
 ## CI
 
-Runs #100 e #104 interrompem no format gate; o analyzer passou. Run #98 é
-agendado e seu job QA completo foi ignorado. **Estado de 2026-11-05:** a
-correção existe apenas no worktree — `qa-full` voltou a rodar em `schedule`
-(`flutter-ci.yml:134`) e os testes do site entraram no gate estático
-(`qa/run_static.sh`), mas nada foi commitado nem empurrado, então `main` no
-GitHub segue vermelha no SHA publicado. Evitar imprimir conteúdo extraído de
-prova nos logs: os probes agora gravam relatórios em arquivo.
+Diagnóstico lido nos logs do Actions em `NAGCODE-Dev/Prova-Social`, não deduzido:
+
+- push do PR #18 (`05a8fc1`, run 41760190392): **QA Completo** falhou em "QA
+  estático" por `dart format` nos três probes (`Changed test/_corpus_*_probe_test.dart`).
+- schedule de 2026-11-05 (run 42047549926): falhou antes, em "Resolver dependências
+  Android" — `Could not download kotlin-compiler-embeddable-2.2.21.jar`, **504 do
+  JetBrains Releases**. Transitório, sem relação com o Lote 0; o QA Completo nem
+  executou.
+- schedule de 2026-11-04 (run 41849374037): verde — a janela entre os dois runs é o
+  que separa o transitório do real.
+
+**Estado de 2026-11-05:** a correção está commitada e empurrada para
+`NAGC-Student/main` (`27403be`, `eebb2b0`, `46eb9a0`, `ff3be0c`). `git push
+upstream main` retorna 403 (sem escrita em `NAGCODE-Dev`) e o fork não registra
+nenhum run de Actions, então **só um PR** produz evidência de CI. `qa-full` voltou a
+rodar em `schedule` (`flutter-ci.yml:134`) e os testes do site entraram no gate
+estático (`qa/run_static.sh`). Evitar imprimir conteúdo extraído de prova nos logs:
+os probes agora gravam relatórios em arquivo.
 
 ## Auditoria das 18 áreas
 

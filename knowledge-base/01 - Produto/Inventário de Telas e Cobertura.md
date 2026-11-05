@@ -12,8 +12,8 @@ atualizado: 2026-11-05
 
 # Inventário de telas, navegação e cobertura
 
-Medido no worktree de 2026-11-05: `flutter test` com **290 aprovados + 1
-ignorado** em 43 arquivos `*_test.dart`. É o mapa do que um app novo precisa
+Medido no worktree de 2026-11-05: `flutter test` com **313 aprovados + 1
+ignorado** em 46 arquivos `*_test.dart`. É o mapa do que um app novo precisa
 recriar, e da rede de proteção que existe antes de qualquer extração.
 
 ## Navegação: não há tabela de rotas
@@ -77,8 +77,13 @@ dados reais de conteúdo.
 
 ## Distribuição da suíte (para dimensionar caracterização)
 
-- 43 arquivos `*_test.dart`: **36 em `test/`** (unidade/domínio/backend) e **7 em
+- 46 arquivos `*_test.dart`: **39 em `test/`** (unidade/domínio/backend) e **7 em
   `test/ux/`** (widget).
+- A caracterização de negócio está em três arquivos desde `ff3be0c`
+  (`scoring_definitions_characterization_test.dart`,
+  `publication_characterization_test.dart`,
+  `draft_resume_characterization_test.dart`); nenhum deles cobre uma tela além do
+  `ResultPage`, que é bombeada em dois testes.
 - Áreas com teste de unidade forte: importação/parser (11 arquivos), sync e
   rascunho, compressão/hash de payload local, timer, gabarito.
 - Áreas sem teste dedicado: RLS social/Storage, distribuição e site no device,

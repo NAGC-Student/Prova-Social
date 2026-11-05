@@ -53,7 +53,7 @@ Lendo as definições, não só os usos:
 
 | Necessidade do produto | Estado no schema | Evidência |
 |---|---|---|
-| Questão discursiva (sem alternativas) | **Impossível** | `questions.options` tem `check (jsonb_array_length(options) between 2 and 8)` — `202609210001_core.sql:44-46` |
+| Questão discursiva (sem alternativas) | **Impossível** | `questions.options` tem `check (jsonb_array_length(options) between 2 and 8)` — `202609210001_core.sql:45-47` |
 | Coluna `format` na questão | **Não existe** | `questions` tem id, exam_id, position, topic, statement, options, created_at (`:39-50`) |
 | Versão do conteúdo resolvido | **Não existe** | nem `exams` nem `questions` têm coluna de versão; `attempts` referencia `exam_id` |
 | Procedência oficial/comunitária | **Já existe** | `exams.source_type check in ('official','community','unverified')` (`:24-25`) — quem joga fora é o app, que grava `'community'` fixo (`exam_publication_service.dart:80`) |

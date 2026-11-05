@@ -229,9 +229,11 @@ atualizado: 2026-11-05
   `/home/nikolas` em `test/ tool/ qa/ scripts/ site/ web/ .github/`;
   `node --test site/tests/site.test.cjs` entrou no `qa/run_static.sh`; `qa-full`
   voltou a rodar em `schedule` (`flutter-ci.yml:134`). Gate local verde:
-  format exit 0, analyzer limpo, `qa/run_static.sh` exit 0, `flutter test` com
-  290 aprovados + 1 ignorado. **Nada commitado ou empurrado** — `main` no GitHub
-  segue vermelha no SHA publicado.
+  format exit 0, `qa/run_static.sh` exit 0, `flutter test` com 290 aprovados + 1
+  ignorado. **Correção de registro:** a primeira medição do gate usou
+  `qa/run_static.sh | tail` e leu o `$?` do `tail`; o `flutter analyze` estava com
+  1 issue (`test/manual/corpus_probe.dart:182`), causada pela própria mudança do
+  probe, e foi corrigida depois (`46eb9a0`).
 - **Conteúdo de design acumulado (2026-11-05):** a Fase 2 tinha auditoria profunda
   mas nenhum insumo de engenharia — `Fluxos Principais` tinha 38 linhas dizendo
   que as fronteiras não tinham sido validadas. Foram medidas e escritas 7 notas:
@@ -242,10 +244,11 @@ atualizado: 2026-11-05
   [[../02 - Arquitetura/Fluxos Reais]],
   [[../01 - Produto/Inventário de Telas e Cobertura]] e
   [[../05 - Qualidade/Critério de Prontidão para Refatoração Global]].
-  Veredito do gate: **já dá para desenhar o app novo; ainda não dá para executar
-  a refatoração**, porque faltam ADR-0002/0003/0004 aceitos, testes de
-  caracterização, `integration_test/` do fluxo do §21, schema reproduzível em
-  migrations e o vault commitado (`git ls-files knowledge-base` = 0).
+  Veredito do gate na época: **já dá para desenhar o app novo; ainda não dá para
+  executar a refatoração global**, porque faltavam ADR-0002/0003/0004 aceitos,
+  testes de caracterização, `integration_test/` do fluxo do §21, schema
+  reproduzível em migrations e o vault commitado (`git ls-files knowledge-base`
+  era 0; hoje é 76).
   Achados novos que não estavam em nenhuma nota de área: `QuestionFormat` já
   existe em `question_parser.dart:252` e é **descartado** na borda
   (`digital_exam_service.dart:193-203`, que ainda força `reviewState: reviewed`);
@@ -261,12 +264,56 @@ atualizado: 2026-11-05
   `jsonb_array_length(options) between 2 and 8`
   (`202609210001_core.sql:39-50`) — **discursiva não cabe no schema atual**,
   qualquer que seja o modelo Dart.
-- **Próxima fase técnica:** seguir a ordem da
-  [[../09 - Auditoria/Síntese da Refatoração|Síntese da Refatoração]]. O primeiro passo é o **Lote 0** — **feito localmente, falta commit/push e CI** (tarefa autorizada). O **Lote 1** fixa a fonte documental e os ADRs; é aqui que entram as três aprovações estruturais (modelo de questão, versionamento, persistência) que [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|o gate]] exige. O **Lote 2** usa os contratos C1–C7 como especificação. A especificação do scanner
-  continua fechada, mas a implementação é parcial: só depois dos contratos de
-  domínio e RLS (Lote 2) entram UI de confiança, discursivas, câmera/galeria e
-  fila de feedback. Preparar ground truth autorizado antes de medir
-  precisão/recall. Não enviar dados de prova nesta etapa.
+- **Lote 0 e vault no Git do fork (2026-11-05):** quatro commits em
+  `NAGC-Student/main` — `27403be` (probes portáveis + site no gate + `qa-full` no
+  schedule), `eebb2b0` (vault: 76 arquivos versionados, `AGENTS.md` §15 apontando
+  para `knowledge-base/`), `46eb9a0` (fix do analyzer) e `ff3be0c`
+  (caracterização). `git push upstream main` retornou **403**: `NAGC-Student` não
+  tem escrita em `NAGCODE-Dev`, e o fork não registra nenhum run de Actions — o
+  caminho para o baseline verde é PR, como nos #16–#18. Diagnóstico dos runs no
+  upstream: o push do PR #18 caiu em "QA estático" por `dart format` nos probes
+  (corrigido por `27403be`) e o schedule de 2026-11-05 caiu antes, em "Resolver
+  dependências Android", por **504 do JetBrains Releases** ao baixar
+  `kotlin-compiler-embeddable-2.2.21.jar` — transitório, e o QA Completo nem
+  chegou a rodar.
+- **Caracterização escrita (2026-11-05, `ff3be0c`):** 23 expectativas em 3
+  arquivos, todas sobre o código de `05a8fc1` e sem decisão de produto.
+  Pontuação (`test/scoring_definitions_characterization_test.dart`): uma
+  tentativa de 5 questões rende `correct` 2, `correctableCount` 3, `scorePercent`
+  67, `wrongQuestionIndices` 1, `unanswered` 2, `byTopic.total` 3, "Revisar" 3 e
+  `total` 5 — os quatro primeiros aparecem juntos na mesma tela; gabarito fora do
+  intervalo leva `scorePercent` a 150; o `score_percent` do servidor é descartado
+  pelo cliente; gabarito remoto fora de `options` recusa a entrega inteira.
+  Publicação (`test/publication_characterization_test.dart`): `openEnded` aceito
+  pelo parser é rejeitado antes de qualquer RPC; uma questão inválida reprova a
+  prova toda; `topic` vira `Geral`; `p_source_type` é sempre `community`; a URL de
+  origem troca a RPC; a prova volta como publicada mesmo com o pacote digital
+  falhando. Rascunho (`test/draft_resume_characterization_test.dart`): respostas
+  são índices posicionais, então a mesma tentativa gravada rende 2 corretas na
+  ordem original e 0 na reordenada; índice além do novo tamanho desaparece sem
+  aviso; o `clientAttemptId` é preservado na retomada e a fila recusa payload
+  diferente sob o mesmo ID.
+- **Próxima fase técnica — strangler, não big-bang:** a refatoração *global* de uma
+  vez continua descartada (risco 12 da
+  [[../09 - Auditoria/Síntese da Refatoração|Síntese]]); o movimento certo é construir
+  a camada nova ao lado da velha e migrar um fluxo por vez, removendo o código
+  antigo só quando o novo cobre. Ordem por custo, não por elegância: **(1)** PR do
+  fork para `NAGCODE-Dev/main` fechar o baseline verde; **(2)** ADR-0002/0003/0004
+  aceitos — são a especificação do schema, e o schema é o primeiro deliverable
+  porque `questions` não tem `format`, força 2–8 alternativas e não tem coluna de
+  versão; **(3)** promover o SQL solto (`prova_social_backend_v1.sql`,
+  `content_delivery_v1.sql`, `digitalization_v1.sql`) a migrations e colocar
+  `scripts/local_db_test.sh` no CI; **(4)** caracterizar o que falta — validação de
+  publicação na tela e uma rede que sobreviva à extração de controller de
+  `QuizPage`; **(5)** Domain/Application + ports com injeção real e o fluxo
+  importar→revisar→publicar atravessando primeiro; **(6)** um fluxo por vez
+  (tentativa, rascunho, sync, consumo, discussão); **(7)** tabela de rotas e quebra
+  das telas gigantes por último. Micro-refatorar `lib/core/import/` já é seguro
+  hoje: 7 arestas, um consumidor, fan-in 0 a partir dele, 105 testes. A
+  especificação do scanner continua fechada, mas a implementação é parcial: só
+  depois dos contratos de domínio e RLS entram UI de confiança, discursivas,
+  câmera/galeria e fila de feedback. Preparar ground truth autorizado antes de
+  medir precisão/recall. Não enviar dados de prova nesta etapa.
 
 ## Limites de origem
 

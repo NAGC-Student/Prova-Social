@@ -14,7 +14,7 @@ atualizado: 2026-11-05
 
 > **Complemento de 2026-11-05:** o inventário profundo pedido abaixo foi feito
 > em [[Inventário de Persistência e Dados]] — três trilhas de SQL, 9 tabelas em
-> migrations, 11 só em SQL solto, 4 tabelas lidas pelo app sem migration, as
+> migrations, 11 só em SQL solto, 4 tabelas lidas pelo app sem migração, as
 > 4 RPCs usadas, as chaves de armazenamento local e a verificação por hash. Esta
 > nota continua válida como declaração de requisitos de segurança; a parte de
 > "o que existe" passou para o inventário.

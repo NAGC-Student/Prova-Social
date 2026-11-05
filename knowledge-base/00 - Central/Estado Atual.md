@@ -51,15 +51,23 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
   181 incompletas, 2 documentos sem questões, 54 páginas sem texto utilizável.
   Sem ground truth anotado, precisão/recall não são mensuráveis.
 
-### Reverificação em 2026-11-05 (Lote 0 aplicado, ainda não commitado)
+### Reverificação em 2026-11-05 (Lote 0 commitado no fork)
 
+- `bash qa/run_static.sh`: **exit 0 medido no próprio script**. A leitura anterior
+  usou `bash qa/run_static.sh | tail` e tomou o `$?` do `tail` — com isso eu havia
+  declarado o gate verde enquanto `flutter analyze` tinha 1 issue
+  (`unused_local_variable` em `test/manual/corpus_probe.dart:182`), causada pela
+  própria migração da saída dos probes para buffer. Corrigida em `46eb9a0`.
 - `dart format --output=none --set-exit-if-changed lib test tool packages`:
-  **exit 0** (112 arquivos, 0 alterados).
-- `bash qa/run_static.sh`: **exit 0** — formatação, analyzer, 7 verificações
-  Supabase, 11 SEO e agora `node --test site/tests/site.test.cjs` (4 testes).
-- `flutter test --reporter compact`: **290 aprovados, 1 ignorado** em 43
-  arquivos `*_test.dart`. A queda de 296 para 290 é o efeito esperado de tirar
+  **exit 0** (115 arquivos, 0 alterados).
+- `flutter test --reporter expanded --concurrency=1 --timeout 90s`: **313
+  aprovados, 1 ignorado** em 46 arquivos `*_test.dart` (`290` + 23 expectativas de
+  caracterização). A queda anterior de 296 para 290 foi o efeito esperado de tirar
   os probes da suíte automatizada, não regressão.
+- Caracterização adicionada em `ff3be0c`:
+  `test/scoring_definitions_characterization_test.dart` (10),
+  `test/publication_characterization_test.dart` (8),
+  `test/draft_resume_characterization_test.dart` (5).
 - Os probes vivem em `test/manual/corpus_*.dart` (sem sufixo `_test`, portanto
   fora da suíte), lêem o corpus por `PROVA_SOCIAL_PROVAS_DIR` /
   `PROVA_SOCIAL_CORPUS_ROOT`, gravam em `build/qa/probes/` e rodam por
@@ -67,8 +75,13 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
   web .github` não retornou nada.
 - `.github/workflows/flutter-ci.yml:134`: `qa-full` voltou a rodar em evento
   `schedule`.
-- **Ainda não provado:** nada disso está commitado, empurrado ou verificado no
-  GitHub Actions. `main` continua vermelha no SHA publicado até o push.
+- Estado no Git: 4 commits em `NAGC-Student/main` (`27403be` Lote 0, `eebb2b0`
+  vault com 76 arquivos, `46eb9a0` fix do analyzer, `ff3be0c` caracterização),
+  worktree limpo. `git push upstream main` foi recusado com 403 — o fork não tem
+  escrita em `NAGCODE-Dev` — e o fork não roda Actions.
+- **Ainda não provado:** nada acima está no `main` do upstream nem validado pelo
+  Actions; falta o PR. As migrations nunca foram executadas nesta máquina (sem
+  `initdb`, e o runner PGlite pede um módulo instalado fora do repo).
 
 
 ## Auditoria profunda concluída

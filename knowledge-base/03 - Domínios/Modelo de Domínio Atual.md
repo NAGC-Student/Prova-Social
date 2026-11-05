@@ -36,15 +36,26 @@ worktree de 2026-11-05 (Lote 0 aplicado, ainda não commitado).
 | `AttemptDraft` | `attempt_draft_store.dart:6-28` | answers, review, current, elapsedSeconds, clientAttemptId | Fica em `core/backend/`, não no domínio. É o estado persistido da tentativa. |
 | — | — | — | **Não existe** `Attempt`, `ContentVersion`, `PublicationPolicy`, `Provenance`, `QuestionOutcome` como tipos. |
 
-## Onde a política de pontuação está hoje (4 lugares, não 3)
+## Onde a política de pontuação está hoje (5 lugares, não 3)
 
 | Local | Regra efetiva |
 |---|---|
 | `exam.dart:129-150` | `correct` sobre `correctableCount` (questões com gabarito válido). |
 | `exam.dart:152-158` | `wrongQuestionIndices`: exige resposta não nula **e** gabarito não nulo. |
-| `exam.dart:192-213` | `byTopic`: ignora questão sem gabarito **e** tema vazio — outro denominador. |
+| `exam.dart:197-213` | `byTopic`: ignora questão sem gabarito **e** tema vazio — outro denominador. |
 | `result_page.dart:280` | "Revisar" = `questions.length - correct`: conta em branco e sem gabarito como a revisar. |
 | `attempt_repository.dart:96-99` | Recomputa `correctCount` no cliente e **compara** com o servidor; divergência vira exceção. |
+| `exam.dart:192-195` | `unanswered`: `answers[index] == null` — inclui questão sem gabarito, que `byTopic` e `correctableCount` excluem. |
+
+Executado desde `ff3be0c` em `test/scoring_definitions_characterization_test.dart`:
+sobre uma única tentativa de 5 questões os números são `correct` 2,
+`correctableCount` 3, `scorePercent` 67, `wrongQuestionIndices` 1, `unanswered` 2,
+soma de `byTopic.total` 3, "Revisar" 3 e `total` do JSON 5. Com um gabarito fora do
+intervalo das alternativas, `scorePercent` passa de 100 (medido: 150). O
+`score_percent` devolvido por `submit_exam_attempt` é descartado pelo cliente, e a
+entrega é recusada inteira quando o gabarito remoto não cabe nas alternativas — o
+`CHECK (correct_index between 0 and 7)` de `private.question_keys` não cruza com o
+tamanho de `options`.
 
 O par local/servidor em `attempt_repository.dart:98` é o único ponto onde a
 diferença entre as definições se torna visível — e ela se manifesta como falha
@@ -83,8 +94,9 @@ de sincronização, não como regra divergente.
    referência estável.
 3. O formato já existe no import e morre na borda: o modelo novo não precisa
    inventar nada, precisa **parar de descartar**.
-4. Quatro definições de pontuação convivem; qualquer redesenho de UI de resultado
-   herda a contradição até existir `QuestionOutcome` único.
+4. Cinco definições de pontuação convivem (seis contando `unanswered`); qualquer
+   redesenho de UI de resultado herda a contradição até existir `QuestionOutcome`
+   único. As seis estão congeladas por teste desde `ff3be0c`.
 
 ## Links
 
