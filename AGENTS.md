@@ -705,11 +705,17 @@ Depois propor o próximo lote P0 com o menor conjunto de mudanças capaz de entr
 
 ## 15. Base de conhecimento do projeto
 
-A documentação viva do projeto é mantida no vault do Obsidian:
+A documentação de engenharia é organizada no vault Obsidian versionado em:
 
-`/storage/emulated/0/Obsidian/Prova-Social/Prova-Social`
+`knowledge-base/`
 
-Esse diretório também é o repositório Git `NAGCODE-Dev/Prova-Social-Docs`.
+O vault foi criado dentro do repositório do aplicativo para que notas, código e
+evidências possam ser consultados juntos. A pasta `.obsidian/` contém somente
+configuração compartilhável e plugins nativos selecionados; estado por
+dispositivo fica ignorado pelo Git. Não há plugins da comunidade configurados.
+O `AGENTS.md` continua sendo a fonte normativa para princípios e requisitos do
+produto; as notas do vault resumem, relacionam e auditam essas diretrizes, sem
+substituí-las.
 
 ### Quando consultar
 
@@ -730,22 +736,24 @@ Priorize as notas existentes no vault antes de criar uma nova decisão ou altera
 
 ### Quando editar
 
-Se a tarefa solicitar documentação, decisão, plano, revisão ou atualização do conhecimento do projeto, edite diretamente os arquivos Markdown do vault.
-
-Não crie uma segunda cópia da documentação dentro deste repositório.
+Se a tarefa solicitar documentação, decisão, plano, revisão ou atualização do
+conhecimento do projeto, edite diretamente os arquivos Markdown em
+`knowledge-base/`. Mantenha relatórios e guias existentes na raiz como fontes
+históricas até que sejam revisados e consolidados com evidências; não os apague
+nem os substitua silenciosamente.
 
 ### Separação de responsabilidades
 
-- `/root/Prova-Social-repo` → código-fonte do aplicativo.
-- `/storage/emulated/0/Obsidian/Prova-Social/Prova-Social` → documentação viva do projeto.
+- raiz do repositório → código-fonte, especificações normativas e workflows.
+- `knowledge-base/` → documentação viva, auditoria, decisões e planejamento.
+- `knowledge-base/10 - Anexos/` → diagramas e imagens de documentação; não
+  armazenar provas, credenciais, dados pessoais ou arquivos sem permissão.
 - Obsidian → interface de edição e consulta da documentação.
-- GitHub `NAGCODE-Dev/Prova-Social-Docs` → versionamento e sincronização da documentação.
 
-### Git da documentação
-
-Alterações na documentação podem ser preparadas localmente, mas não devem ser commitadas ou enviadas ao GitHub sem autorização explícita do responsável pelo projeto.
-
-O mesmo vale para o repositório principal do aplicativo.
+`.obsidian/workspace*.json` e a lixeira local são estado de dispositivo não
+versionado. Alterações no vault e no aplicativo podem ser preparadas localmente,
+mas não devem ser commitadas, enviadas ao GitHub ou sincronizadas externamente
+sem autorização explícita do responsável pelo projeto.
 
 ### Regra de consistência
 

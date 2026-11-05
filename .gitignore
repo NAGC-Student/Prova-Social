@@ -62,3 +62,9 @@ qa/reports/
 qa/browser/test-results/
 qa/browser/playwright-report/
 2025_PV_impresso_D1_CD1.pdf
+
+# Obsidian per-machine state; vault notes and shared settings remain versioned.
+knowledge-base/.obsidian/workspace.json
+knowledge-base/.obsidian/workspace-mobile.json
+knowledge-base/.obsidian/cache/
+knowledge-base/.trash/
