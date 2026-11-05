@@ -183,7 +183,7 @@ void main() {
         for (final line in ExamTextNormalizer.normalize(
           pages[22],
         ).split('\n')) {
-          buffer.writeln('[${line.length}] $line');
+          buffer.writeln('${index++}: [${line.length}] $line');
         }
         final questions = const QuestionParser().parsePages(pages);
         buffer.writeln(
