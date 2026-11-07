@@ -10,7 +10,7 @@ confianca: alta
 atualizado: 2026-11-05
 ---
 
-# Modelo de domínio atual (medido, não proposto)
+# Modelo de domínio atual (medido, não proposto — SHA `05a8fc1`)
 
 Inventário do que o código **já é** hoje. É o insumo para
 [[Contratos de Domínio Alvo]]; nenhuma linha daqui autoriza mudança. Medidas no

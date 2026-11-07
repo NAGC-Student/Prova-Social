@@ -29,7 +29,10 @@ robustez (2,39) e testes (2,56).
 
 O achado mais urgente não é de produto: a **`main` está vermelha** por
 formatação em três probes versionados, o que bloqueia `web-ci` e
-`android-release`. Em seguida vêm as **duas verdades documentais** (o
+`android-release`. **(Resolvido em 2026-11-05:** Lote 0 + PR #19, merge
+`2c62e30`, "QA Completo" `success` no run de `main` `42088224910` — a esteira está
+verde no SHA que contém a caracterização e o vault.) Em seguida vêm as **duas
+verdades documentais** (o
 `AGENTS.md` tem duas seções 15, o vault não está rastreado, o README promete
 imagens e “modo de demonstração” inexistentes e não há `LICENSE`) e a
 **identidade dividida** (app em `EmeraldColors #050907`, site/`AGENTS.md` em

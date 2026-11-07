@@ -29,7 +29,9 @@ atualizado: 2026-11-03
 - `origin/main` está 5 commits atrás do checkout; `upstream/main` coincide com o
   checkout no momento da medição. Não sincronizar sem autorização.
 - PRs no upstream: #16 Playwright, #17 ONNX Runtime e #18 testes/importação
-  estão mesclados.
+  estão mesclados. **Depois desta medição:** #19 (Lote 0 + caracterização + vault
+  + régua de qualidade) mesclado em 2026-11-05, merge `2c62e30`, com "QA Completo"
+  verde no run de `main`.
 
 ## Árvore e contagem
 

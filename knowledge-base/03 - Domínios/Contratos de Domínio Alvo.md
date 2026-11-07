@@ -65,6 +65,10 @@ confirmedBy   : confirmação humana explícita (id + timestamp) | null
 - **Já existe no backend:** tabela `private.question_keys`
   (`202609210001_core.sql:52-55`) com RLS `202609210002_private_keys_rls.sql`. O
   contrato novo alinha o modelo Dart ao que o banco já separa.
+- **Rede já existente:** `test/scoring_definitions_characterization_test.dart:152`
+  exige que o gabarito seja **legado no payload** do submit (`'answers'` com
+  `correct_index`) — adotar `AnswerKey` separado é mudança deliberada, com um dos
+  dois primeiros testes do repo como lista do que muda.
 
 ## C3 — `QuestionOutcome` (denominador único)
 

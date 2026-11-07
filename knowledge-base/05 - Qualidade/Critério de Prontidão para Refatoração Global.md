@@ -24,7 +24,7 @@ aprendido", no espírito do [Plano Mestre](../00%20-%20Central/Plano%20Mestre.md
 
 | # | Pré-requisito | Onde está | Estado |
 |---:|---|---|---|
-| 1 | Baseline e esteira verde | [[../00 - Central/Estado Atual]], Lote 0 | **Feito e commitado** 2026-11-05 (`27403be`, `46eb9a0`): `qa/run_static.sh` exit 0 medido direto no script, 313 testes + 1 ignorado. **Falta:** chegar ao `main` do upstream por PR — o fork não roda Actions e `git push upstream main` foi recusado (403). |
+| 1 | Baseline e esteira verde | [[../00 - Central/Estado Atual]], Lote 0 | **Feito e publicado** 2026-11-05: `qa/run_static.sh` exit 0 medido direto no script, 313 testes + 1 ignorado, PR #19 mesclado (`2c62e30`) com "QA Completo" `success` no run de `main` (`42088224910`). **O que fica:** `NAGC-Student` não tem escrita em `NAGCODE-Dev` (403) e o fork não roda Actions, então todo lote futuro depende de PR aceito pela conta `NAGCODE-Dev`. |
 | 2 | Modelo de domínio atual inventariado | [[../03 - Domínios/Modelo de Domínio Atual]] | **Feito** — entidades, campos, 4–5 sites de pontuação, formato perdido na borda. |
 | 3 | Contratos alvo especificados (C1–C7) | [[../03 - Domínios/Contratos de Domínio Alvo]] | **Feito em nível de especificação**; **não aprovado** (ADR-0002/0003 pendentes). |
 | 4 | Inventário de dados e persistência | [[../04 - Infraestrutura/Inventário de Persistência e Dados]] | **Feito** para o repo; **não resolvido**: 4 tabelas usadas pelo app só existem em SQL solto; `questions` não tem `format` e força 2–8 alternativas, então **discursiva não cabe no schema**; o estado remoto do Supabase segue não verificado. |
@@ -35,7 +35,7 @@ aprendido", no espírito do [Plano Mestre](../00%20-%20Central/Plano%20Mestre.md
 | 9 | Testes de caracterização do comportamento que vai mudar | `test/scoring_definitions_characterization_test.dart`, `test/publication_characterization_test.dart`, `test/draft_resume_characterization_test.dart` (`ff3be0c`) | **Parcialmente feito** — 23 expectativas novas congelam as cinco contagens de pontuação, a validação e o corpo da publicação, e a retomada posicional do rascunho. **Falta:** o que protege o Lote 4 da síntese — extração de controller de `QuizPage`/`PublishPage` ainda só tem os 7 widgets de `test/ux/`, que quebram por construção. |
 | 10 | Teste ponta a ponta do fluxo do §21 | não há `integration_test/` | **Não existe** (ver área 14 e [[../09 - Auditoria/Síntese da Refatoração|síntese]]). |
 | 11 | Orçamento não-funcional medido (APK, OCR tempo/memória, tamanho de payload, cobertura por arquivo) | — | **Não existe.** Só números pontuais (arm64 82,1 MB; universal local 248,1 MB). |
-| 12 | Vault versionado com hierarquia documental | `eebb2b0` | **Feito no fork:** 76 arquivos versionados (70 notas + 6 `.obsidian/*.json`), 12.590 linhas. Estado por dispositivo (`workspace*.json`, cache, lixeira) fica fora do Git. Falta o PR para o `main` do upstream. |
+| 12 | Vault versionado com hierarquia documental | `eebb2b0` + PR #19 | **Feito e publicado:** 76 arquivos versionados (70 notas + 6 `.obsidian/*.json`), 12.590 linhas, mais as 3 notas de qualidade de `0bfd894`. Estado por dispositivo (`workspace*.json`, cache, lixeira) fica fora do Git. |
 
 ## Leitura honesta
 
@@ -72,14 +72,18 @@ hoje não sabe:
    alvo não cabe no banco atual sem migração. Migração sobre schema desconhecido
    é chute.
 
-Agravante operacional que permanece: o trabalho está em `NAGC-Student/main`
-(`27403be` → `ff3be0c`), não no `main` do upstream. `git push upstream main`
-retorna 403 — `NAGC-Student` não tem escrita em `NAGCODE-Dev` — e o fork não roda
-Actions (`gh run list -R NAGC-Student/Prova-Social` vazio). Enquanto o PR não
-entrar, o baseline publicado continua vermelho (schedule de 2026-11-05 falhou em
-"Resolver dependências Android" por 504 do download do `kotlin-compiler-embeddable`,
-e o push do PR #18 falhou em "QA estático" por `dart format`), e uma falha nova
-de refatoração não é atribuível.
+Agravante operacional **resolvido em 2026-11-05**: o trabalho estava só em
+`NAGC-Student/main` (`27403be` → `0bfd894`); o **PR #19 foi mesclado** no upstream
+(merge `2c62e30`) e o run de `push` em `main` (`42088224910`) fechou "QA Completo"
+e "Resolver dependências Android" como `success` — o baseline publicado voltou a
+ser verde e uma falha nova de refatoração volta a ser atribuível. O que
+**permanece**: `git push upstream main` continua 403 para `NAGC-Student`, o fork não
+roda Actions (`gh run list -R NAGC-Student/Prova-Social` vazio) e a mesclagem só foi
+possível com a conta `NAGCODE-Dev`. Ou seja, **todo lote futuro depende de PR +
+aprovação dessa conta**, e o CI que importa é o do upstream. (Contexto do histórico:
+o schedule de 2026-11-05 havia falhado por 504 do download do
+`kotlin-compiler-embeddable`, e o push do PR #18 falhou em "QA estático" por
+`dart format` — ambos superados.)
 
 ## O que NÃO está validado (limite honesto desta etapa)
 
@@ -89,7 +93,12 @@ de refatoração não é atribuível.
   migrations nunca foram rodadas nesta máquina (sem `initdb`; o runner PGlite pede
   um módulo instalado fora do repo).
 - **O worktree está limpo e commitado** desde `ff3be0c`; as medidas valem para
-  `05a8fc1` + `27403be` + `eebb2b0` + `46eb9a0` + `ff3be0c`, que só existem no fork.
+  `05a8fc1` + `27403be` + `eebb2b0` + `46eb9a0` + `ff3be0c` + `8ffbba4` +
+  `0bfd894`, **todos no `main` do upstream desde o merge `2c62e30` (PR #19)**.
+- **Esteira verde não é evidência de conformidade com a régua nova:** as 33 regras
+  de arquitetura foram medidas com config temporária e **não estão no gate**; o
+  `qa/run_static.sh` continua usando as 111 regras que dão 0 diagnóstico. Ver
+  [[Auditoria de Clean Code e SOLID medida]].
 - **Números que eu errei e corrigi nesta verificação:** chamadas de
   `Supabase.instance` são **26** em 10 arquivos (eu havia escrito 24); destinos em
   classe privada são **4** (havia dito 5); a queda 296 → 290 testes foi conferida

@@ -75,12 +75,18 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
   web .github` não retornou nada.
 - `.github/workflows/flutter-ci.yml:134`: `qa-full` voltou a rodar em evento
   `schedule`.
-- Estado no Git: 4 commits em `NAGC-Student/main` (`27403be` Lote 0, `eebb2b0`
-  vault com 76 arquivos, `46eb9a0` fix do analyzer, `ff3be0c` caracterização),
-  worktree limpo. `git push upstream main` foi recusado com 403 — o fork não tem
-  escrita em `NAGCODE-Dev` — e o fork não roda Actions.
-- **Ainda não provado:** nada acima está no `main` do upstream nem validado pelo
-  Actions; falta o PR. As migrations nunca foram executadas nesta máquina (sem
+- Estado no Git: **PR #19 mesclado** no upstream em 2026-11-05 18:51Z, merge
+  `2c62e30`, com os 6 commits de `NAGC-Student/main` (`27403be` Lote 0, `eebb2b0`
+  vault com 76 arquivos, `46eb9a0` fix do analyzer, `ff3be0c` caracterização,
+  `8ffbba4` vault da caracterização, `0bfd894` régua de qualidade + auditoria
+  medida). `git push upstream main` continua recusado com 403 para `NAGC-Student`,
+  e o fork não roda Actions — a mesclagem exigiu a conta `NAGCODE-Dev` (devidamente
+  autorizada e devolvida em seguida).
+- **Baseline verde medido:** o run do PR (`42086824717`) passou em 5m15s e no run
+  de `push` em `main` (`42088224910`) **"QA Completo" e "Resolver dependências
+  Android" já estão `success`** — a `main` do upstream volta a ser verde depois de
+  `05a8fc1`, que era o SHA auditado.
+- **Ainda não provado:** as migrations nunca foram executadas nesta máquina (sem
   `initdb`, e o runner PGlite pede um módulo instalado fora do repo).
 
 

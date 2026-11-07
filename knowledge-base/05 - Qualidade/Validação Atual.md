@@ -47,10 +47,13 @@ Diagnóstico lido nos logs do Actions em `NAGCODE-Dev/Prova-Social`, não deduzi
 - schedule de 2026-11-04 (run 41849374037): verde — a janela entre os dois runs é o
   que separa o transitório do real.
 
-**Estado de 2026-11-05:** a correção está commitada e empurrada para
-`NAGC-Student/main` (`27403be`, `eebb2b0`, `46eb9a0`, `ff3be0c`). `git push
-upstream main` retorna 403 (sem escrita em `NAGCODE-Dev`) e o fork não registra
-nenhum run de Actions, então **só um PR** produz evidência de CI. `qa-full` voltou a
+**Estado de 2026-11-05 (final):** a correção está **no `main` do upstream** — PR
+#19 mesclado no merge `2c62e30`, com `27403be`, `eebb2b0`, `46eb9a0`, `ff3be0c`,
+`8ffbba4` e `0bfd894`. Evidência de CI: run do PR `42086824717` **success** em
+5m15s (QA Completo 4m19s) e run de `push` em `main` `42088224910` com QA Completo e
+"Resolver dependências Android" `success`. `git push upstream main` continua 403
+para `NAGC-Student` e o fork não registra Actions; a mesclagem só foi possível com
+a conta `NAGCODE-Dev` ativa no `gh` (devolvida em seguida). `qa-full` voltou a
 rodar em `schedule` (`flutter-ci.yml:134`) e os testes do site entraram no gate
 estático (`qa/run_static.sh`). Evitar imprimir conteúdo extraído de prova nos logs:
 os probes agora gravam relatórios em arquivo.

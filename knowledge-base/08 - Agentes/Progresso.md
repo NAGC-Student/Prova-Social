@@ -276,6 +276,18 @@ atualizado: 2026-11-05
   dependências Android", por **504 do JetBrains Releases** ao baixar
   `kotlin-compiler-embeddable-2.2.21.jar` — transitório, e o QA Completo nem
   chegou a rodar.
+- **Baseline verde no upstream (2026-11-05 18:51Z):** o **PR #19**
+  (`NAGC-Student:main` → `NAGCODE-Dev:main`, 6 commits — os quatro acima mais
+  `8ffbba4` e `0bfd894`) foi **mesclado** no merge `2c62e30`. Checks do PR
+  (`42086824717`): **success** em 5m15s — QA Completo 4m19s, Resolver dependências
+  Android 4m45s, osv-scan Dart/npm/Gradle; Cloudflare `skipping`. No run de `push`
+  em `main` (`42088224910`), QA Completo e Android também `success`. A mesclagem
+  **não foi possível como `NAGC-Student`** (`MergePullRequest`: "does not have the
+  correct permissions") e exigiu trocar a conta ativa do `gh` para `NAGCODE-Dev`
+  — já autenticada nesta máquina — devolvendo a ativa em seguida. O `main` local
+  foi atualizado por fast-forward para `2c62e30`. Consequência: **o próximo lote
+  precisa de branch**, porque commit em `NAGC-Student/main` só chega ao upstream
+  por novo PR aceito pela conta `NAGCODE-Dev`.
 - **Caracterização escrita (2026-11-05, `ff3be0c`):** 23 expectativas em 3
   arquivos, todas sobre o código de `05a8fc1` e sem decisão de produto.
   Pontuação (`test/scoring_definitions_characterization_test.dart`): uma
