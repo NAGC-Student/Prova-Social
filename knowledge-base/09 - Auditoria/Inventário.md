@@ -78,7 +78,7 @@ Lista de `pubspec.yaml`; versões resolvidas medidas por `flutter pub deps
 
 Dev dependencies incluem Flutter test/lints, ícones e `pdfium_flutter`. Uso e
 necessidade precisam ser revisados na auditoria de dependências. A
-[matriz versionada](../../DEPENDENCY_COMPATIBILITY.md) está desatualizada e
+[matriz versionada](../../docs/historico/DEPENDENCY_COMPATIBILITY.md) está desatualizada e
 declara v0.5.0.
 
 ## Supabase e persistência

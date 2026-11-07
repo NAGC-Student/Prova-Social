@@ -66,6 +66,12 @@ atualizado: 2026-11-04
   `DESIGN_SYSTEM.md` declara `#101311` e o app usa `#050907`;
   `DEPENDENCY_COMPATIBILITY.md` é da versão 0.5.0; relatórios da raiz competem
   com o vault sem banner de histórico.
+- **Atualização 2026-11-05:** três dessas divergências deixaram de existir — o
+  vault está versionado (`eebb2b0`, com `.gitignore` para estado de dispositivo),
+  e os 16 `.md` soltos da raiz foram para `docs/historico/` (branch
+  `docs/md-historicos`), ficando na raiz só `README.md` e `AGENTS.md`. As demais
+  (duas seções 15, README prometendo o que não existe, cores `#101311` ×
+  `#050907`, matriz 0.5.0) **continuam em aberto**: são conteúdo, não localização.
 - **Links:** 9 alvos quebrados foram encontrados; 7 corrigidos (4 para a área 18,
   que passou a existir, 2 nomes antigos da área 15 e 1 link de produto); 2
   placeholders da fonte original foram preservados.

@@ -4,10 +4,10 @@ area: documentação e divergências código × docs
 status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 2, acoplamento: 3, clareza: 2, seguranca: 3, robustez: 2, aderencia: 2, portabilidade: 4}
-fonte_codigo: [AGENTS.md, README.md, AUDIT.md, DESIGN_SYSTEM.md, DEPENDENCY_COMPATIBILITY.md, PROVA_SOCIAL_CONTEXT.md, IMPLEMENTATION_REPORT.md, SECOND_PHASE_REPORT.md, CHANGELOG_*.md, knowledge-base/]
+fonte_codigo: [AGENTS.md, README.md, docs/historico/AUDIT.md, docs/historico/DESIGN_SYSTEM.md, docs/historico/DEPENDENCY_COMPATIBILITY.md, docs/historico/PROVA_SOCIAL_CONTEXT.md, docs/historico/IMPLEMENTATION_REPORT.md, docs/historico/SECOND_PHASE_REPORT.md, docs/historico/CHANGELOG_*.md, knowledge-base/]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-05
 ---
 
 # Documentação e divergências código × docs
@@ -31,6 +31,14 @@ código, e diz “código aberto” sem `LICENSE`; o `DESIGN_SYSTEM.md` declara 
 escuro `#101311` enquanto o app usa `#050907`; a matriz de compatibilidade é da
 versão 0.5.0; e relatórios da raiz (`AUDIT.md`, `IMPLEMENTATION_REPORT.md`,
 `PROVA_SOCIAL_CONTEXT.md`) competem com o vault sem banner de “histórico”.
+**Resolvido em 2026-11-05 (branch `docs/md-historicos`):** os 16 `.md` soltos da
+raiz foram movidos com `git mv` para `docs/historico/` — o nome da pasta é o banner
+de histórico. Ficam na raiz só `README.md` e `AGENTS.md`, que são pontos de entrada
+funcionais. Os 5 links vivos do vault foram reapontados (`Índice`, `Study Surface`,
+`Inventário`) e os 3 links de `SECOND_PHASE_REPORT.md` para `test/` viraram
+`../../test/`. Nenhum script, workflow, site ou teste referenciava esses arquivos.
+As divergências de **conteúdo** (cores, matriz 0.5.0, README prometendo o que não
+existe) continuam em aberto — mover não corrige o que o documento afirma.
 
 Classificação: **EVOLUIR** — o conteúdo é preservável e valioso, mas precisa de
 uma hierarquia explícita, versionamento e verificação automática para não

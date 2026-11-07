@@ -33,4 +33,4 @@ Classificação permanece pendente.
 ## Fonte
 
 [AGENTS.md — identidade visual](../../AGENTS.md) e
-[DESIGN_SYSTEM.md](../../DESIGN_SYSTEM.md).
+[DESIGN_SYSTEM.md](../../docs/historico/DESIGN_SYSTEM.md).

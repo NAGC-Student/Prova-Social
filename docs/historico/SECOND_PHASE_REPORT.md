@@ -35,18 +35,18 @@ anteriores:
 
 - Onboarding desktop limitado a largura legível; “Continuar” avança e “Pular”
   continua disponível. Há testes de desktop e paisagem móvel em
-  [onboarding_responsive_test.dart](test/onboarding_responsive_test.dart).
+  [onboarding_responsive_test.dart](../../test/onboarding_responsive_test.dart).
 - Revisão de importação virtualiza a lista, mantém o cursor, explica questões
   incompletas e permite iniciar uma tentativa local com as questões utilizáveis
   sem obrigar publicação. Há testes em
-  [navigation_editor_test.dart](test/ux/navigation_editor_test.dart).
+  [navigation_editor_test.dart](../../test/ux/navigation_editor_test.dart).
 - Resultado permite revisar a tentativa, repetir erros e gerar uma prova local
   baseada no histórico, com filtros e estado recuperável sem correspondências.
 - O quality gate identifica duplicatas textuais, estruturas incompletas e
   divergência de quantidade quando a pessoa informa um total esperado.
 - Os testes e o analyzer anteriores passaram. Nesta revisão, o corpus real
   revelou a fragilidade da chave histórica por posição; ela foi corrigida e
-  testada em [wrong_question_practice_service_test.dart](test/wrong_question_practice_service_test.dart).
+  testada em [wrong_question_practice_service_test.dart](../../test/wrong_question_practice_service_test.dart).
 
 Não foi possível fazer validação visual em aparelhos, navegadores reais,
 leitores de tela ou com o backend de produção neste ambiente. Widget tests não

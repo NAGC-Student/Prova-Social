@@ -54,9 +54,9 @@ requisitos sem autorização.
 ## Fontes primárias
 
 - [Diretrizes de produto](../../AGENTS.md)
-- [Relatório de auditoria anterior](../../AUDIT.md)
-- [Relatório da segunda fase](../../SECOND_PHASE_REPORT.md)
-- [Relatório de implementação](../../IMPLEMENTATION_REPORT.md)
+- [Relatório de auditoria anterior](../../docs/historico/AUDIT.md)
+- [Relatório da segunda fase](../../docs/historico/SECOND_PHASE_REPORT.md)
+- [Relatório de implementação](../../docs/historico/IMPLEMENTATION_REPORT.md)
 - [[Fontes/README|Fontes originais fornecidas]]
 
 ## Segurança e organização
