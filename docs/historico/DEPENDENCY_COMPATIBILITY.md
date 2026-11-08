@@ -1,6 +1,10 @@
 > **Documento histórico — congelado em 2026-11-07.**
 > Não reflete a versão 0.7.5+15. A fonte viva é o vault em `knowledge-base/`.
 > Correções neste arquivo exigem banner datado; não o use como especificação vigente.
+> Sucessores desde 2026-11-08: [Matriz de dependências](../../knowledge-base/05%20-%20Qualidade/Matriz%20de%20depend%C3%AAncias.md),
+> gerada do `pubspec.lock`, e [Dependências e pins](../../knowledge-base/03%20-%20Dom%C3%ADnios/Depend%C3%AAncias%20e%20pins.md),
+> com a regra de pin e a cadência (ADR-0009). A regra de ouro abaixo continua
+> valendo: nada de `flutter pub upgrade --major-versions` no pipeline.
 
 # Matriz de compatibilidade — Prova Social 0.5.0
 

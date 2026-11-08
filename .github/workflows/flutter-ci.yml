@@ -169,6 +169,10 @@ jobs:
       - name: QA estático
         run: bash qa/run_static.sh
 
+      - name: Defasagem de dependências (informativo, ADR-0009)
+        continue-on-error: true
+        run: flutter pub outdated
+
       - name: Preparar PDFium para testes Flutter
         run: dart run tool/prepare_pdfium_test_runtime.dart
 

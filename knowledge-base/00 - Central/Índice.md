@@ -36,12 +36,14 @@ requisitos sem autorização.
 - [[../03 - Domínios/Fluxos Principais|Domínios]] — questão, prova, tentativa e importação.
 - [[../03 - Domínios/Modelo de Domínio Atual|Modelo de domínio atual]] — o que `lib/domain/` é hoje, medido.
 - [[../03 - Domínios/Contratos de Domínio Alvo|Contratos de domínio alvo]] — C1–C7 com invariantes e testes exigidos.
+- [[../03 - Domínios/Dependências e pins|Dependências e pins]] — regra de pin, cadência e defasagem medida (ADR-0009).
 - [[../04 - Infraestrutura/Dados e Segurança|Infraestrutura]] — Supabase, armazenamento, ambiente e segurança.
 - [[../04 - Infraestrutura/Inventário de Persistência e Dados|Inventário de persistência e dados]] — três trilhas de SQL, chaves locais e contratos de RPC.
 - [[../05 - Qualidade/Validação Atual|Qualidade]] — verificações, limites e regressões.
 - [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|Critério de prontidão]] — quando parar de acumular e começar a planejar.
 - [[../05 - Qualidade/Critérios de Qualidade de Código|Critérios de qualidade (SOLID/Clean Code)]] — a régua normativa da camada nova, com o método de verificação de cada regra.
 - [[../05 - Qualidade/Auditoria de Clean Code e SOLID medida|Auditoria de qualidade medida]] — onde cada violação está, com números reproduzíveis.
+- [[../05 - Qualidade/Matriz de dependências|Matriz de dependências]] — 125 pacotes resolvidos, gerada do lock com SHA-256 e data.
 - [[../06 - Decisões/ADR/README|Decisões / ADRs]] — 12 ADRs aceitos, licença incluída (distribuição restrita), e template.
 - [[../07 - Histórico/Releases/README|Histórico / releases]].
 - [[../07 - Histórico/Refatorações/README|Histórico / refatorações]].

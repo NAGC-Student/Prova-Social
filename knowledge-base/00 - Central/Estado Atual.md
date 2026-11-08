@@ -153,9 +153,15 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
    `docs/historico/` têm banner de congelamento; o `README.md` não promete mais
    importação por imagem nem condição de licenciamento inexistente; e existe
    `LICENSE` na raiz. `tool/test_docs_links.py` entrou no `qa/run_static.sh` para
-   que a divergência não volte a se acumular sem detecção. **Falta:**
-   `DESIGN_SYSTEM.md` (cores, ADR-0001) e `DEPENDENCY_COMPATIBILITY.md` (matriz
-   ainda da 0.5.0, ADR-0009). O vault está versionado desde `eebb2b0` e o estado
+   que a divergência não volte a se acumular sem detecção. **Feito em 2026-11-08
+   (ADR-0009):** a matriz de dependências passou a ser gerada do `pubspec.lock`
+   com SHA-256 e data, o `--check` e o teste do gerador rodam no gate estático, a
+   regra de pin e a cadência estão escritas em
+   [[../03 - Domínios/Dependências e pins]], e `flutter pub outdated` entrou no
+   CI como passo informativo — sem upgrade. `DEPENDENCY_COMPATIBILITY.md` segue
+   congelado em 0.5.0, agora com link para os sucessores no banner. **Falta:**
+   `DESIGN_SYSTEM.md` (cores, ADR-0001). O vault está versionado desde `eebb2b0`
+   e o estado
    de dispositivo é coberto pelo `.gitignore:67-70` da raiz — não falta
    `.gitignore` próprio.
 3. **ADRs assinados em 2026-11-07:** os 12 arquivos existem desde 2026-11-05 e

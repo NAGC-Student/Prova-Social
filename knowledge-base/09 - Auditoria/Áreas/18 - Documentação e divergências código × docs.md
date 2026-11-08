@@ -253,6 +253,17 @@ lista:
 A versão do app é `0.7.5+15`. A matriz está defasada e não tem banner de
 “histórico”. Para a área 17, ela é insuficiente como referência atual.
 
+**Correção medida em 2026-11-08 (matriz de dependências):** as duas últimas
+frases deixaram de valer. O arquivo está em `docs/historico/` com banner de
+congelamento desde 2026-11-07 (ADR-0008) e, desde 2026-11-08, o banner aponta os
+sucessores: [[../../05 - Qualidade/Matriz de dependências]], gerada do
+`pubspec.lock` por `tool/generate_dependency_matrix.py` com SHA-256, data e as
+125 versões resolvidas, e [[../../03 - Domínios/Dependências e pins]], com a
+regra de pin e a cadência (ADR-0009, alternativa A). O `--check` do gerador e o
+teste dele rodam no `qa/run_static.sh`, então a matriz não pode voltar a
+apodrecer em silêncio: aceitar PR do dependabot sem regenerá-la falha o gate.
+O texto original acima foi preservado.
+
 ### Relatórios da raiz competem com o vault
 
 A raiz tem:

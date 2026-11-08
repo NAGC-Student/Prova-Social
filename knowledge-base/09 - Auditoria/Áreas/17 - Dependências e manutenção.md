@@ -34,6 +34,36 @@ Classificação: **EVOLUIR** — as dependências funcionam e são auditadas, ma
 falta uma política de atualização, tamanho e licenças que o projeto possa
 sustentar.
 
+> **Correção datada (2026-11-08) — Onda 1 dos ADRs.** O texto abaixo foi
+> preservado como estava. Quatro afirmações do resumo e dos achados deixaram de
+> valer:
+>
+> - **"Pins exatos sem justificativa"** — a justificativa está escrita no
+>   [[../../06 - Decisões/ADR/ADR-0009 - Política de dependências e pins|ADR-0009]]
+>   (aceito em 2026-11-07) e em
+>   [[../../03 - Domínios/Dependências e pins|Dependências e pins]]: pino exato
+>   para o que toca nativo ou contrato externo, caret para o resto. Isso
+>   **contradiz o Lote 2 desta nota**, que manda substituir pins por ranges —
+>   o Lote 2 está superado nesse item e não deve ser executado como escrito.
+> - **"Não há `LICENSE`"** — existe desde 2026-11-07, distribuição restrita,
+>   todos os direitos reservados (ADR-0007, alternativa C). SBOM e auditoria
+>   consolidada de licenças continuam ausentes.
+> - **"`THIRD_PARTY_NOTICES.md` declara ONNX Runtime `1.21.1`"** — corrigido
+>   para `1.31.1` em 2026-11-07, igual a `build.gradle:32`.
+> - **"Falta uma política de atualização"** — a cadência está escrita (nativas
+>   revisadas por release, Dart pelo dependabot), a matriz é gerada do lock com
+>   `--check` no `qa/run_static.sh`, e `flutter pub outdated` entrou no CI como
+>   passo informativo com `continue-on-error: true`.
+>
+> Defasagem remedida em 2026-11-08: **5** diretas + 1 dev atrasadas (o ML Kit
+> aparece agora com major `0.17.1 → 1.0.1`), **9** constrainadas e **17** presas
+> no lock — contra 4+1, 7 e 16 na medição de 2026-11-05 registrada abaixo.
+> Nenhum upgrade foi executado. Continuam abertos: tamanho de APK
+> (ADR-0005/0011), assinatura de release com chave debug, SBOM, e o par
+> `pdfrx`/`pdfium_flutter` — que a regra geral de pino nativo alcançaria mas a
+> lista decidida no ADR-0009 não nomeia; o ponto está registrado na nota de
+> política como decisão pendente do responsável.
+
 ## Escopo e método
 
 - Leitura de `pubspec.yaml`, `pubspec.lock` e `pubspec.lock` resolvido.

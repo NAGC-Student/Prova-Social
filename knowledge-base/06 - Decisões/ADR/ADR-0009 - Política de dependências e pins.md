@@ -80,6 +80,17 @@ dependabot está de fato ativo no repositório upstream (isso é configuração
 de plataforma, não arquivo). O lock do Gradle foi lido no `build.gradle`,
 não resolvido em build limpo.
 
+> **Correção datada (2026-11-08).** A primeira frase acima está errada e foi
+> preservada como estava: a
+> [[../../09 - Auditoria/Áreas/17 - Dependências e manutenção|Área 17]] registrou
+> `flutter pub outdated` em **2026-11-05** (4 diretas + 1 dev atrasadas, 7
+> constrainadas, 16 presas no lock). O que não existia era medição **na
+> esteira** — aí o contexto acima continua correto. A defasagem foi remedida em
+> 2026-11-08 na Tarefa 1.5: 5 diretas + 1 dev, 9 constrainadas, 17 presas no
+> lock. O ML Kit não aparecia na tabela de 2026-11-05 e aparece agora; a causa
+> da diferença não foi verificada. Números e saída em
+> [[../../03 - Domínios/Dependências e pins]].
+
 ## Decisão
 
 **Aprovada em 2026-11-07 pelo responsável pelo projeto (NAGCODE-Dev).**
@@ -141,6 +152,31 @@ Alternativa escolhida: **A — formalizar o estado atual**. A decisão é:
   resolvida no lock precisa ser conferida depois; remover o
   `--enforce-lockfile` do CI seria afrouxar um gate existente e não é
   recomendado como efeito colateral.
+- **Materialização em 2026-11-08 (alternativa A):** a regra está escrita em
+  [[../../03 - Domínios/Dependências e pins]], a matriz viva é gerada do lock em
+  [[../../05 - Qualidade/Matriz de dependências]] por
+  `tool/generate_dependency_matrix.py` (stdlib, sem PyYAML e sem Flutter), e o
+  `--check` mais o teste do gerador entraram no `qa/run_static.sh`. O CI ganhou
+  o passo informativo `Defasagem de dependências (informativo, ADR-0009)` com
+  `continue-on-error: true` (`.github/workflows/flutter-ci.yml:172-174`); nenhum
+  upgrade foi executado. A data da matriz é preservada enquanto o SHA-256 do
+  lock não muda — sem essa regra o `--check` falharia todo dia por motivo
+  nenhum. `docs/historico/DEPENDENCY_COMPATIBILITY.md` ganhou no banner o link
+  para os dois sucessores.
+- **Defasagem medida em 2026-11-08:** `flutter pub outdated` exit 0 com o lock
+  inalterado (SHA-256 conferido antes e depois). Cinco diretas atrás do
+  publicado — `crypto` 3.0.7→3.0.8, `file_picker` 13.1.0→13.3.2,
+  `google_mlkit_text_recognition` 0.17.1→**1.0.1** (major), `image`
+  4.10.1→4.12.0, `pdfrx` 2.6.6→2.12.0 — e uma de dev, `pdfium_flutter`
+  0.3.1→0.4.1; o rodapé conta 17 upgradable presas no lock e 9 constraints
+  abaixo do resolvível. O major do ML Kit não foi aceito: cai no gate de
+  benchmark em aparelho do ADR-0011, ainda pendente de dispositivo.
+- **Divergência registrada, não resolvida por conta própria:** a regra diz
+  "pino exato para o que toca nativo", mas a lista decidida acima não nomeia
+  `pdfrx` nem `pdfium_flutter`, que carregam PDFium nativo e hoje são caret.
+  Incluir os dois no conjunto exato ou registrar a exceção é decisão do
+  responsável; o ponto está aberto na nota de política. Nenhum `pubspec.yaml`
+  ou `pubspec.lock` foi editado nesta tarefa.
 
 ## Evidências e validação
 
@@ -150,22 +186,33 @@ Alternativa escolhida: **A — formalizar o estado atual**. A decisão é:
   [.github/dependabot.yml](../../../.github/dependabot.yml),
   [flutter-ci.yml](../../../.github/workflows/flutter-ci.yml),
   [docs/historico/DEPENDENCY_COMPATIBILITY.md](../../../docs/historico/DEPENDENCY_COMPATIBILITY.md),
-  [build.gradle do plugin](../../../packages/paddleocr_android/android/build.gradle).
+  [build.gradle do plugin](../../../packages/paddleocr_android/android/build.gradle),
+  [generate_dependency_matrix.py](../../../tool/generate_dependency_matrix.py),
+  [qa/run_static.sh](../../../qa/run_static.sh).
+- Notas que materializam a decisão:
+  [[../../03 - Domínios/Dependências e pins]] (regra, inventário, cadência,
+  defasagem medida) e [[../../05 - Qualidade/Matriz de dependências]] (gerada).
 - Testes que sustentam a esteira de dependências:
+  [test_generate_dependency_matrix.py](../../../tool/test_generate_dependency_matrix.py)
+  (15 testes, lock temporário mínimo),
   [supabase_config_test.dart](../../../test/supabase_config_test.dart),
   [github_release_service_test.dart](../../../test/github_release_service_test.dart),
   [local_corpus_benchmark_test.dart](../../../test/local_corpus_benchmark_test.dart)
   (sensível a mudança de parser/OCR).
-- **Exigido antes de implementar:** rodar `flutter pub outdated` e registrar
-  a saída com data (a defasagem real ainda não foi medida); build Android
-  limpo para conferir o lock do Gradle; teste de que a matriz gerada bate com
-  `pubspec.lock`; para qualquer bump nativo, importação de prova real antes
-  e depois.
+- **Exigido antes de implementar:** ~~rodar `flutter pub outdated` e registrar
+  a saída com data~~ — **feito em 2026-11-08**, saída resumida na nota de
+  política e em `## Consequências e reversão`; ~~teste de que a matriz gerada
+  bate com `pubspec.lock`~~ — **feito**, `--check` no `qa/run_static.sh`.
+  Pendente: build Android limpo para conferir o lock do Gradle; para qualquer
+  bump nativo, importação de prova real antes e depois (nenhum bump foi feito).
 - Comandos de reprodução:
   `grep -n "enforce-lockfile" .github/workflows/flutter-ci.yml`;
   `git ls-files pubspec.lock`; `cat .github/dependabot.yml`;
   `grep -n "onnxruntime-android\|opencv\|coroutines" packages/paddleocr_android/android/build.gradle`;
-  `git log --oneline -- pubspec.yaml pubspec.lock`.
+  `git log --oneline -- pubspec.yaml pubspec.lock`;
+  `python3 tool/test_generate_dependency_matrix.py`;
+  `python3 tool/generate_dependency_matrix.py --check`;
+  `flutter pub outdated`.
 - Relacionados: [[ADR-0005 - Distribuição Android e seleção de ABI|ADR-0005]],
   [[ADR-0007 - Licença do app e fixtures de terceiros|ADR-0007]] (aviso de
   terceiros com versão errada), [[ADR-0011 - Tamanho de APK, modelos e componentes nativos|ADR-0011]],

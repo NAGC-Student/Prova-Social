@@ -92,7 +92,7 @@ atualizado: 2026-11-04
 - Decidir licença do app e política de fixtures de terceiros.
 - Registrar ADRs de paleta, distribuição, persistência, câmera e dependências.
 
-**Resolução em 2026-11-07** (lista original preservada acima):
+**Resolução em 2026-11-07, atualizada em 2026-11-08** (lista original preservada acima):
 
 | Recomendação | Estado |
 |---|---|
@@ -101,5 +101,6 @@ atualizado: 2026-11-04
 | Verificação automática no CI | **Parcial** — `tool/test_docs_links.py` cobre links relativos, wikilinks, numeração do `AGENTS.md` e banner, e roda no `qa/run_static.sh`; frontmatter e segredos **não** são verificados |
 | Numeração do `AGENTS.md` e hierarquia | Feito — segunda seção 15 virou 25; precedência escrita no `AGENTS.md` e no `knowledge-base/README.md` (ADR-0008) |
 | Licença do app | Feito — distribuição restrita, todos os direitos reservados, `LICENSE` na raiz (ADR-0007, alternativa C) |
-| Política de fixtures de terceiros | **Pendente** — campos obrigatórios e teste na Tarefa 1.4 do plano de implementação |
+| Política de fixtures de terceiros | Feito — `licenseStatus`, `allowedForTesting` e `allowedForProductContent` obrigatórios em toda entrada do corpus, `test/fixture_license_policy_test.dart` no lugar, `.backup` removido e ONNX corrigido para `1.31.1` no notice (ADR-0007, Tarefa 1.4) |
+| Matriz de dependências vigente | Feito em 2026-11-08 — `Matriz de dependências` gerada do `pubspec.lock` com SHA-256 e data, `--check` e teste do gerador no `qa/run_static.sh`, regra de pin e cadência em `Dependências e pins`, `flutter pub outdated` informativo no CI (ADR-0009, alternativa A) |
 | ADRs de paleta, distribuição, persistência, câmera, dependências | Feito — 12 ADRs aceitos em 2026-11-07 |
