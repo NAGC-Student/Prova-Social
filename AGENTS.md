@@ -299,7 +299,7 @@ Oferecer ação para gerar uma **prova dos erros**, contendo questões erradas s
 
 ### Fluxo ideal
 
-1. Escolher PDF, imagens, câmera, JSON ou criação manual.
+1. Escolher PDF, JSON ou criação manual. Entrada por imagem e câmera fica para fase posterior (ADR-0006): o OCR atual só recebe página de PDF, e implementar essa entrada exige decisão de produto, novo caminho de extração e licença.
 2. Iniciar extração automaticamente.
 3. Mostrar progresso por etapas reais.
 4. Extrair metadados do próprio arquivo.
@@ -368,6 +368,12 @@ Usar uma prova real de 80 questões, incluindo layout de duas colunas, como fixt
 - Avaliação avançada de texto fica para fase posterior.
 
 ## 11. Imagens de provas
+
+**Escopo posterior (ADR-0006).** A aba descrita abaixo não existe no app: hoje só
+figuras extraídas do próprio PDF são exibidas, em galeria somente leitura
+(`QuestionMediaGallery`). Implementá-la exige autoria, licença e URL de origem por
+imagem, ou seja, decisão de produto e de licença (ADR-0007) antes de UI. Não tratar
+como detalhe de implementação nem como recurso disponível.
 
 Na criação/revisão da prova, disponibilizar uma aba para:
 

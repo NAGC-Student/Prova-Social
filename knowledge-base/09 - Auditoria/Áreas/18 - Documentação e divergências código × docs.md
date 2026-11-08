@@ -198,6 +198,21 @@ Afirmações verificadas:
 A seção “O que ainda não existe” é boa, mas as afirmações positivas acima não
 são verificadas por teste nem por revisão de documento.
 
+**Correção medida em 2026-11-07 (importação por imagem):** a primeira linha da
+tabela deixou de ser divergência, e o mesmo vale para a linha “README refletir o
+código” do resumo e para a menção a “imagens” no parágrafo de abertura. O
+`README.md` não lista mais `Imagens` na importação e passou a declarar a ausência
+em “O que ainda não existe”; `AGENTS.md:302` nomeia só PDF, JSON e criação manual,
+com imagem/câmera marcadas como fase posterior; e o `AGENTS.md` §11 ganhou aviso de
+escopo posterior com a dependência de licença explícita. A decisão é do
+[[../../06 - Decisões/ADR/ADR-0006 - Escopo de importação por câmera|ADR-0006]]
+(alternativa A, aceita em 2026-11-07), registrada em
+[[../../01 - Produto/Entrada por imagem e câmera]]. **A capacidade continua
+ausente no código** — o que mudou foi a promessa, não o app; por isso a
+classificação da nota de produto é ADIAR, não MANTER. As outras três linhas da
+tabela (“modo de demonstração”, “código aberto”, APK universal) seguem abertas e
+são objeto dos ADR-0007 e 0005. O texto original acima foi preservado.
+
 ### `DESIGN_SYSTEM.md` contradiz o app
 
 O documento diz:

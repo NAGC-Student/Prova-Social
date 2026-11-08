@@ -102,9 +102,13 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
 - **Síntese global:** [[../09 - Auditoria/Síntese da Refatoração|Síntese da
   Refatoração]], com achados transversais, ordem dos lotes e ADRs necessários.
 - **Área 9 (scanner):** 105 testes do scanner aprovados, 1 ignorado (PDF ENEM
-  ausente). Especificação fechada; implementação parcial. Faltam câmera/galeria,
-  fila de feedback, publicação de discursivas, estados estruturais no lugar da
-  porcentagem e validação de OCR em aparelho.
+  ausente). Especificação fechada; implementação parcial. Faltam fila de feedback,
+  publicação de discursivas, estados estruturais no lugar da porcentagem e
+  validação de OCR em aparelho. **Câmera/galeria deixaram de ser pendência e
+  viraram escopo adiado por decisão** (ADR-0006, alternativa A, 2026-11-07): a
+  promessa foi retirada do `README.md:28` e do `AGENTS.md:302`, e o OCR só recebe
+  `PdfPage` (`ocr_service_native.dart:27-28`). Ver
+  [[../01 - Produto/Entrada por imagem e câmera]].
 - O fixture VUNESP está versionado com licença não verificada e não autoriza
   conteúdo de produto.
 

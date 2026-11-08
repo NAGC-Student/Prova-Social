@@ -28,7 +28,7 @@ Resumo:
 | Quality gate `good`/`review`/`retry` | Funcional | `import_quality_gate.dart:6` |
 | Revisão humana com página original e preview | Parcial; UI mostra porcentagem | `publish_page.dart:2041-2146` |
 | Publicação de discursivas | Ausente/divergente; exige alternativas e gabarito de todas as questões | `publish_page.dart:1333-1343` |
-| Câmera, galeria e imagens | Ausente | busca sem `camera`/`image_picker` |
+| Câmera, galeria e imagens | Ausente; **escopo adiado por decisão** (ADR-0006, 2026-11-07) — ver [[Entrada por imagem e câmera]] | busca sem `camera`/`image_picker`; `ocr_service_native.dart:27-28` só recebe `PdfPage` |
 | Fila de feedback, envio e retorno | Ausente; só o contrato JSON existe | `import_diagnostic_event.dart:44-46` |
 
 A especificação abaixo está **fechada**; a implementação continua **parcial**.

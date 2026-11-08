@@ -25,7 +25,6 @@ Transforme provas em aprendizado real. Não é apenas outro app de estudos — �
 
 ### 💾 Importação
 - PDFs (com OCR local no Android)
-- Imagens
 - Criação manual de questões
 - Dashboard de progresso da importação
 - Questões completas podem ser resolvidas sem concluir toda a revisão; questões incompletas ficam de fora da tentativa após confirmação
@@ -151,6 +150,7 @@ Listado para que a promessa do produto e o estado real do app não se confundam:
 - **Seguir provas, bancas e concursos**: só `topic_follows` (assuntos) é usado pelo app. As tabelas `profile_follows`, `collections` e `collection_exams` existem apenas no desenho de backend (`supabase/prova_social_backend_v1.sql`), sem migração aplicada.
 - **Comunidades**: não há entidade, tela ou consulta de comunidade.
 - **Questões discursivas**: o modelo de questão aceita uma única alternativa correta.
+- **Importação por imagem ou câmera**: só PDF, JSON e criação manual existem. O OCR recebe página de PDF (`lib/core/import/ocr_service_native.dart`), não arquivo de imagem; não há `image_picker`, pacote `camera` nem permissão `CAMERA`. Fora do escopo por decisão (ADR-0006, alternativa A, 2026-11-07) — implementar exige ADR próprio, prova de conceito sobre foto e benchmark dos motores em aparelho.
 - **Tema claro**: `AppTheme.light` existe, mas o app força `ThemeMode.dark` e o Modo Foco ainda usa cores escuras fixas. Uma tela de preferência é pré-requisito.
 
 ## 📦 Distribuição

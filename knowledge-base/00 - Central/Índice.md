@@ -29,6 +29,7 @@ requisitos sem autorização.
 - [[../01 - Produto/Visão do Produto|Produto]] — intenção e princípios.
 - [[../01 - Produto/Fluxo de Entrada e Criação|Fluxo de entrada e criação (rascunho)]]
 - [[../01 - Produto/Inventário de Telas e Cobertura|Inventário de telas e cobertura]] — 17 destinos, navegação e o que cada tela testa.
+- [[../01 - Produto/Entrada por imagem e câmera|Entrada por imagem e câmera]] — escopo adiado pelo ADR-0006, com a ausência medida e o que seria necessário para reabrir.
 - [[../02 - Arquitetura/Mapa de Módulos|Arquitetura]] — módulos reais, limites e alvo proposto.
 - [[../02 - Arquitetura/Fluxos Reais|Fluxos reais medidos]] — F1–F4 com estados de falha.
 - [[../02 - Arquitetura/Mapa de Dependências|Mapa de dependências medido]] — arestas, fan-in/out, vendor e singletons.
