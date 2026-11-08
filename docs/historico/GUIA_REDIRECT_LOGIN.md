@@ -1,3 +1,7 @@
+> **Documento histórico — congelado em 2026-11-07.**
+> Não reflete a versão 0.7.5+15. A fonte viva é o vault em `knowledge-base/`.
+> Correções neste arquivo exigem banner datado; não o use como especificação vigente.
+
 # Retorno do e-mail para o aplicativo
 
 O aplicativo usa este endereço de retorno:

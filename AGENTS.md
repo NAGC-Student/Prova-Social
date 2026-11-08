@@ -703,7 +703,7 @@ Não começar implementando tudo. Primeiro produzir um diagnóstico do estado at
 
 Depois propor o próximo lote P0 com o menor conjunto de mudanças capaz de entregar uma melhoria completa e testável.
 
-## 15. Base de conhecimento do projeto
+## 25. Base de conhecimento do projeto
 
 A documentação de engenharia é organizada no vault Obsidian versionado em:
 
@@ -716,6 +716,13 @@ dispositivo fica ignorado pelo Git. Não há plugins da comunidade configurados.
 O `AGENTS.md` continua sendo a fonte normativa para princípios e requisitos do
 produto; as notas do vault resumem, relacionam e auditam essas diretrizes, sem
 substituí-las.
+
+### Precedência documental
+
+1. `AGENTS.md` é a fonte normativa.
+2. Nota do vault auditada com evidência `file:line` vence documento histórico.
+3. `docs/historico/` é congelado; correção nesses arquivos exige banner datado,
+   nunca alteração silenciosa.
 
 ### Quando consultar
 
@@ -738,14 +745,16 @@ Priorize as notas existentes no vault antes de criar uma nova decisão ou altera
 
 Se a tarefa solicitar documentação, decisão, plano, revisão ou atualização do
 conhecimento do projeto, edite diretamente os arquivos Markdown em
-`knowledge-base/`. Mantenha relatórios e guias existentes na raiz como fontes
-históricas até que sejam revisados e consolidados com evidências; não os apague
-nem os substitua silenciosamente.
+`knowledge-base/`. Mantenha relatórios e guias existentes em `docs/historico/`
+como fontes históricas até que sejam revisados e consolidados com evidências;
+não os apague nem os substitua silenciosamente.
 
 ### Separação de responsabilidades
 
 - raiz do repositório → código-fonte, especificações normativas e workflows.
 - `knowledge-base/` → documentação viva, auditoria, decisões e planejamento.
+- `docs/historico/` → relatórios e guias congelados, mantidos como evidência
+  histórica e nunca como especificação vigente.
 - `knowledge-base/10 - Anexos/` → diagramas e imagens de documentação; não
   armazenar provas, credenciais, dados pessoais ou arquivos sem permissão.
 - Obsidian → interface de edição e consulta da documentação.
