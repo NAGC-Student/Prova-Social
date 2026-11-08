@@ -18,6 +18,6 @@
 
 ## Dependências Android
 
-- ONNX Runtime Android `1.21.1` — MIT License.
+- ONNX Runtime Android `1.31.1` — MIT License.
 - OpenCV Android `4.5.3` — Apache License 2.0.
 - kotlinx.coroutines Android `1.9.0` — Apache License 2.0.

@@ -20,6 +20,32 @@ redistribuição.
 - As respostas do exercício fictício usam a regra `3n + 2`; o gabarito correto
   é a alternativa C em cada questão.
 
+## Política por item do manifesto
+
+Toda entrada de `import_corpus.json` declara, em `source`, os campos
+obrigatórios `kind`, `description`, `licenseStatus` (string não vazia),
+`allowedForTesting` (bool) e `allowedForProductContent` (bool); em `document`,
+`path` e `sha256`. Material de terceiro — PDF, imagem, texto de banca, modelo —
+entra no manifesto antes de entrar no repositório. É o registro por item
+referenciado pela cláusula 5 do `LICENSE` (ADR-0007).
+
+Valores de `licenseStatus` em uso:
+
+- `project-generated`: criado pelo próprio projeto, como o fixture sintético.
+- `not-verified`: fornecido por terceiro ou pelo responsável, sem licença
+  conferida. Autoriza apenas teste local.
+
+`allowedForProductContent: true` exige `licenseStatus` verificado e diferente de
+`not-verified`. Enquanto a licença não é conferida, o item fica com
+`allowedForTesting: true` e `allowedForProductContent: false`, o que barra
+catálogo, home, screenshots de produto e produção.
+
+`test/fixture_license_policy_test.dart` falha se faltar campo, se o `id`
+repetir, se o `document.path` não existir, se o `sha256` não tiver 64 dígitos
+hexadecimais, se um item liberado para produto estiver `not-verified` ou se
+houver arquivo `.backup` em `test/fixtures/`. A duplicata é desnecessária: o
+original está no Git e o hash do manifesto cobre a integridade.
+
 O PDF pode ser regenerado com Python e ReportLab 5.0.1:
 
 ```sh
@@ -44,4 +70,7 @@ raiz do repositório como `2025_PV_impresso_D1_CD1.pdf` e está no `.gitignore`:
 pulado nas demais. Ele é o benchmark das provas de duas colunas com marcação
 quebrada ("Quest ão 04"), marca d'água repetida e enunciado impresso na coluna
 vizinha; as 90 questões são checadas em ordem, com no máximo 12 para revisar.
-Nenhum dos três PDFs acima entra no catálogo nem em telas de produto.
+Nenhum dos três PDFs acima entra no catálogo nem em telas de produto. O caderno
+do ENEM fica fora do Git e, por isso, fora do manifesto; se um dia for
+versionado, precisa ser registrado como `user-provided-benchmark`,
+`licenseStatus: not-verified` e `allowedForProductContent: false`.

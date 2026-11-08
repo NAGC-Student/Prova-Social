@@ -187,6 +187,20 @@ preservada como estava — inclusive os contras de C, um dos quais a cláusula 3
   explícito o que já valia. A reversão é, portanto, mais barata do que a
   avaliação acima sugeria para A ou B: afrouxar a cláusula 3 não desfaz
   concessão feita a terceiros.
+- **Materialização em 2026-11-07, itens 2 e 3 da decisão:** o manifesto passou a
+  exigir `licenseStatus` em toda entrada — o sintético declara
+  `project-generated` — e `test/fixture_license_policy_test.dart` falha se
+  faltar campo, se o `id` repetir, se o documento não existir, se o `sha256`
+  não tiver 64 dígitos hexadecimais, se um item liberado para produto estiver
+  `not-verified` ou se houver `.backup` em `test/fixtures/`. Os três modos de
+  falha relevantes foram exercitados antes do commit: sem o campo (1 teste
+  vermelho), com `allowedForProductContent: true` em item `not-verified`
+  (1 vermelho) e com a duplicata presente (1 vermelho); com o manifesto
+  restaurado, 5 verdes. `THIRD_PARTY_NOTICES.md` agora declara ONNX Runtime
+  `1.31.1`, igual a `build.gradle:32`. A duplicata
+  `synthetic_two_column_80_questions.pdf.backup` foi removida do Git: o SHA-256
+  dela era idêntico ao do original (`6bd98404…`), e o blob continua no
+  histórico — remover do índice não é reescrever histórico.
 
 ## Evidências e validação
 
@@ -200,22 +214,36 @@ preservada como estava — inclusive os contras de C, um dos quais a cláusula 3
   [THIRD_PARTY_NOTICES.md](../../../packages/paddleocr_android/THIRD_PARTY_NOTICES.md),
   [build.gradle do plugin](../../../packages/paddleocr_android/android/build.gradle),
   [.gitignore](../../../.gitignore).
-- Testes: [vunesp_2024_import_test.dart](../../../test/vunesp_2024_import_test.dart),
+- Testes: [fixture_license_policy_test.dart](../../../test/fixture_license_policy_test.dart),
+  [vunesp_2024_import_test.dart](../../../test/vunesp_2024_import_test.dart),
   [enem_2025_import_test.dart](../../../test/enem_2025_import_test.dart),
   [bancas_import_test.dart](../../../test/bancas_import_test.dart),
   [local_corpus_benchmark_test.dart](../../../test/local_corpus_benchmark_test.dart).
 - **Exigido antes de implementar:** ~~decisão de licença do responsável por
   escrito~~ — **satisfeita em 2026-11-07** (alternativa C, `LICENSE` na raiz).
-  Pendente: teste que exige `licenseStatus` + `allowedForTesting` +
-  `allowedForProductContent` em toda entrada do corpus; conferência de
-  SHA-256 dos modelos contra o aviso; `git ls-files` revisado para binários
-  de terceiro; para E, medir qual cobertura de CI se perde antes de remover.
+  ~~Teste que exige `licenseStatus` + `allowedForTesting` +
+  `allowedForProductContent` em toda entrada do corpus~~ — **satisfeito em
+  2026-11-07** (`test/fixture_license_policy_test.dart`, 5 testes).
+  Pendente: conferência de SHA-256 dos modelos contra o aviso; `git ls-files`
+  revisado para binários de terceiro; para E, medir qual cobertura de CI se
+  perde antes de remover.
+- **Inventário dos textos inline, lido em 2026-11-07:** os 10 casos de
+  `bancas_import_test.dart` foram lidos por inteiro. Nove são enunciados
+  genéricos escritos no formato impresso da banca, sem texto de apoio. O caso
+  ENEM (`test/bancas_import_test.dart:358-387`) remete a “esse texto”,
+  “a autora” e “Nesse poema” sem incluir o texto de apoio — padrão de item
+  copiado de prova real, não de enunciado inventado. A procedência desse caso
+  **não está verificada**; fica como ponto aberto da política de fixtures
+  (registrar no manifesto ou substituir por sintético equivalente) e não
+  autoriza conteúdo de produto. O arquivo não foi alterado nesta rodada.
 - Comandos de reprodução:
   `git ls-files | grep -iE "licen|copying"`;
   `git ls-files test/fixtures`;
   `grep -n "onnxruntime-android" packages/paddleocr_android/android/build.gradle`
   → `1.31.1`; `grep -n "ONNX Runtime" packages/paddleocr_android/THIRD_PARTY_NOTICES.md`
-  → `1.21.1`; `sed -n '163,166p' README.md`.
+  → `1.21.1` na auditoria, `1.31.1` depois da correção de 2026-11-07;
+  `sed -n '163,166p' README.md`;
+  `flutter test test/fixture_license_policy_test.dart`.
 - Relacionados: [[ADR-0006 - Escopo de importação por câmera|ADR-0006]],
   [[ADR-0009 - Política de dependências e pins|ADR-0009]],
   [[ADR-0011 - Tamanho de APK, modelos e componentes nativos|ADR-0011]],

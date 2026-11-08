@@ -6,6 +6,7 @@
       "source": {
         "kind": "synthetic",
         "description": "Fixture sintético gerado pelo projeto para QA local.",
+        "licenseStatus": "project-generated",
         "allowedForTesting": true,
         "allowedForProductContent": false
       },
