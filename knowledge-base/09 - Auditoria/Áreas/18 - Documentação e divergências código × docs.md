@@ -40,6 +40,27 @@ funcionais. Os 5 links vivos do vault foram reapontados (`Índice`, `Study Surfa
 As divergências de **conteúdo** (cores, matriz 0.5.0, README prometendo o que não
 existe) continuam em aberto — mover não corrige o que o documento afirma.
 
+**Correção medida em 2026-11-05 (versionamento do vault):** dois itens desta
+auditoria estão obsoletos e ficam registrados como tal, sem apagar o texto
+original. (1) `git ls-files knowledge-base | wc -l` = **78** arquivos (72 `.md`,
+13.198 linhas — medida antes do lote de ADRs; com os 12 arquivos commitados são
+**90** arquivos, **84** `.md`), rastreados desde `eebb2b0`; portanto “vault inteiro não rastreado”
+e a linha “Vault versionado no Git | Quebrado” da tabela abaixo não valem mais.
+(2) Não existe `.gitignore` *dentro* do vault, mas o `.gitignore` da **raiz** cobre
+o estado de dispositivo em `:67-70` (`workspace.json`, `workspace-mobile.json`,
+`.obsidian/cache/`, `.trash/`); `git check-ignore -v
+knowledge-base/.obsidian/workspace.json` casa em `.gitignore:67`. A conclusão de
+que “sem `.gitignore` a regra não é aplicável” procurou o arquivo no lugar errado.
+Os 6 `.obsidian` rastreados são configuração compartilhável e
+`community-plugins.json` = `[]`. Continuam abertos: as duas seções 15 do
+`AGENTS.md` (`:483` e `:706`), a instrução `AGENTS.md:741` que ainda manda manter
+relatórios “na raiz” (eles estão em `docs/historico/`), e as divergências de
+conteúdo. Decisão proposta em
+[[../../06 - Decisões/ADR/ADR-0008 - Hierarquia documental e versionamento do vault|ADR-0008]],
+status `proposto` na data desta correção. **Atualização 2026-11-07:** o
+ADR-0008 foi **aceito**; a correção do `AGENTS.md` e os banners de histórico
+continuam pendentes de tarefa autorizada.
+
 Classificação: **EVOLUIR** — o conteúdo é preservável e valioso, mas precisa de
 uma hierarquia explícita, versionamento e verificação automática para não
 voltar a divergir.

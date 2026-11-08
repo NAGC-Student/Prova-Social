@@ -7,7 +7,7 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: []
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-05
+atualizado: 2026-11-07
 ---
 
 # Progresso da auditoria e preparação
@@ -25,9 +25,10 @@ atualizado: 2026-11-05
   Resultado: 16 **EVOLUIR**, 2 **REFATORAR** (Domínio e Supabase), nenhuma
   **MANTER** ou **REESCREVER**.
 - **Síntese global (2026-11-04):** achados transversais, ordem de 9 lotes e 12
-  ADRs propostos em [[../09 - Auditoria/Síntese da Refatoração|Síntese da
-  Refatoração]]. O primeiro lote é destravar o CI; o segundo é fixar a fonte
-  única de verdade; o terceiro é fechar domínio, publicação e RLS.
+  ADRs — **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]); a
+  licença do app segue aberta no ADR-0007. O primeiro lote é destravar o CI; o
+  segundo é fixar a fonte única de verdade; o terceiro é fechar domínio,
+  publicação e RLS.
 - **Achados abertos:** formatação de três probes; diretórios absolutos e
   conteúdo potencialmente sensível em stdout; persistência JSON em
   SharedPreferences; módulos extensos; OCR com limiar fixo; divergências de
@@ -326,13 +327,71 @@ atualizado: 2026-11-05
   esteira é mudança de gate e pede aval). A nota
   [[../02 - Arquitetura/Mapa de Dependências]] ganhou a seção "Ciclos — correção
   desta nota".
+- **ADRs materializados (2026-11-05):** os 12 ADRs propostos deixaram de ser só
+  linhas de índice e viraram arquivos individuais em
+  [[../06 - Decisões/ADR/README|06 - Decisões/ADR]] — **2.075 linhas** em 12
+  notas, todos com `- **Status:** proposto` e `## Decisão` marcada **PENDENTE**.
+  Cada um tem contexto medido com `arquivo:linha`, alternativas reais incluindo
+  “não fazer”, recomendação rotulada como não decidida, consequências/reversão e
+  a lista de testes e comandos que sustentam a decisão. **Zero aceitos**: a
+  escolha continua sendo do responsável. Duas premissas do índice foram
+  corrigidas pela medição e a correção está no contexto de cada ADR:
+  **0004** (provas privadas já têm escrita atômica em arquivo — temp + flush +
+  rename + backup — atrás da porta `ExamPayloadStorage`; o que segue em
+  SharedPreferences são rascunho, fila, focus timer e buscas recentes) e
+  **0006** (a promessa de câmera está em `AGENTS.md:302`, não no README, que
+  promete “Imagens”; o OCR só aceita `PdfPage`, então câmera é nova entrada de
+  OCR, não um picker). Medições novas que entraram nos ADRs: `topic` fixado em
+  `'Geral'` no payload de publicação (`exam_publication_service.dart:64`);
+  `exam_versions` não existe em lugar nenhum apesar de `AGENTS.md:452`;
+  `attemptExamId` já amarra conteúdo local por sha256
+  (`local_exam_store.dart:117-120`) enquanto o remoto não tem vínculo;
+  `hidden` de `question_comments` não é produzível por nenhuma política RLS;
+  site entrega arm64 para todo mundo (`site/app.js:47`) e a release não publica
+  universal; duas pilhas de OCR no mesmo APK (~41,3 MB PaddleOCR + ~11,1 MB ML
+  Kit, descomprimidos); contraste dos tokens calculado (18,61 / 9,64 / 4,83)
+  mas **nenhum** teste de contraste no app — o que tem esse nome só compara
+  igualdade de cor. Verificação final no vault inteiro (**84** notas): **143**
+  links relativos resolvidos, **0** quebrados (119 deles nos ADRs novos);
+  **573** wikilinks com alvo de arquivo, **3** problemas — todos placeholders
+  pré-existentes (`...` e `outras notas` na área 18 e na fonte original); os links
+  de heading (`[[#Arquivos]]`) foram conferidos contra os títulos reais. Só `.md`
+  mudou; nenhum código, SQL ou workflow foi tocado. O registro foi propagado: o
+  [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|gate]] separou
+  “existir como arquivo” (feito) de “status `aceito`” (pendente) no checklist e
+  continua com o item 8 bloqueado na assinatura; o
+  [[../00 - Central/Roadmap]] trocou o bloqueio “persistência em
+  JSON/`SharedPreferences`” pela medição real (arquivo atômico atrás de port +
+  quatro stores em prefs) e aponta o ADR-0004 como `proposto`.
+- **Correção da área 18 (2026-11-05):** o vault **está** rastreado
+  (`git ls-files knowledge-base` = 78 antes deste lote, **90** depois; desde
+  `eebb2b0`) e o estado de
+  dispositivo **está** ignorado pelo `.gitignore` da raiz (`:67-70`, conferido
+  com `git check-ignore -v`). A nota da área 18 ganhou bloco datado com a
+  correção sem apagar o texto original; o ADR-0008 registra a decisão, aceita em
+  2026-11-07.
+- **ADRs aceitos (2026-11-07):** os 12 ADRs de
+  [[../06 - Decisões/ADR/README|06 - Decisões/ADR]] foram assinados pelo
+  responsável pelo projeto (NAGCODE-Dev), com `- **Status:** aceito` e decisão
+  registrada. Alternativas escolhidas: 0001-A (dark-only esmeralda), 0002
+  (etapa 1 sem schema; etapa 2 condicionada), 0003-B (hash local; schema
+  depois), 0004-B (estender o port, sem SQLite agora), 0005-A (splits + seleção
+  de ABI no site), 0006-A (remover/adiar a promessa de câmera), 0008 (manter o
+  vault e corrigir a hierarquia), 0009-A (formalizar dependências), 0010-A
+  (moderação mínima; comunidades depois), 0011-A (avaliar uma pilha de OCR após
+  benchmark) e 0012-A (AA com folga + teste de tokens). O **ADR-0007** aprovou a
+  política de fixtures e as correções mecânicas, mas a **licença do app**
+  continua em aberto; o PDF da VUNESP permanece sob a política atual. Nenhum
+  código, SQL ou workflow foi alterado: cada ADR continua exigindo tarefa
+  própria autorizada. O índice, o gate, o roadmap, o plano mestre e o estado
+  atual foram sincronizados.
 - **Próxima fase técnica — strangler, não big-bang:** a refatoração *global* de uma
   vez continua descartada (risco 12 da
   [[../09 - Auditoria/Síntese da Refatoração|Síntese]]); o movimento certo é construir
   a camada nova ao lado da velha e migrar um fluxo por vez, removendo o código
   antigo só quando o novo cobre. Ordem por custo, não por elegância: **(1)** PR do
   fork para `NAGCODE-Dev/main` fechar o baseline verde; **(2)** ADR-0002/0003/0004
-  aceitos — são a especificação do schema, e o schema é o primeiro deliverable
+  aceitos em 2026-11-07 — são a especificação do schema, e o schema é o primeiro deliverable
   porque `questions` não tem `format`, força 2–8 alternativas e não tem coluna de
   versão; **(3)** promover o SQL solto (`prova_social_backend_v1.sql`,
   `content_delivery_v1.sql`, `digitalization_v1.sql`) a migrations e colocar

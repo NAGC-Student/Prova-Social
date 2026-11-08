@@ -7,7 +7,7 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: []
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-07
 ---
 
 # Plano Mestre de reconstrução orientada por auditoria
@@ -30,11 +30,11 @@ plano foi aprovado em todos os detalhes. Ver também [[Roadmap]].
 
 ## Fases e estado
 
-| Fase | Objetivo | Estado em 2026-11-04 |
+| Fase | Objetivo | Estado em 2026-11-07 |
 |---|---|---|
 | 1. Auditoria e congelamento | Estado real, testes, CI, documentação e licença | **Concluída:** baseline medida, 18 áreas auditadas, 18 notas e síntese global. Licença e ground truth continuam pendentes de decisão externa. |
-| 2. Obsidian e arquitetura | Vault, fluxos, módulos e ADRs | **Parcial:** vault funcionando e auditoria profunda concluída; arquitetura-alvo e ADRs ainda não aprovados. |
-| 3. Fundação e confiabilidade | Persistência transacional SQLite, migração gradual e testes | **Não iniciada;** decisão de persistência precisa de ADR. |
+| 2. Obsidian e arquitetura | Vault, fluxos, módulos e ADRs | **Parcial (avançou):** vault funcionando, auditoria profunda concluída e 12 ADRs **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]); arquitetura-alvo especificada, implementação pendente de tarefa autorizada. A única decisão aberta é a licença do app no ADR-0007. |
+| 3. Fundação e confiabilidade | Persistência transacional SQLite, migração gradual e testes | **Não iniciada;** [[../06 - Decisões/ADR/ADR-0004 - Persistência local e durabilidade|ADR-0004]] aceito em 2026-11-07 (estender o port, sem SQLite agora); implementação pendente de tarefa autorizada. |
 | 4. Refatoração modular | Separar responsabilidades preservando API | **Não iniciada;** depende dos contratos de domínio e dos testes de caracterização. |
 | 5. Importação e OCR | Métricas e fixtures autorizadas e transversais | **Parcial:** auditoria profunda concluída e escopo P1.0–P1.3 fechado; benchmark nativo de texto existe, mas ground truth autorizado, OCR nativo, câmera e feedback não foram validados. |
 | 6. Modelo de questões e publicação | Tipos, questões sem gabarito e tópico preservado | **Pendente;** há divergências confirmadas no serviço atual. |
@@ -47,8 +47,9 @@ plano foi aprovado em todos os detalhes. Ver também [[Roadmap]].
 1. **Lote 0 — destravar a esteira:** formatar ou retirar os probes da suíte,
    remover caminhos absolutos, ligar testes do site e conferir `main` verde.
 2. **Lote 1 — fonte única e decisões:** corrigir a numeração do `AGENTS.md`,
-   versionar o vault, marcar documentos históricos, decidir licença e registrar
-   ADRs de identidade, domínio, persistência e distribuição.
+   versionar o vault, marcar documentos históricos e decidir a licença do app
+   (ADR-0007). Os 12 ADRs de identidade, domínio, persistência e distribuição
+   foram **aceitos em 2026-11-07**.
 3. **Lote 2 — contratos de domínio, publicação e backend:** objetiva/discursiva,
    gabarito, versão, tema/procedência, RLS social e `publish_exam`.
 4. **Lote 3 — tentativa, Focus e offline:** teste ponta a ponta, timer, revisão,

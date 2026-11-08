@@ -7,7 +7,7 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: [knowledge-base/, lib/, test/, supabase/]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-05
+atualizado: 2026-11-07
 ---
 
 # Critério de prontidão para a refatoração global
@@ -26,16 +26,16 @@ aprendido", no espírito do [Plano Mestre](../00%20-%20Central/Plano%20Mestre.md
 |---:|---|---|---|
 | 1 | Baseline e esteira verde | [[../00 - Central/Estado Atual]], Lote 0 | **Feito e publicado** 2026-11-05: `qa/run_static.sh` exit 0 medido direto no script, 313 testes + 1 ignorado, PR #19 mesclado (`2c62e30`) com "QA Completo" `success` no run de `main` (`42088224910`). **O que fica:** `NAGC-Student` não tem escrita em `NAGCODE-Dev` (403) e o fork não roda Actions, então todo lote futuro depende de PR aceito pela conta `NAGCODE-Dev`. |
 | 2 | Modelo de domínio atual inventariado | [[../03 - Domínios/Modelo de Domínio Atual]] | **Feito** — entidades, campos, 4–5 sites de pontuação, formato perdido na borda. |
-| 3 | Contratos alvo especificados (C1–C7) | [[../03 - Domínios/Contratos de Domínio Alvo]] | **Feito em nível de especificação**; **não aprovado** (ADR-0002/0003 pendentes). |
+| 3 | Contratos alvo especificados (C1–C7) | [[../03 - Domínios/Contratos de Domínio Alvo]] | **Feito em nível de especificação**; ADR-0002/0003 **aceitos em 2026-11-07**; implementação pendente. |
 | 4 | Inventário de dados e persistência | [[../04 - Infraestrutura/Inventário de Persistência e Dados]] | **Feito** para o repo; **não resolvido**: 4 tabelas usadas pelo app só existem em SQL solto; `questions` não tem `format` e força 2–8 alternativas, então **discursiva não cabe no schema**; o estado remoto do Supabase segue não verificado. |
 | 5 | Mapa de dependências medido | [[../02 - Arquitetura/Mapa de Dependências]] | **Feito** — arestas, fan-in/out, vendor por camada, 26 usos de `Supabase.instance` em 10 arquivos, 7 defaults de singleton. |
 | 6 | Fluxos reais com estados de falha | [[../02 - Arquitetura/Fluxos Reais]] | **Feito** — F1 importação, F2 tentativa/sync (máquina de 6 estados, backoff, idempotência), F3 publicação, F4 consumo. |
 | 7 | Inventário de telas e cobertura | [[../01 - Produto/Inventário de Telas e Cobertura]] | **Feito** — 17 destinos, 34 `MaterialPageRoute`, cobertura por tela, ausências. |
-| 8 | ADRs estruturais aceitos | [[../06 - Decisões/ADR/README]] | **Bloqueado em você:** 12 ADRs propostos, 0 aceitos. A refatoração não começa sem 0002 (modelo), 0003 (versão) e 0004 (persistência). |
+| 8 | ADRs estruturais aceitos | [[../06 - Decisões/ADR/README]] | **Feito em 2026-11-07:** os 12 ADRs foram **aceitos** pelo responsável (`- **Status:** aceito`), incluindo 0002 (modelo), 0003 (versão) e 0004 (persistência). A única decisão de produto ainda aberta é a licença do app no ADR-0007. Aceitar não implementa: cada ADR continua exigindo tarefa própria autorizada. |
 | 9 | Testes de caracterização do comportamento que vai mudar | `test/scoring_definitions_characterization_test.dart`, `test/publication_characterization_test.dart`, `test/draft_resume_characterization_test.dart` (`ff3be0c`) | **Parcialmente feito** — 23 expectativas novas congelam as cinco contagens de pontuação, a validação e o corpo da publicação, e a retomada posicional do rascunho. **Falta:** o que protege o Lote 4 da síntese — extração de controller de `QuizPage`/`PublishPage` ainda só tem os 7 widgets de `test/ux/`, que quebram por construção. |
 | 10 | Teste ponta a ponta do fluxo do §21 | não há `integration_test/` | **Não existe** (ver área 14 e [[../09 - Auditoria/Síntese da Refatoração|síntese]]). |
 | 11 | Orçamento não-funcional medido (APK, OCR tempo/memória, tamanho de payload, cobertura por arquivo) | — | **Não existe.** Só números pontuais (arm64 82,1 MB; universal local 248,1 MB). |
-| 12 | Vault versionado com hierarquia documental | `eebb2b0` + PR #19 | **Feito e publicado:** 76 arquivos versionados (70 notas + 6 `.obsidian/*.json`), 12.590 linhas, mais as 3 notas de qualidade de `0bfd894`. Estado por dispositivo (`workspace*.json`, cache, lixeira) fica fora do Git. |
+| 12 | Vault versionado com hierarquia documental | `eebb2b0` + PR #19 + lote de ADRs | **Feito e publicado:** eram 76 arquivos em `eebb2b0` (70 `.md` + 6 `.obsidian/*.json`); hoje são **90** (84 `.md` + 6 json) com os 12 ADRs deste lote. Estado por dispositivo (`workspace*.json`, cache, lixeira) fica fora do Git via `.gitignore:67-70` da raiz — confirmado com `git check-ignore -v`. **Falta:** a hierarquia documental (duas seções 15 no `AGENTS.md`, regra de precedência não escrita) é o objeto do [[../06 - Decisões/ADR/ADR-0008 - Hierarquia documental e versionamento do vault\|ADR-0008]], **aceito em 2026-11-07**; a correção do `AGENTS.md` e os banners continuam pendentes de tarefa autorizada. |
 
 ## Leitura honesta
 
@@ -121,7 +121,10 @@ o schedule de 2026-11-05 havia falhado por 504 do download do
 Encerrar "investigar e acumular" e abrir "planejar o app novo sobre o atual"
 (strangler por fluxo, sem big-bang) quando:
 
-- [ ] ADR-0002, 0003 e 0004 existirem como arquivos com status `aceito`.
+- [x] Os 12 ADRs existirem como arquivos com `- **Status:** aceito` —
+      materializados em 2026-11-05 (2.075 linhas) e assinados em 2026-11-07,
+      incluindo 0002 (modelo), 0003 (versão) e 0004 (persistência); o
+      procedimento está em [[../06 - Decisões/ADR/README]], passo 6.
 - [x] Houver caracterização nomeada das cinco contagens de pontuação, da validação
       e do corpo da publicação (serviço), e da retomada posicional do rascunho —
       `ff3be0c`, 23 expectativas.
@@ -129,7 +132,8 @@ Encerrar "investigar e acumular" e abrir "planejar o app novo sobre o atual"
       uma caracterização que sobreviva à extração de controller de `QuizPage`.
 - [ ] As migrations reproduzirem 100 % das tabelas que o cliente toca (nenhuma
       dependência de SQL solto), com `local_db_test.sh` no CI.
-- [x] O vault estiver commitado — `eebb2b0`, 76 arquivos versionados.
+- [x] O vault estiver commitado — `eebb2b0` com 76 arquivos; **90** após o lote de
+      ADRs de 2026-11-05 (84 `.md` + 6 `.obsidian/*.json`).
 - [x] Houver régua normativa de qualidade com método de verificação por regra —
       [[Critérios de Qualidade de Código]] (10 "regras de porta" para a camada
       nova) e a dívida localizada em [[Auditoria de Clean Code e SOLID medida]].
@@ -139,10 +143,12 @@ Encerrar "investigar e acumular" e abrir "planejar o app novo sobre o atual"
 - [ ] Houver um `integration_test/` mínimo (documento sintético) percorrendo
       importar → revisar → publicar → fazer → finalizar.
 
-Restam, portanto, cinco itens — três de decisão/teste (ADRs, caracterização de
-tela, `integration_test`) e dois de esteira (migrations reproduzíveis, lints de
-arquitetura ligados). Nenhum deles é "coletar mais conteúdo": a investigação já
-produce régua, medidas e evidência suficientes para planejar o app novo.
+Restam, portanto, quatro itens — dois de teste (caracterização de tela e
+`integration_test`) e dois de esteira (migrations reproduzíveis e lints de
+arquitetura ligados). O item dos ADRs foi encerrado em 2026-11-07: as 12
+alternativas medidas foram aceitas; a única decisão aberta é a licença do app
+(ADR-0007). Nenhum dos itens restantes é "coletar mais conteúdo": a investigação
+já produziu régua, medidas e evidência suficientes para planejar o app novo.
 
 ## O que a caracterização congelou (`ff3be0c`)
 
@@ -182,7 +188,7 @@ reordenada da prova transforma 2 corretas em 0; respostas fora do novo tamanho
 desaparecem sem aviso; o `clientAttemptId` é preservado na retomada e a fila local
 recusa payload diferente sob o mesmo ID.
 
-## O que esta etapa já produziu (2026-11-05)
+## O que esta etapa já produziu (2026-11-05; status atualizado em 2026-11-07)
 
 | Nota | Conteúdo | Status |
 |---|---|---|
@@ -194,6 +200,7 @@ recusa payload diferente sob o mesmo ID.
 | [[../01 - Produto/Inventário de Telas e Cobertura]] | 17 telas, navegação, cobertura | VALIDADO |
 | [[Critérios de Qualidade de Código]] | régua normativa + como verificar cada regra | VALIDADO |
 | [[Auditoria de Clean Code e SOLID medida]] | onde cada violação está, com números | VALIDADO |
+| [[../06 - Decisões/ADR/README\|12 ADRs]] | contexto medido, alternativas, consequências e evidência por decisão | ACEITO (12 aceitos; licença do ADR-0007 pendente) |
 
 ## Links
 

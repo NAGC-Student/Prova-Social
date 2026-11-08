@@ -7,7 +7,7 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: [pubspec.yaml, lib/, test/, .github/workflows/flutter-ci.yml]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-05
+atualizado: 2026-11-07
 ---
 
 # Estado Atual — baseline local
@@ -139,14 +139,20 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
 
 ## Próximas verificações
 
-1. Corrigir o gate de formatação e tornar os probes portáveis em tarefa
+1. ~~Corrigir o gate de formatação e tornar os probes portáveis em tarefa
    autorizada de código (Lote 0 da síntese); repetir o CI e confirmar `main`
-   verde.
+   verde.~~ **Feito** em 2026-11-05: Lote 0 (`27403be`), PR #19 mesclado
+   (`2c62e30`), "QA Completo" `success` no run de `main` (`42088224910`).
 2. Atualizar a fonte documental — `AGENTS.md` com duas seções 15, README,
-   `DESIGN_SYSTEM.md`, `DEPENDENCY_COMPATIBILITY.md`, `LICENSE` — e versionar o
-   vault com `.gitignore` próprio (Lote 1).
-3. Aprovar ADRs de identidade, domínio, persistência, distribuição, licença e
-   vault antes de qualquer mudança estrutural.
+   `DESIGN_SYSTEM.md`, `DEPENDENCY_COMPATIBILITY.md`, `LICENSE` (Lote 1).
+   ~~Versionar o vault com `.gitignore` próprio~~: o vault **já está** versionado
+   (`eebb2b0`) e o estado de dispositivo é coberto pelo `.gitignore:67-70` da
+   raiz; o que falta é hierarquia e regra de precedência, objeto do
+   [[../06 - Decisões/ADR/ADR-0008 - Hierarquia documental e versionamento do vault|ADR-0008]].
+3. **ADRs assinados em 2026-11-07:** os 12 arquivos existem desde 2026-11-05 e
+   agora estão com `- **Status:** aceito` ([[../06 - Decisões/ADR/README|índice]]).
+   A única decisão de produto ainda aberta é a licença do app no ADR-0007; a
+   implementação de cada ADR continua exigindo tarefa própria autorizada.
 4. Fechar contratos de domínio, publicação e RLS (Lote 2) e só então avançar
    para Focus/offline, importação, identidade, distribuição e social.
 5. Decidir licença e obter ground truth autorizado para benchmark e OCR; não

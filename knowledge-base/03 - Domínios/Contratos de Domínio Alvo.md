@@ -7,14 +7,15 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: [lib/domain/models/exam.dart, lib/core/import/, lib/core/backend/, lib/features/]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: media
-atualizado: 2026-11-05
+atualizado: 2026-11-07
 ---
 
-# Contratos de domínio alvo (especificação, aguardando ADR)
+# Contratos de domínio alvo (especificação; ADRs aceitos em 2026-11-07)
 
 Cada contrato abaixo fecha uma lacuna medida em [[Modelo de Domínio Atual]].
-**Nenhum está implementado e nenhum ADR correspondente foi aprovado**
-([[../06 - Decisões/ADR/README|ADRs propostos]]). O nível de detalhe aqui é o
+**Nenhum está implementado.** Os ADRs correspondentes foram **aceitos em
+2026-11-07** ([[../06 - Decisões/ADR/README|ADRs]]); a implementação continua
+pendente de tarefa autorizada. O nível de detalhe aqui é o
 mínimo para que um lote de código possa ser escrito sem redefinir a regra durante
 a implementação.
 

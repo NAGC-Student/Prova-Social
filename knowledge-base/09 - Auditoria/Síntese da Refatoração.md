@@ -414,9 +414,10 @@ correr em paralelo apenas quando não compartilham arquivo ou decisão.
 
 ## ADRs necessários
 
-Os ADRs abaixo são **propostas**; nenhum foi aprovado nesta auditoria. O template
-está em [[../Templates/ADR|Template de ADR]] e o índice de acompanhamento em
-[[../06 - Decisões/ADR/README|ADRs propostos]].
+Os ADRs abaixo eram **propostas** na data desta auditoria. **Atualização
+2026-11-07:** os 12 foram **aceitos** pelo responsável; o índice atualizado está
+em [[../06 - Decisões/ADR/README|ADRs]]. O template está em
+[[../Templates/ADR|Template de ADR]].
 
 | ID | Decisão | Áreas | Urgência |
 |---|---|---|---|
