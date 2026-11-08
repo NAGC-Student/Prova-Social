@@ -19,9 +19,11 @@ foram **aprovadas em 2026-11-07** pelo responsável pelo projeto
 (`- **Status:** aceito`); o campo `status` do frontmatter é a classificação da
 nota no vault, não o status da decisão.
 
-O **ADR-0007** mantém uma pendência explícita: a escolha da licença do app
-(MIT, Apache-2.0, AGPL-3.0 ou distribuição restrita) não foi decidida. A
-política de fixtures e as correções mecânicas desse ADR estão aprovadas.
+A licença do app foi decidida em 2026-11-07 junto com o **ADR-0007**:
+**distribuição restrita, todos os direitos reservados** (alternativa C),
+materializada no `LICENSE` da raiz. Não resta decisão de produto aberta neste
+índice; a política de fixtures e as correções mecânicas do mesmo ADR seguem para
+implementação.
 
 Em 2026-11-05 as 12 decisões foram materializadas como arquivos individuais
 (listados em [[#Arquivos]]). Em 2026-11-07 a recomendação de cada uma foi
@@ -56,7 +58,7 @@ O template está em [[ADR|ADR]]. A síntese que originou a lista está em
 | ADR-0004 | Persistência local: JSON/SharedPreferences vs SQLite transacional | 7, 8 | Alta | aceito |
 | ADR-0005 | Distribuição Android: APK universal + splits e seleção de ABI no site | 15, 17 | Alta | aceito |
 | ADR-0006 | Escopo de importação por câmera: implementar ou remover do README | 9, 13, 18 | Média | aceito |
-| ADR-0007 | Licença do app e política de fixtures de terceiros | 9, 14, 17, 18 | Alta | aceito (licença pendente) |
+| ADR-0007 | Licença do app: distribuição restrita, todos os direitos reservados + política de fixtures | 9, 14, 17, 18 | Alta | aceito |
 | ADR-0008 | Hierarquia documental e versionamento do vault | 18 | Alta | aceito |
 | ADR-0009 | Política de dependências, pins e cadência de atualização | 17 | Média | aceito |
 | ADR-0010 | Comunidades, moderação e ciclo de vida | 11, 12 | Média | aceito |
@@ -68,8 +70,10 @@ O template está em [[ADR|ADR]]. A síntese que originou a lista está em
 Aceitar um ADR não implementa a decisão. Continuam pendentes, por decisão
 explícita:
 
-- **ADR-0007:** escolha da licença do app. É a única decisão de produto ainda
-  aberta neste índice.
+- **ADR-0007:** a licença está decidida e o `LICENSE` escrito. Pendente: a
+  política de fixtures com teste (`licenseStatus`, `allowedForTesting` e
+  `allowedForProductContent` obrigatórios), a correção do
+  `THIRD_PARTY_NOTICES.md` e a remoção da duplicata `.backup`.
 - **ADR-0002:** a etapa 2 (schema de discursivas) exige ADR próprio ou emenda
   com SQL autorizado.
 - **ADR-0003:** a criação de `exam_versions` no servidor exige SQL autorizado.

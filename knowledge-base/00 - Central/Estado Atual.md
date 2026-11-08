@@ -147,17 +147,25 @@ Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
    autorizada de código (Lote 0 da síntese); repetir o CI e confirmar `main`
    verde.~~ **Feito** em 2026-11-05: Lote 0 (`27403be`), PR #19 mesclado
    (`2c62e30`), "QA Completo" `success` no run de `main` (`42088224910`).
-2. Atualizar a fonte documental — `AGENTS.md` com duas seções 15, README,
-   `DESIGN_SYSTEM.md`, `DEPENDENCY_COMPATIBILITY.md`, `LICENSE` (Lote 1).
-   ~~Versionar o vault com `.gitignore` próprio~~: o vault **já está** versionado
-   (`eebb2b0`) e o estado de dispositivo é coberto pelo `.gitignore:67-70` da
-   raiz; o que falta é hierarquia e regra de precedência, objeto do
-   [[../06 - Decisões/ADR/ADR-0008 - Hierarquia documental e versionamento do vault|ADR-0008]].
+2. Atualizar a fonte documental (Lote 1, ADR-0008). **Feito em 2026-11-07:** a
+   segunda seção 15 do `AGENTS.md` virou 25; a precedência documental está
+   escrita no `AGENTS.md` e no `knowledge-base/README.md`; os 16 arquivos de
+   `docs/historico/` têm banner de congelamento; o `README.md` não promete mais
+   importação por imagem nem condição de licenciamento inexistente; e existe
+   `LICENSE` na raiz. `tool/test_docs_links.py` entrou no `qa/run_static.sh` para
+   que a divergência não volte a se acumular sem detecção. **Falta:**
+   `DESIGN_SYSTEM.md` (cores, ADR-0001) e `DEPENDENCY_COMPATIBILITY.md` (matriz
+   ainda da 0.5.0, ADR-0009). O vault está versionado desde `eebb2b0` e o estado
+   de dispositivo é coberto pelo `.gitignore:67-70` da raiz — não falta
+   `.gitignore` próprio.
 3. **ADRs assinados em 2026-11-07:** os 12 arquivos existem desde 2026-11-05 e
    agora estão com `- **Status:** aceito` ([[../06 - Decisões/ADR/README|índice]]).
-   A única decisão de produto ainda aberta é a licença do app no ADR-0007; a
-   implementação de cada ADR continua exigindo tarefa própria autorizada.
+   A licença do app foi decidida na mesma data: **distribuição restrita, todos os
+   direitos reservados** (ADR-0007, alternativa C), com `LICENSE` na raiz.
+   Nenhuma decisão de produto segue aberta; a implementação foi autorizada em
+   ondas, com commit local por tarefa e sem publicação.
 4. Fechar contratos de domínio, publicação e RLS (Lote 2) e só então avançar
    para Focus/offline, importação, identidade, distribuição e social.
-5. Decidir licença e obter ground truth autorizado para benchmark e OCR; não
-   promover fixture de terceiros a conteúdo de produto.
+5. ~~Decidir licença~~ — **decidida em 2026-11-07**: distribuição restrita, todos
+   os direitos reservados (`LICENSE`). Falta obter ground truth autorizado para
+   benchmark e OCR; não promover fixture de terceiro a conteúdo de produto.

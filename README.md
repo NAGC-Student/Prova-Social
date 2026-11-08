@@ -162,7 +162,14 @@ Listado para que a promessa do produto e o estado real do app não se confundam:
 
 ## 📜 Licença
 
-Prova Social - Código aberto para fins educacionais.
+Prova Social — Copyright (c) 2026 NAGCODE-Dev. **Todos os direitos reservados.**
+Distribuição restrita: o código-fonte está disponível para inspeção, mas nenhuma
+licença de uso, cópia, modificação ou distribuição do código é concedida. Os APKs
+e a versão web publicados pelo titular podem ser executados para fins pessoais e
+educacionais na forma em que são publicados, sem redistribuição, hospedagem
+própria ou uso comercial. Termos completos em `LICENSE`; os componentes de
+terceiros mantêm as suas próprias licenças.
+
 Não publicar, fazer commit, criar tag, release ou push sem autorização explícita.
 
 ---

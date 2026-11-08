@@ -1,0 +1,99 @@
+Prova Social
+Copyright (c) 2026 NAGCODE-Dev. Todos os direitos reservados.
+
+Este arquivo não é uma licença de código aberto. É uma reserva de direitos.
+O código-fonte está disponível para inspeção no repositório; disponibilidade
+não é concessão. Nenhuma licença de uso, cópia, modificação ou distribuição
+do código-fonte é outorgada por este documento ou pela publicação do
+repositório.
+
+1. TITULARIDADE
+
+   O Prova Social — código-fonte, marca, layout, documentação própria e
+   artefatos gerados pelo projeto — pertence a NAGCODE-Dev, responsável pelo
+   projeto. Todos os direitos não expressamente concedidos aqui são
+   reservados.
+
+2. CÓDIGO-FONTE: NENHUMA CONCESSÃO
+
+   Sem autorização prévia e por escrito do titular, é proibido:
+
+   a) usar, executar ou hospedar o código-fonte, no todo ou em parte;
+   b) copiar, reproduzir ou espelhar o repositório, exceto a cópia técnica
+      implícita na consulta pública da página do repositório;
+   c) modificar, traduzir, portar ou criar obra derivada;
+   d) distribuir, publicar, sublicenciar, vender, alugar ou ceder a terceiros;
+   e) explorar comercialmente, incluindo oferecer como serviço (SaaS), embutir
+      em produto pago ou usar em treinamento de modelo;
+   f) remover ou alterar este aviso, os avisos de terceiros ou os créditos.
+
+   Consultar o código para aprender como ele funciona não autoriza reutilizá-lo.
+   Contribuição voluntária não transfere a titularidade nem concede direitos a
+   terceiros; enviar uma contribuição pressupõe autorização do titular para
+   incorporá-la.
+
+3. BINÁRIOS E SERVIÇO PUBLICADOS PELO TITULAR
+
+   Os APKs, a versão web e o site que o próprio titular publica são oferecidos
+   para uso pessoal e educacional na forma em que são publicados. Quem recebe
+   um artefato publicado pelo titular pode executá-lo para esse fim.
+
+   Continua proibido, sem autorização escrita: redistribuir o artefato,
+   hospedá-lo em outro domínio ou loja, modificá-lo, fazer engenharia reversa
+   para extrair o código-fonte, ou usá-lo comercialmente.
+
+   Esta cláusula não concede direito algum sobre o código-fonte (cláusula 2).
+
+4. COMPONENTES DE TERCEIROS
+
+   Este arquivo não relicencia componentes de terceiros. Cada um permanece sob
+   a sua própria licença, que prevalece sobre este documento no que se refere
+   àquele componente:
+
+   - plugin packages/paddleocr_android: Apache-2.0, conforme
+     packages/paddleocr_android/LICENSE;
+   - modelos PP-OCRv6 tiny, ONNX Runtime, OpenCV, ML Kit, Flutter e Dart e
+     demais dependências: conforme os avisos em
+     packages/paddleocr_android/THIRD_PARTY_NOTICES.md e nas licenças dos
+     respectivos pacotes.
+
+   A combinação desses componentes no binário distribuído não cria direito
+   sobre o código próprio do projeto.
+
+5. MATERIAL DE PROVAS E FIXTURES
+
+   Provas, PDFs, imagens e textos de terceiros usados como fixture de teste não
+   são cobertos por este arquivo e não são disponibilizados para reutilização.
+   O manifesto test/fixtures/import_corpus.json é o registro da política por
+   item, com os campos licenseStatus, allowedForTesting e
+   allowedForProductContent. Material com
+   licenseStatus "not-verified" está autorizado apenas para teste local de
+   importação e nunca para conteúdo de produto, republicação ou redistribuição.
+   A presença de um arquivo no repositório não é licença sobre ele.
+
+6. AUSÊNCIA DE GARANTIA
+
+   O software é fornecido "como está", sem garantia de qualquer espécie,
+   expressa ou implícita, incluindo adequação a um fim específico, ausência de
+   defeitos e não violação de direitos de terceiros. O titular não responde por
+   perda de dados, dano direto ou indireto decorrente do uso. Conteúdo importado
+   por usuário é de responsabilidade de quem o importou.
+
+7. AUTORIZAÇÃO
+
+   Pedidos de autorização devem ser feitos por escrito ao responsável pelo
+   projeto, pelo canal de contato do repositório
+   https://github.com/NAGCODE-Dev/Prova-Social. Autorização é caso a caso,
+   não se presume e não se estende a terceiros.
+
+8. CESSAÇÃO
+
+   Qualquer uso em desacordo com este documento cessa imediatamente qualquer
+   permissão implícita, sem prejuízo das medidas cabíveis. A reserva de
+   direitos permanece válida para as cópias já obtidas.
+
+9. REGRA OPERACIONAL DO REPOSITÓRIO
+
+   Independentemente do acima, não publicar, fazer commit, criar tag, release
+   ou push sem autorização explícita do responsável. Esta regra vale para
+   quem trabalha no repositório e está registrada em AGENTS.md.

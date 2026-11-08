@@ -31,7 +31,7 @@ aprendido", no espírito do [Plano Mestre](../00%20-%20Central/Plano%20Mestre.md
 | 5 | Mapa de dependências medido | [[../02 - Arquitetura/Mapa de Dependências]] | **Feito** — arestas, fan-in/out, vendor por camada, 26 usos de `Supabase.instance` em 10 arquivos, 7 defaults de singleton. |
 | 6 | Fluxos reais com estados de falha | [[../02 - Arquitetura/Fluxos Reais]] | **Feito** — F1 importação, F2 tentativa/sync (máquina de 6 estados, backoff, idempotência), F3 publicação, F4 consumo. |
 | 7 | Inventário de telas e cobertura | [[../01 - Produto/Inventário de Telas e Cobertura]] | **Feito** — 17 destinos, 34 `MaterialPageRoute`, cobertura por tela, ausências. |
-| 8 | ADRs estruturais aceitos | [[../06 - Decisões/ADR/README]] | **Feito em 2026-11-07:** os 12 ADRs foram **aceitos** pelo responsável (`- **Status:** aceito`), incluindo 0002 (modelo), 0003 (versão) e 0004 (persistência). A única decisão de produto ainda aberta é a licença do app no ADR-0007. Aceitar não implementa: cada ADR continua exigindo tarefa própria autorizada. |
+| 8 | ADRs estruturais aceitos | [[../06 - Decisões/ADR/README]] | **Feito em 2026-11-07:** os 12 ADRs foram **aceitos** pelo responsável (`- **Status:** aceito`), incluindo 0002 (modelo), 0003 (versão) e 0004 (persistência). A licença do app foi decidida em 2026-11-07 (ADR-0007, alternativa C: distribuição restrita, todos os direitos reservados, `LICENSE` na raiz) — nenhuma decisão de produto segue aberta. Aceitar não implementa: a execução foi autorizada em ondas, com commit local por tarefa e sem publicação. |
 | 9 | Testes de caracterização do comportamento que vai mudar | `test/scoring_definitions_characterization_test.dart`, `test/publication_characterization_test.dart`, `test/draft_resume_characterization_test.dart` (`ff3be0c`) | **Parcialmente feito** — 23 expectativas novas congelam as cinco contagens de pontuação, a validação e o corpo da publicação, e a retomada posicional do rascunho. **Falta:** o que protege o Lote 4 da síntese — extração de controller de `QuizPage`/`PublishPage` ainda só tem os 7 widgets de `test/ux/`, que quebram por construção. |
 | 10 | Teste ponta a ponta do fluxo do §21 | não há `integration_test/` | **Não existe** (ver área 14 e [[../09 - Auditoria/Síntese da Refatoração|síntese]]). |
 | 11 | Orçamento não-funcional medido (APK, OCR tempo/memória, tamanho de payload, cobertura por arquivo) | — | **Não existe.** Só números pontuais (arm64 82,1 MB; universal local 248,1 MB). |
@@ -146,8 +146,9 @@ Encerrar "investigar e acumular" e abrir "planejar o app novo sobre o atual"
 Restam, portanto, quatro itens — dois de teste (caracterização de tela e
 `integration_test`) e dois de esteira (migrations reproduzíveis e lints de
 arquitetura ligados). O item dos ADRs foi encerrado em 2026-11-07: as 12
-alternativas medidas foram aceitas; a única decisão aberta é a licença do app
-(ADR-0007). Nenhum dos itens restantes é "coletar mais conteúdo": a investigação
+alternativas medidas foram aceitas, e a licença do app foi decidida no mesmo ato
+(ADR-0007, alternativa C: distribuição restrita, todos os direitos reservados).
+Nenhum dos itens restantes é "coletar mais conteúdo": a investigação
 já produziu régua, medidas e evidência suficientes para planejar o app novo.
 
 ## O que a caracterização congelou (`ff3be0c`)
@@ -200,7 +201,7 @@ recusa payload diferente sob o mesmo ID.
 | [[../01 - Produto/Inventário de Telas e Cobertura]] | 17 telas, navegação, cobertura | VALIDADO |
 | [[Critérios de Qualidade de Código]] | régua normativa + como verificar cada regra | VALIDADO |
 | [[Auditoria de Clean Code e SOLID medida]] | onde cada violação está, com números | VALIDADO |
-| [[../06 - Decisões/ADR/README\|12 ADRs]] | contexto medido, alternativas, consequências e evidência por decisão | ACEITO (12 aceitos; licença do ADR-0007 pendente) |
+| [[../06 - Decisões/ADR/README\|12 ADRs]] | contexto medido, alternativas, consequências e evidência por decisão | ACEITO (12 aceitos, licença incluída) |
 
 ## Links
 

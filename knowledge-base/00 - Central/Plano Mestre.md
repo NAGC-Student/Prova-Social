@@ -32,11 +32,11 @@ plano foi aprovado em todos os detalhes. Ver também [[Roadmap]].
 
 | Fase | Objetivo | Estado em 2026-11-07 |
 |---|---|---|
-| 1. Auditoria e congelamento | Estado real, testes, CI, documentação e licença | **Concluída:** baseline medida, 18 áreas auditadas, 18 notas e síntese global. Licença e ground truth continuam pendentes de decisão externa. |
-| 2. Obsidian e arquitetura | Vault, fluxos, módulos e ADRs | **Parcial (avançou):** vault funcionando, auditoria profunda concluída e 12 ADRs **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]); arquitetura-alvo especificada, implementação pendente de tarefa autorizada. A única decisão aberta é a licença do app no ADR-0007. |
+| 1. Auditoria e congelamento | Estado real, testes, CI, documentação e licença | **Concluída:** baseline medida, 18 áreas auditadas, 18 notas e síntese global. Licença **decidida em 2026-11-07** (distribuição restrita, todos os direitos reservados — ADR-0007, `LICENSE` na raiz); ground truth autorizado continua pendente de decisão externa. |
+| 2. Obsidian e arquitetura | Vault, fluxos, módulos e ADRs | **Parcial (avançou):** vault funcionando, auditoria profunda concluída e 12 ADRs **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]); arquitetura-alvo especificada, implementação em ondas autorizada em 2026-11-07. Nenhuma decisão de produto segue aberta — a licença foi a última. |
 | 3. Fundação e confiabilidade | Persistência transacional SQLite, migração gradual e testes | **Não iniciada;** [[../06 - Decisões/ADR/ADR-0004 - Persistência local e durabilidade|ADR-0004]] aceito em 2026-11-07 (estender o port, sem SQLite agora); implementação pendente de tarefa autorizada. |
 | 4. Refatoração modular | Separar responsabilidades preservando API | **Não iniciada;** depende dos contratos de domínio e dos testes de caracterização. |
-| 5. Importação e OCR | Métricas e fixtures autorizadas e transversais | **Parcial:** auditoria profunda concluída e escopo P1.0–P1.3 fechado; benchmark nativo de texto existe, mas ground truth autorizado, OCR nativo, câmera e feedback não foram validados. |
+| 5. Importação e OCR | Métricas e fixtures autorizadas e transversais | **Parcial:** auditoria profunda concluída e escopo P1.0–P1.3 fechado; benchmark nativo de texto existe, mas ground truth autorizado, OCR nativo e feedback não foram validados; câmera saiu do escopo por decisão (ADR-0006). |
 | 6. Modelo de questões e publicação | Tipos, questões sem gabarito e tópico preservado | **Pendente;** há divergências confirmadas no serviço atual. |
 | 7. Versionamento de conteúdo | Tentativa vinculada à versão resolvida | **Pendente.** |
 | 8. Motor de aprendizagem | Revisões determinísticas e evolução | **Parcial:** prática local de erros já está implementada; cobertura sincronizada e histórica requer auditoria. |

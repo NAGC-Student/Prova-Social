@@ -91,3 +91,15 @@ atualizado: 2026-11-04
 - Corrigir a numeração do `AGENTS.md` e registrar a hierarquia documental.
 - Decidir licença do app e política de fixtures de terceiros.
 - Registrar ADRs de paleta, distribuição, persistência, câmera e dependências.
+
+**Resolução em 2026-11-07** (lista original preservada acima):
+
+| Recomendação | Estado |
+|---|---|
+| Banner em fonte histórica | Feito — 16 arquivos em `docs/historico/` com banner datado |
+| `.gitignore` no vault e versionamento | Feito por outro caminho — vault versionado desde `eebb2b0`; estado de dispositivo coberto pelo `.gitignore:67-70` da raiz |
+| Verificação automática no CI | **Parcial** — `tool/test_docs_links.py` cobre links relativos, wikilinks, numeração do `AGENTS.md` e banner, e roda no `qa/run_static.sh`; frontmatter e segredos **não** são verificados |
+| Numeração do `AGENTS.md` e hierarquia | Feito — segunda seção 15 virou 25; precedência escrita no `AGENTS.md` e no `knowledge-base/README.md` (ADR-0008) |
+| Licença do app | Feito — distribuição restrita, todos os direitos reservados, `LICENSE` na raiz (ADR-0007, alternativa C) |
+| Política de fixtures de terceiros | **Pendente** — campos obrigatórios e teste na Tarefa 1.4 do plano de implementação |
+| ADRs de paleta, distribuição, persistência, câmera, dependências | Feito — 12 ADRs aceitos em 2026-11-07 |

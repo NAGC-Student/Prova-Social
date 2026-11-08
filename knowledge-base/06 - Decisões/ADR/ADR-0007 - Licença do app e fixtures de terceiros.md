@@ -15,7 +15,8 @@ atualizado: 2026-11-07
 - **Status:** aceito
 - **Data:** 2026-11-07
 - **Responsável pela aprovação:** NAGCODE-Dev (responsável pelo projeto)
-- **Pendência aberta:** escolha da licença do app (ver `## Decisão`).
+- **Licença escolhida:** distribuição restrita, todos os direitos reservados
+  (alternativa **C**, decidida em 2026-11-07; materializada em `LICENSE`).
 - **Áreas:** 9, 14, 17, 18
 - **Urgência:** Alta
 
@@ -87,16 +88,27 @@ do PDF (a atribuição pode estar lá e não ser extraível por `strings`).
 ## Decisão
 
 **Aprovada em 2026-11-07 pelo responsável pelo projeto (NAGCODE-Dev).**
-A aprovação cobre a política de fixtures e as correções mecânicas. A escolha
-da licença do app **permanece em aberto** e não foi decidida por este ADR.
+A política de fixtures e as correções mecânicas foram aprovadas junto com a
+escolha da licença, decidida na mesma data. Não resta pendência de licença.
 
-1. **Licença do app — pendente, decisão do responsável.** Escolher uma
-   licença e escrever o arquivo, ou remover a expressão “código aberto” e
-   assumir distribuição restrita. As duas saídas são coerentes; a atual não
-   é. Ao escolher, considerar que o app tem versão web hospedada
-   (`README.md:157-158`) — licenças de rede (AGPL) e permissivas (MIT/Apache)
-   tratam esse caso de forma diferente. Até a decisão, o README não deve
-   afirmar uma condição de licenciamento que não existe.
+1. **Licença do app — alternativa C, distribuição restrita.** Todos os direitos
+   reservados; nenhuma concessão de licença de uso, cópia, modificação ou
+   distribuição do código-fonte. A expressão “código aberto para fins
+   educacionais” saiu do `README.md`, que passou a declarar copyright e
+   restrição. `publish_to: none` e a regra de autorização explícita permanecem.
+   O arquivo `LICENSE` na raiz materializa a decisão em nove cláusulas.
+
+   **Como a versão web hospedada foi tratada.** O contexto deste ADR registrava
+   que AGPL e licenças permissivas tratam o serviço hospedado de forma
+   diferente. A alternativa C resolve isso separando código de artefato: a
+   cláusula 2 não concede direito algum sobre o código-fonte; a cláusula 3
+   permite executar os APKs e a versão web **que o próprio titular publica**,
+   para fim pessoal e educacional, sem redistribuição, hospedagem própria,
+   engenharia reversa ou uso comercial. Sem essa distinção o binário que o
+   projeto distribui seria inutilizável por quem o recebe, o que contradiria a
+   existência do site e das releases. A distinção é materialização de C, não
+   uma quarta alternativa; restringir também a execução seria edição da
+   cláusula 3, e cabe ao responsável.
 2. **Política de fixtures — aprovada.** Estender o padrão que já funciona em
    `import_corpus.json` a **todo** material de terceiro (PDF, imagem, texto
    de banca, modelo), com `licenseStatus`, `allowedForTesting` e
@@ -114,9 +126,11 @@ da licença do app **permanece em aberto** e não foi decidida por este ADR.
 
 ## Alternativas
 
-A escolha de licença entre A, B e C permanece aberta; a alternativa E não foi
-adotada. Os itens mecânicos 2–4 acima não correspondem a uma das alternativas
-de licença e foram aprovados separadamente.
+**C foi a escolhida em 2026-11-07**; A, B, D e E não foram adotadas. Os itens
+mecânicos 2–4 acima não correspondem a uma alternativa de licença e foram
+aprovados separadamente. O texto abaixo é a avaliação feita antes da escolha,
+preservada como estava — inclusive os contras de C, um dos quais a cláusula 3 do
+`LICENSE` mitiga (ver `## Decisão` e `## Consequências e reversão`).
 
 - **A — Licença permissiva (MIT ou Apache-2.0) + política de fixtures
   estendida.** Prós: coerente com “código aberto”; Apache-2.0 alinha com o
@@ -129,7 +143,7 @@ de licença e foram aprovados separadamente.
   hospedada. Contras: incompatível com parte do ecossistema de plugins e
   com a ideia de “fins educacionais” sem restrição; assusta contribuidores;
   exige cuidado com a combinação de códigos Apache/MIT embarcados.
-- **C — Distribuição restrita (sem licença, código disponível).** Remover
+- **C — Distribuição restrita (escolhida; código disponível, sem concessão).** Remover
   “código aberto” do README, manter `publish_to: none` e a regra de
   autorização. Prós: nenhuma concessão de direitos; coerente com
   `README.md:166`. Contras: ninguém pode usar, estudar ou contribuir
@@ -162,6 +176,17 @@ de licença e foram aprovados separadamente.
   cópias já baixadas sob aquela licença. Por isso a alternativa D (adiar) é
   menos custosa que escolher errado. A política de fixtures e a correção do
   `THIRD_PARTY_NOTICES.md` são reversíveis por `git revert`.
+- **Materialização em 2026-11-07, com C escolhida:** `LICENSE` criado na raiz.
+  O contra de C registrado acima (“ninguém pode usar, estudar ou contribuir
+  legalmente sem permissão individual”) vale para o **código-fonte**; a
+  cláusula 3 permite executar o binário e o site que o titular publica, o que
+  preserva o uso educacional sem conceder direito sobre o código. Como não
+  houve concessão permissiva anterior — o contexto deste ADR já registrava que,
+  sem arquivo de licença, o default legal é reserva de todos os direitos —
+  **não há relicenciamento de cópias já distribuídas**: o `LICENSE` torna
+  explícito o que já valia. A reversão é, portanto, mais barata do que a
+  avaliação acima sugeria para A ou B: afrouxar a cláusula 3 não desfaz
+  concessão feita a terceiros.
 
 ## Evidências e validação
 
@@ -169,7 +194,7 @@ de licença e foram aprovados separadamente.
   [[../../09 - Auditoria/Áreas/14 - Testes, QA e benchmark|Área 14]],
   [[../../09 - Auditoria/Áreas/17 - Dependências e manutenção|Área 17]],
   [[../../09 - Auditoria/Áreas/18 - Documentação e divergências código × docs|Área 18]].
-- Arquivos: [README.md](../../../README.md), [pubspec.yaml](../../../pubspec.yaml),
+- Arquivos: [LICENSE](../../../LICENSE), [README.md](../../../README.md), [pubspec.yaml](../../../pubspec.yaml),
   [test/fixtures/import_corpus.json](../../../test/fixtures/import_corpus.json),
   [test/fixtures/README.md](../../../test/fixtures/README.md),
   [THIRD_PARTY_NOTICES.md](../../../packages/paddleocr_android/THIRD_PARTY_NOTICES.md),
@@ -179,8 +204,9 @@ de licença e foram aprovados separadamente.
   [enem_2025_import_test.dart](../../../test/enem_2025_import_test.dart),
   [bancas_import_test.dart](../../../test/bancas_import_test.dart),
   [local_corpus_benchmark_test.dart](../../../test/local_corpus_benchmark_test.dart).
-- **Exigido antes de implementar:** decisão de licença do responsável por
-  escrito; teste que exige `licenseStatus` + `allowedForTesting` +
+- **Exigido antes de implementar:** ~~decisão de licença do responsável por
+  escrito~~ — **satisfeita em 2026-11-07** (alternativa C, `LICENSE` na raiz).
+  Pendente: teste que exige `licenseStatus` + `allowedForTesting` +
   `allowedForProductContent` em toda entrada do corpus; conferência de
   SHA-256 dos modelos contra o aviso; `git ls-files` revisado para binários
   de terceiro; para E, medir qual cobertura de CI se perde antes de remover.

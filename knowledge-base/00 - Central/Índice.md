@@ -42,7 +42,7 @@ requisitos sem autorização.
 - [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|Critério de prontidão]] — quando parar de acumular e começar a planejar.
 - [[../05 - Qualidade/Critérios de Qualidade de Código|Critérios de qualidade (SOLID/Clean Code)]] — a régua normativa da camada nova, com o método de verificação de cada regra.
 - [[../05 - Qualidade/Auditoria de Clean Code e SOLID medida|Auditoria de qualidade medida]] — onde cada violação está, com números reproduzíveis.
-- [[../06 - Decisões/ADR/README|Decisões / ADRs]] — 12 ADRs aceitos (licença do ADR-0007 pendente) e template.
+- [[../06 - Decisões/ADR/README|Decisões / ADRs]] — 12 ADRs aceitos, licença incluída (distribuição restrita), e template.
 - [[../07 - Histórico/Releases/README|Histórico / releases]].
 - [[../07 - Histórico/Refatorações/README|Histórico / refatorações]].
 - [[../09 - Auditoria/Áreas/Mapa das Áreas|Auditoria por área]] — 18 notas, placar e critérios.

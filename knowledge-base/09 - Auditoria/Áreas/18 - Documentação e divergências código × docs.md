@@ -209,9 +209,17 @@ escopo posterior com a dependência de licença explícita. A decisão é do
 (alternativa A, aceita em 2026-11-07), registrada em
 [[../../01 - Produto/Entrada por imagem e câmera]]. **A capacidade continua
 ausente no código** — o que mudou foi a promessa, não o app; por isso a
-classificação da nota de produto é ADIAR, não MANTER. As outras três linhas da
-tabela (“modo de demonstração”, “código aberto”, APK universal) seguem abertas e
-são objeto dos ADR-0007 e 0005. O texto original acima foi preservado.
+classificação da nota de produto é ADIAR, não MANTER.
+
+**Correção medida em 2026-11-07 (licença):** a linha “Código aberto para fins
+educacionais” da tabela também deixou de ser divergência. O responsável escolheu
+**distribuição restrita, todos os direitos reservados** (alternativa C do
+[[../../06 - Decisões/ADR/ADR-0007 - Licença do app e fixtures de terceiros|ADR-0007]]),
+o `README.md` passou a declarar copyright e restrição em vez de condição de
+licenciamento inexistente, e existe agora um `LICENSE` na raiz. Como não havia
+concessão permissiva anterior, o arquivo explicita o default legal que já valia —
+não relicencia cópias distribuídas. Restam abertas nesta tabela o “modo de
+demonstração” e o APK universal (ADR-0005). O texto original acima foi preservado.
 
 ### `DESIGN_SYSTEM.md` contradiz o app
 
@@ -436,6 +444,14 @@ continuidade.
 - Linkar `AGENTS.md`, vault, changelog e releases no README.
 - Critério de aceite: README verificável por teste manual; `LICENSE` presente;
   todos os links funcionam.
+
+**Resolução parcial em 2026-11-07:** “Imagens” removido do README e a ausência
+declarada em “O que ainda não existe” (ADR-0006, alternativa A — a capacidade não
+foi implementada, a promessa foi retirada). Licença decidida como distribuição
+restrita, todos os direitos reservados, e `LICENSE` criado na raiz (ADR-0007,
+alternativa C). “Modo de demonstração” e o link entre README, vault, changelog e
+releases **seguem pendentes**. O critério de aceite agora tem verificação
+automática de links via `tool/test_docs_links.py` no `qa/run_static.sh`.
 
 ### Lote 5 — CI de documentação
 
