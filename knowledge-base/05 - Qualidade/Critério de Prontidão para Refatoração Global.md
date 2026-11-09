@@ -203,6 +203,24 @@ recusa payload diferente sob o mesmo ID.
 | [[Auditoria de Clean Code e SOLID medida]] | onde cada violação está, com números | VALIDADO |
 | [[../06 - Decisões/ADR/README\|12 ADRs]] | contexto medido, alternativas, consequências e evidência por decisão | ACEITO (12 aceitos, licença incluída) |
 
+## Acessibilidade: o que é verificado e o que não é
+
+- **Contraste do app:** medido nos tokens declarados por
+  `test/accessibility/contrast_test.dart`, com piso de 5,0 para texto normal e
+  3,5 para texto grande/componentes (AA + folga de 0,5). O par mais fraco
+  usado é `textMuted #85938C` sobre `surfaceElevated #14231B` (5,09).
+- **Light/dark:** não aplicável ao app, que é dark-only por decisão
+  (ADR-0001). O site mantém a paleta clara e tem teste de contraste próprio
+  em `site/tests/site.test.cjs`.
+- **Fonte ampliada e redução de movimento:** cobertas por testes de layout e
+  de animação em `test/ux/focus_responsive_test.dart`,
+  `test/ux/search_filters_test.dart`, `test/ux/navigation_editor_test.dart` e
+  `test/ux/startup_test.dart`.
+- **Não verificado nesta rodada:** leitor de tela (TalkBack/VoiceOver), ordem
+  de foco, contraste composto por alpha, contraste sobre imagens/gradientes e
+  pixels efetivamente renderizados. Esses itens exigem aparelho e inspeção
+  manual; não devem ser declarados conformes por cálculo de token.
+
 ## Links
 
 [[../00 - Central/Roadmap]] · [[../09 - Auditoria/Síntese da Refatoração]] ·

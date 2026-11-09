@@ -632,11 +632,18 @@ Antes de declarar conclusão:
 5. Testes de widget para Focus Mode, estados vazios e login contextual.
 6. Testes de integração para importar → revisar → publicar → fazer → finalizar.
 7. Verificação em mobile pequeno e desktop.
-8. Verificação light/dark.
-9. Verificação com fonte ampliada e redução de movimento.
+8. Verificação light/dark: não aplicável ao app, que é dark-only por decisão (ADR-0001); o site mantém a paleta clara e tem teste de contraste próprio.
+9. Verificação com fonte ampliada e redução de movimento (testes existentes: `test/ux/focus_responsive_test.dart`, `test/ux/search_filters_test.dart`, `test/ux/navigation_editor_test.dart`, `test/ux/startup_test.dart`).
 10. Verificação offline e retomada.
 11. Nenhum dado demonstrativo confundido com conteúdo real.
 12. Diff revisado para arquivos gerados, segredos e regressões.
+
+Limites atuais da verificação automatizada: o contraste é medido sobre os
+tokens declarados em `test/accessibility/contrast_test.dart`; alpha, imagens,
+gradientes e pixels renderizados não são medidos. Leitor de tela e ordem de
+foco exigem verificação manual em aparelho e não são automatizáveis nesta
+rodada. “Passa AA” significa “o par declarado passa”, não “a tela inteira
+passa”.
 
 ## 22. Ordem de execução recomendada
 

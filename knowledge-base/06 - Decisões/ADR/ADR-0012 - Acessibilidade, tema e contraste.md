@@ -157,6 +157,32 @@ decisão é:
   atingir a meta é reversível, mas altera a identidade visual e precisa do
   ADR-0001 junto.
 
+## Implementação
+
+**Executada em 2026-11-08, no escopo local (sem publicação).**
+
+- `AppColors` e `AppTheme.light` foram removidos; o app usa somente
+  `AppTheme.dark` com `EmeraldColors` (commit `dc2e2df`, Tarefa 2.1). O site
+  continua com a paleta clara e teste próprio.
+- `EmeraldColors.textMuted` passou de `#718078` para `#85938C`; o par mais
+  fraco em uso — `textMuted` sobre `surfaceElevated` — mede 5,09.
+- `test/accessibility/contrast_test.dart` mede os pares realmente usados com
+  piso de 5,0 para texto normal e 3,5 para texto grande/componentes (commit
+  `6a0e437`). O teste de `quiz_offline_submission_test.dart` foi renomeado
+  para “usa superfície e texto do tema escuro”, porque ele compara igualdade
+  de cor, não razão de contraste.
+- `AppTypography` centraliza os tamanhos de fonte; `fontSize` literal fora de
+  `app_theme.dart` falha em `tool/test_design_tokens.py` (commit `edf66b9`).
+- **Verificação light/dark:** não aplicável ao app por decisão do ADR-0001; o
+  site mantém a paleta clara coberta por `site/tests/site.test.cjs`.
+- **Não verificado nesta rodada:** leitor de tela (TalkBack/VoiceOver), ordem
+  de foco, contraste composto por alpha, contraste sobre imagens/gradientes e
+  pixels renderizados. Esses limites estão registrados no `AGENTS.md` e no
+  [[../../05 - Qualidade/Critério de Prontidão para Refatoração Global|Critério de Prontidão]].
+- **Testes executados:** `flutter test test/accessibility/contrast_test.dart`,
+  `flutter test test/quiz_offline_submission_test.dart`,
+  `python3 tool/test_design_tokens.py`, `flutter analyze`.
+
 ## Evidências e validação
 
 - Áreas: [[../../09 - Auditoria/Áreas/14 - Testes, QA e benchmark|Área 14]],
