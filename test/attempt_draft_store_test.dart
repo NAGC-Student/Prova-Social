@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
+import 'package:prova_social/core/backend/local_payload_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ControlledStorage implements DraftStorage {
   final values = <String, String>{};
@@ -181,4 +184,73 @@ void main() {
     );
     store.dispose();
   });
+
+  test('migra rascunho antigo para arquivo e remove o legado', () async {
+    SharedPreferences.setMockInitialValues({
+      'attempt_draft_v1_exam':
+          '{"answers":{"0":3},"review":[0],"current":0,"elapsedSeconds":12}',
+    });
+    final directory = await Directory.systemTemp.createTemp('draft_migration');
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    final store = AttemptDraftStore(
+      storage: PayloadDraftStorage(
+        store: createLocalPayloadStore(directoryPath: directory.path),
+      ),
+    );
+
+    final loaded = await store.load('exam');
+    expect(loaded!.answers[0], 3);
+    expect(
+      await File('${directory.path}/attempt_draft_v1_exam.json').exists(),
+      isTrue,
+    );
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('attempt_draft_v1_exam'), isNull);
+    store.dispose();
+  });
+
+  test('falha do arquivo mantém o rascunho em preferences', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AttemptDraftStore(
+      storage: PayloadDraftStorage(store: _FailingPayloadStore()),
+    );
+
+    await store.save(
+      'exam',
+      const AttemptDraft(
+        answers: {0: 1},
+        review: {},
+        current: 0,
+        elapsedSeconds: 8,
+      ),
+    );
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('attempt_draft_v1_exam'), isNotNull);
+    expect((await store.load('exam'))!.answers[0], 1);
+    store.dispose();
+  });
+}
+
+class _FailingPayloadStore implements LocalPayloadStore {
+  @override
+  bool get fileBacked => true;
+
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<String?> readBackup(String key) async => null;
+
+  @override
+  Future<bool> write(
+    String key,
+    String payload, {
+    String? backupPayload,
+  }) async => false;
+
+  @override
+  Future<bool> remove(String key) async => false;
 }

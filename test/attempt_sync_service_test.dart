@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/backend/attempt_submission.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
+import 'package:prova_social/core/backend/local_payload_store.dart';
 import 'package:prova_social/domain/models/exam.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MemoryQueueStorage implements AttemptQueueStorage {
   String? value;
@@ -563,4 +566,74 @@ void main() {
     storage.failWrites = false;
     expect(await service.store.pending(), isEmpty);
   });
+
+  test('migra a fila antiga para arquivo e remove o legado', () async {
+    SharedPreferences.setMockInitialValues({
+      'attempt_sync_queue_v1': 'fila-antiga',
+    });
+    final directory = await Directory.systemTemp.createTemp('queue_migration');
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    final storage = PayloadQueueStorage(
+      store: createLocalPayloadStore(directoryPath: directory.path),
+    );
+
+    expect(await storage.read(), 'fila-antiga');
+    expect(
+      await File('${directory.path}/attempt_sync_queue_v1.json').exists(),
+      isTrue,
+    );
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('attempt_sync_queue_v1'), isNull);
+  });
+
+  test('grava a fila no arquivo novo', () async {
+    SharedPreferences.setMockInitialValues({});
+    final directory = await Directory.systemTemp.createTemp('queue_write');
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    final storage = PayloadQueueStorage(
+      store: createLocalPayloadStore(directoryPath: directory.path),
+    );
+
+    await storage.write('fila-nova');
+    expect(await storage.read(), 'fila-nova');
+    expect(
+      await File('${directory.path}/attempt_sync_queue_v1.json').readAsString(),
+      'fila-nova',
+    );
+  });
+
+  test('falha do arquivo mantém a fila em preferences', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = PayloadQueueStorage(store: _FailingQueuePayloadStore());
+
+    await storage.write('fila-reserva');
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('attempt_sync_queue_v1'), 'fila-reserva');
+    expect(await storage.read(), 'fila-reserva');
+  });
+}
+
+class _FailingQueuePayloadStore implements LocalPayloadStore {
+  @override
+  bool get fileBacked => true;
+
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<String?> readBackup(String key) async => null;
+
+  @override
+  Future<bool> write(
+    String key,
+    String payload, {
+    String? backupPayload,
+  }) async => false;
+
+  @override
+  Future<bool> remove(String key) async => false;
 }

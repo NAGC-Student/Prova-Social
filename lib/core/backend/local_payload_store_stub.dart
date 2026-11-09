@@ -43,8 +43,8 @@ class _PreferencesLocalPayloadStore implements LocalPayloadStore {
   @override
   Future<bool> remove(String key) async {
     final preferences = await SharedPreferences.getInstance();
-    final backupOk = await preferences.remove(_backupKey(key));
-    final payloadOk = await preferences.remove(_key(key));
-    return backupOk && payloadOk;
+    await preferences.remove(_backupKey(key));
+    await preferences.remove(_key(key));
+    return true;
   }
 }

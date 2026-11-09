@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
+import 'package:prova_social/core/backend/attempt_sync_service.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
 
@@ -28,6 +29,16 @@ class SlowDraftStorage implements DraftStorage {
   }
 }
 
+class _MemoryQueueStorage implements AttemptQueueStorage {
+  String? value;
+
+  @override
+  Future<String?> read() async => value;
+
+  @override
+  Future<void> write(String value) async => this.value = value;
+}
+
 void main() {
   testWidgets('sair espera a gravação pendente e preserva a resposta', (
     tester,
@@ -35,6 +46,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final storage = SlowDraftStorage();
     final store = AttemptDraftStore(storage: storage);
+    final syncService = AttemptSyncService(
+      store: AttemptQueueStore(storage: _MemoryQueueStorage()),
+    );
     const exam = Exam(
       id: 'exam',
       category: 'Geral',
@@ -59,7 +73,11 @@ void main() {
             builder: (context) => TextButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => QuizPage(exam: exam, draftStore: store),
+                  builder: (_) => QuizPage(
+                    exam: exam,
+                    draftStore: store,
+                    syncService: syncService,
+                  ),
                 ),
               ),
               child: const Text('Abrir'),

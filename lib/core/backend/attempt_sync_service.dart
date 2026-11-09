@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../domain/models/exam.dart';
 import 'attempt_repository.dart';
 import 'attempt_submission.dart';
+import 'local_payload_store.dart';
+import 'payload_storage_migration.dart';
 
 enum AttemptSyncState {
   pendingSync,
@@ -54,30 +54,25 @@ abstract class AttemptQueueStorage {
   Future<void> write(String value);
 }
 
-class _PreferencesAttemptQueueStorage implements AttemptQueueStorage {
+class PayloadQueueStorage implements AttemptQueueStorage {
+  PayloadQueueStorage({LocalPayloadStore? store})
+    : _store = store ?? createLocalPayloadStore();
+
   static const key = 'attempt_sync_queue_v1';
+  final LocalPayloadStore _store;
 
   @override
-  Future<String?> read() async =>
-      (await SharedPreferences.getInstance()).getString(key);
+  Future<String?> read() => readMigratingPayload(_store, key);
 
   @override
-  Future<void> write(String value) async {
-    final saved = await (await SharedPreferences.getInstance()).setString(
-      key,
-      value,
-    );
-    if (!saved) {
-      throw StateError('Não foi possível salvar a entrega no aparelho.');
-    }
-  }
+  Future<void> write(String value) => writeMigratingPayload(_store, key, value);
 }
 
 class AttemptQueueStore {
   AttemptQueueStore({AttemptQueueStorage? storage})
     : _storage = storage ?? _defaultStorage;
 
-  static final _defaultStorage = _PreferencesAttemptQueueStorage();
+  static final _defaultStorage = PayloadQueueStorage();
   static final _storageTails = Expando<Future<void>>();
   final AttemptQueueStorage _storage;
 

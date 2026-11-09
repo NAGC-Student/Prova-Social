@@ -1,9 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prova_social/core/backend/attempt_draft_store.dart';
+import 'package:prova_social/core/backend/attempt_sync_service.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
 import 'package:prova_social/features/result/result_page.dart';
+
+class _MemoryDraftStorage implements DraftStorage {
+  final values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> remove(String key) async => values.remove(key);
+}
+
+class _MemoryQueueStorage implements AttemptQueueStorage {
+  String? value;
+
+  @override
+  Future<String?> read() async => value;
+
+  @override
+  Future<void> write(String value) async => this.value = value;
+}
 
 void main() {
   testWidgets('a single mistake offers the singular retry label', (
@@ -43,7 +68,21 @@ void main() {
       finishedAt: DateTime.utc(2026, 11, 1),
     );
 
-    await tester.pumpWidget(MaterialApp(home: ResultPage(result: result)));
+    final draftStore = AttemptDraftStore(storage: _MemoryDraftStorage());
+    addTearDown(draftStore.dispose);
+    final syncService = AttemptSyncService(
+      store: AttemptQueueStore(storage: _MemoryQueueStorage()),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ResultPage(
+          result: result,
+          draftStore: draftStore,
+          syncService: syncService,
+        ),
+      ),
+    );
     expect(find.text('Refazer 1 questão errada'), findsOneWidget);
     expect(find.textContaining('Refazer 1 questões'), findsNothing);
 

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/source_badge.dart';
+import '../../core/backend/attempt_draft_store.dart';
 import '../../core/backend/attempt_sync_service.dart';
 import '../../core/review/wrong_question_practice_service.dart';
 import '../../domain/models/exam.dart';
@@ -189,9 +190,15 @@ class _PendingResultPageState extends State<PendingResultPage>
 }
 
 class ResultPage extends StatelessWidget {
-  const ResultPage({required this.result, this.syncService, super.key});
+  const ResultPage({
+    required this.result,
+    this.syncService,
+    this.draftStore,
+    super.key,
+  });
   final ExamResult result;
   final AttemptSyncService? syncService;
+  final AttemptDraftStore? draftStore;
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +295,11 @@ class ResultPage extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => QuizPage(exam: wrongQuestionsExam),
+                          builder: (_) => QuizPage(
+                            exam: wrongQuestionsExam,
+                            syncService: syncService,
+                            draftStore: draftStore,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.replay_rounded),

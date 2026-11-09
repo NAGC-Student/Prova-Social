@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'local_payload_store.dart';
+import 'payload_storage_migration.dart';
 
 class AttemptDraft {
   const AttemptDraft({
@@ -41,30 +43,28 @@ abstract class DraftStorage {
   Future<void> remove(String key);
 }
 
-class _PreferencesDraftStorage implements DraftStorage {
-  @override
-  Future<String?> read(String key) async =>
-      (await SharedPreferences.getInstance()).getString(key);
+class PayloadDraftStorage implements DraftStorage {
+  PayloadDraftStorage({LocalPayloadStore? store})
+    : _store = store ?? createLocalPayloadStore();
+
+  final LocalPayloadStore _store;
 
   @override
-  Future<void> write(String key, String value) async {
-    final saved = await (await SharedPreferences.getInstance()).setString(
-      key,
-      value,
-    );
-    if (!saved) throw StateError('Não foi possível salvar o rascunho.');
-  }
+  Future<String?> read(String key) => readMigratingPayload(_store, key);
 
   @override
-  Future<void> remove(String key) async {
-    final removed = await (await SharedPreferences.getInstance()).remove(key);
-    if (!removed) throw StateError('Não foi possível remover o rascunho.');
-  }
+  Future<void> write(String key, String value) =>
+      writeMigratingPayload(_store, key, value);
+
+  @override
+  Future<void> remove(String key) => removeMigratingPayload(_store, key);
 }
 
 class AttemptDraftStore {
   AttemptDraftStore({DraftStorage? storage})
-    : _storage = storage ?? _PreferencesDraftStorage();
+    : _storage = storage ?? _defaultStorage;
+
+  static final _defaultStorage = PayloadDraftStorage();
 
   final DraftStorage _storage;
   final status = ValueNotifier<DraftSaveStatus>(DraftSaveStatus.saved);

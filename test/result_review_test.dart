@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prova_social/core/backend/attempt_draft_store.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
@@ -183,7 +184,11 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: ResultPage(result: result, syncService: _testSyncService()),
+        home: ResultPage(
+          result: result,
+          syncService: _testSyncService(),
+          draftStore: AttemptDraftStore(storage: _MemoryDraftStorage()),
+        ),
       ),
     );
     const retryLabel = 'Refazer 2 questões erradas';
@@ -218,4 +223,17 @@ class _MemoryAttemptQueueStorage implements AttemptQueueStorage {
 
   @override
   Future<void> write(String value) async => this.value = value;
+}
+
+class _MemoryDraftStorage implements DraftStorage {
+  final values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> remove(String key) async => values.remove(key);
 }
