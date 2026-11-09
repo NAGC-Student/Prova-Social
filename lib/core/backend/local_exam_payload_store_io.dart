@@ -1,62 +1,26 @@
-import 'dart:io';
-
-import 'package:path_provider/path_provider.dart';
-
 import 'local_exam_payload_store.dart';
+import 'local_payload_store.dart';
 
-/// Durable private exam storage. Writes use a flushed temporary file followed
-/// by a rename; the previous complete payload is retained as a backup.
+/// Adapter da prova privada sobre o armazenamento atômico por chave.
 class LocalExamPayloadStore implements ExamPayloadStorage {
-  static const _fileName = 'private_exams_v1.json';
-  static const _backupName = 'private_exams_v1.json.bak';
-  static const _temporaryName = 'private_exams_v1.json.tmp';
+  LocalExamPayloadStore({LocalPayloadStore? store})
+    : _store = store ?? createLocalPayloadStore();
+
+  static const key = 'private_exams_v1';
+  final LocalPayloadStore _store;
 
   @override
-  bool get fileBacked => true;
-
-  Future<Directory> _directory() => getApplicationSupportDirectory();
+  bool get fileBacked => _store.fileBacked;
 
   @override
-  Future<String?> read() async {
-    final file = File('${(await _directory()).path}/$_fileName');
-    return await file.exists() ? file.readAsString() : null;
-  }
+  Future<String?> read() => _store.read(key);
 
   @override
-  Future<String?> readBackup() async {
-    final file = File('${(await _directory()).path}/$_backupName');
-    return await file.exists() ? file.readAsString() : null;
-  }
+  Future<String?> readBackup() => _store.readBackup(key);
 
   @override
-  Future<bool> write(String payload, {String? backupPayload}) async {
-    final directory = await _directory();
-    final current = File('${directory.path}/$_fileName');
-    final backup = File('${directory.path}/$_backupName');
-    final temporary = File('${directory.path}/$_temporaryName');
-    final backupTemporary = File('${directory.path}/$_backupName.tmp');
-    try {
-      if (await current.exists()) {
-        if (backupPayload == null) {
-          await current.copy(backupTemporary.path);
-        } else {
-          await backupTemporary.writeAsString(backupPayload, flush: true);
-        }
-        if (await backup.exists()) await backup.delete();
-        await backupTemporary.rename(backup.path);
-      } else if (backupPayload != null) {
-        await backupTemporary.writeAsString(backupPayload, flush: true);
-        if (await backup.exists()) await backup.delete();
-        await backupTemporary.rename(backup.path);
-      }
-      await temporary.writeAsString(payload, flush: true);
-      await temporary.rename(current.path);
-      return true;
-    } finally {
-      if (await temporary.exists()) await temporary.delete();
-      if (await backupTemporary.exists()) await backupTemporary.delete();
-    }
-  }
+  Future<bool> write(String payload, {String? backupPayload}) =>
+      _store.write(key, payload, backupPayload: backupPayload);
 
   @override
   Future<bool> migrate(String payload) async {

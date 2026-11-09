@@ -1,17 +1,30 @@
-// Browser fallback. The web platform does not expose an application file
-// directory, so LocalExamStore keeps its existing preferences representation.
 import 'local_exam_payload_store.dart';
+import 'local_payload_store.dart';
 
+/// Adapter de browser: delega ao fallback em `SharedPreferences`.
 class LocalExamPayloadStore implements ExamPayloadStorage {
-  @override
-  bool get fileBacked => false;
+  LocalExamPayloadStore({LocalPayloadStore? store})
+    : _store = store ?? createLocalPayloadStore();
+
+  static const key = 'private_exams_v1';
+  final LocalPayloadStore _store;
 
   @override
-  Future<String?> read() async => null;
+  bool get fileBacked => _store.fileBacked;
+
   @override
-  Future<String?> readBackup() async => null;
+  Future<String?> read() => _store.read(key);
+
   @override
-  Future<bool> write(String payload, {String? backupPayload}) async => false;
+  Future<String?> readBackup() => _store.readBackup(key);
+
   @override
-  Future<bool> migrate(String payload) async => false;
+  Future<bool> write(String payload, {String? backupPayload}) =>
+      _store.write(key, payload, backupPayload: backupPayload);
+
+  @override
+  Future<bool> migrate(String payload) async {
+    if (await read() != null) return true;
+    return write(payload, backupPayload: '[]');
+  }
 }
