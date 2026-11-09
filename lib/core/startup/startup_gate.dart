@@ -147,7 +147,7 @@ class _StartupScreen extends StatelessWidget {
                   'Prova Social',
                   style: TextStyle(
                     color: EmeraldColors.textPrimary,
-                    fontSize: 22,
+                    fontSize: AppTypography.headline,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -.6,
                   ),
@@ -167,7 +167,7 @@ class _StartupScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: EmeraldColors.textSecondary,
-                      fontSize: 14,
+                      fontSize: AppTypography.bodySmall,
                     ),
                   ),
                 ),
@@ -180,7 +180,7 @@ class _StartupScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: EmeraldColors.textSecondary,
-                      fontSize: 13,
+                      fontSize: AppTypography.footnote,
                     ),
                   ),
                 ],

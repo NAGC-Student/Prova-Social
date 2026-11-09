@@ -51,7 +51,7 @@ class BrandLockup extends StatelessWidget {
         Text.rich(
           TextSpan(
             style: const TextStyle(
-              fontSize: 27,
+              fontSize: AppTypography.wordmark,
               fontWeight: FontWeight.w800,
               letterSpacing: -.7,
             ),

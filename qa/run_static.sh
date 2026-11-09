@@ -20,6 +20,7 @@ run "Public SEO pages" python3 tool/test_generate_seo_pages.py
 run "Documentation hierarchy and links" python3 tool/test_docs_links.py
 run "Dependency matrix generator" python3 tool/test_generate_dependency_matrix.py
 run "Dependency matrix freshness" python3 tool/generate_dependency_matrix.py --check
+run "Design token discipline" python3 tool/test_design_tokens.py
 run "Site tests" node --test site/tests/site.test.cjs
 
 exit "$failed"

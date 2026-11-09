@@ -1777,7 +1777,10 @@ class _ImportReviewPageState extends State<ImportReviewPage>
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'Escolha uma questão',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontSize: AppTypography.title,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               Expanded(
@@ -2330,7 +2333,7 @@ class _ImportSteps extends StatelessWidget {
                 labels[index],
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppTypography.caption,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   color: active ? colors.primary : colors.onSurfaceVariant,
                 ),

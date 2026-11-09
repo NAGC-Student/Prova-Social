@@ -226,7 +226,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
               'MODO FOCO',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
-                fontSize: 10,
+                fontSize: AppTypography.micro,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1,
               ),
@@ -234,7 +234,10 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
             Text(
               exam.title,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: AppTypography.label,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -962,7 +965,7 @@ class _QuestionStatus extends StatelessWidget {
             DefaultTextStyle(
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 12,
+                fontSize: AppTypography.small,
               ),
               child: counts,
             ),
@@ -980,7 +983,7 @@ class _QuestionStatus extends StatelessWidget {
           DefaultTextStyle(
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: AppTypography.small,
             ),
             child: counts,
           ),
@@ -1009,7 +1012,7 @@ class _QuestionContent extends StatelessWidget {
         question.topic.toUpperCase(),
         style: TextStyle(
           color: Theme.of(context).colorScheme.primary,
-          fontSize: 11,
+          fontSize: AppTypography.caption,
           fontWeight: FontWeight.w800,
           letterSpacing: .7,
         ),
@@ -1018,7 +1021,7 @@ class _QuestionContent extends StatelessWidget {
       SelectableText(
         question.statement,
         style: Theme.of(context).textTheme.titleLarge
-            ?.copyWith(fontSize: 20, height: 1.5),
+            ?.copyWith(fontSize: AppTypography.titleLarge, height: 1.5),
       ),
       if (question.media.isNotEmpty) ...[
         const SizedBox(height: AppSpacing.md),
@@ -1084,7 +1087,7 @@ class _QuestionContent extends StatelessWidget {
                         question.options[index],
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 16,
+                          fontSize: AppTypography.body,
                           height: 1.4,
                         ),
                       ),
@@ -1225,7 +1228,7 @@ class _QuestionNavigator extends StatelessWidget {
           'Selecione um número para navegar.',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 12,
+            fontSize: AppTypography.small,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),

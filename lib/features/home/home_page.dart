@@ -729,7 +729,7 @@ class _HeaderActions extends StatelessWidget {
                       initials.toUpperCase(),
                       style: const TextStyle(
                         color: EmeraldColors.primaryLight,
-                        fontSize: 13,
+                        fontSize: AppTypography.footnote,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -948,7 +948,7 @@ class _BottomNavItem extends StatelessWidget {
                         : selected
                         ? EmeraldColors.primary
                         : EmeraldColors.textSecondary,
-                    fontSize: 11,
+                    fontSize: AppTypography.caption,
                     fontWeight: selected || isPublish
                         ? FontWeight.w700
                         : FontWeight.w500,
@@ -1059,7 +1059,9 @@ class _HomeFeed extends StatelessWidget {
               ],
             ),
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontSize: MediaQuery.sizeOf(context).width < 600 ? 30 : 48,
+              fontSize: MediaQuery.sizeOf(context).width < 600
+                  ? AppTypography.heroMobile
+                  : AppTypography.heroDesktop,
             ),
           ),
           const SizedBox(height: 6),
@@ -1360,7 +1362,7 @@ class ExamCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: _HomeColors.muted(context),
-                          fontSize: 12,
+                          fontSize: AppTypography.small,
                         ),
                       ),
                     ],
@@ -1370,7 +1372,7 @@ class ExamCard extends StatelessWidget {
                     '${exam.questions.length} questões · ${exam.durationMinutes} min · ${exam.author}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11),
+                    style: const TextStyle(fontSize: AppTypography.caption),
                   ),
                 ],
               ),
@@ -1937,7 +1939,7 @@ class _ProfilePage extends StatelessWidget {
                     initials,
                     style: const TextStyle(
                       color: EmeraldColors.primaryLight,
-                      fontSize: 17,
+                      fontSize: AppTypography.subtitle,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -2295,8 +2297,11 @@ class _SectionTitle extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontSize: compact ? 18 : 22),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: compact
+                    ? AppTypography.title
+                    : AppTypography.headline,
+              ),
             ),
           ),
           if (!compact && actionLabel != null && onAction != null)

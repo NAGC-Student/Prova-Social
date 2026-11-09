@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/exam.dart';
+import '../theme/app_theme.dart';
 
 class SourceBadge extends StatelessWidget {
   const SourceBadge({
@@ -60,7 +61,7 @@ class SourceBadge extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   softWrap: false,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppTypography.caption,
                     fontWeight: FontWeight.w700,
                     color: color,
                   ),

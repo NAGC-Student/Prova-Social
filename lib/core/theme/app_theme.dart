@@ -19,6 +19,26 @@ abstract final class EmeraldColors {
   static const error = Color(0xFFFF6464);
 }
 
+abstract final class AppTypography {
+  static const micro = 10.0;
+  static const caption = 11.0;
+  static const small = 12.0;
+  static const footnote = 13.0;
+  static const bodySmall = 14.0;
+  static const label = 15.0;
+  static const body = 16.0;
+  static const subtitle = 17.0;
+  static const title = 18.0;
+  static const titleLarge = 20.0;
+  static const headline = 22.0;
+  static const wordmark = 27.0;
+  static const headlineLarge = 28.0;
+  static const heroMobile = 30.0;
+  static const hero = 36.0;
+  static const heroDesktop = 48.0;
+  static const score = 64.0;
+}
+
 abstract final class AppSpacing {
   static const xs = 4.0;
   static const sm = 8.0;
@@ -70,42 +90,42 @@ abstract final class AppTheme {
       fontFamily: 'sans-serif',
       textTheme: const TextTheme(
         displaySmall: TextStyle(
-          fontSize: 36,
+          fontSize: AppTypography.hero,
           height: 1.08,
           fontWeight: FontWeight.w700,
           letterSpacing: -1.2,
           color: EmeraldColors.textPrimary,
         ),
         headlineMedium: TextStyle(
-          fontSize: 28,
+          fontSize: AppTypography.headlineLarge,
           height: 1.15,
           fontWeight: FontWeight.w700,
           letterSpacing: -.6,
           color: EmeraldColors.textPrimary,
         ),
         headlineSmall: TextStyle(
-          fontSize: 22,
+          fontSize: AppTypography.headline,
           height: 1.2,
           fontWeight: FontWeight.w700,
           color: EmeraldColors.textPrimary,
         ),
         titleLarge: TextStyle(
-          fontSize: 18,
+          fontSize: AppTypography.title,
           fontWeight: FontWeight.w700,
           color: EmeraldColors.textPrimary,
         ),
         titleMedium: TextStyle(
-          fontSize: 15,
+          fontSize: AppTypography.label,
           fontWeight: FontWeight.w600,
           color: EmeraldColors.textPrimary,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: AppTypography.body,
           height: 1.45,
           color: EmeraldColors.textPrimary,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: AppTypography.bodySmall,
           height: 1.45,
           color: EmeraldColors.textSecondary,
         ),

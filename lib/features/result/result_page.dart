@@ -221,7 +221,7 @@ class ResultPage extends StatelessWidget {
                             'PROVA CONCLUÍDA',
                             style: TextStyle(
                               color: EmeraldColors.primaryLight,
-                              fontSize: 11,
+                              fontSize: AppTypography.caption,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.2,
                             ),
@@ -233,7 +233,7 @@ class ResultPage extends StatelessWidget {
                                 : '${result.scorePercent}%',
                             style: const TextStyle(
                               color: EmeraldColors.textPrimary,
-                              fontSize: 64,
+                              fontSize: AppTypography.score,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -3,
                             ),
@@ -244,7 +244,7 @@ class ResultPage extends StatelessWidget {
                                 : '${result.correct} de ${result.correctableCount} questões corrigíveis',
                             style: const TextStyle(
                               color: EmeraldColors.textPrimary,
-                              fontSize: 22,
+                              fontSize: AppTypography.headline,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -727,14 +727,17 @@ class _Stat extends StatelessWidget {
         children: [
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              fontSize: AppTypography.titleLarge,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppTypography.caption,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
