@@ -314,7 +314,7 @@ void main() {
           textScaler: TextScaler.linear(1.5),
         ),
         child: MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.dark,
           home: Scaffold(
             body: ListView(
               padding: const EdgeInsets.all(16),

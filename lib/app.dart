@@ -18,9 +18,7 @@ class ProvaSocialApp extends StatelessWidget {
     return MaterialApp(
       title: 'Prova Social',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.dark,
       builder: (context, child) =>
           EmeraldBackdrop(child: child ?? const SizedBox.shrink()),
       onGenerateInitialRoutes: (initialRoute) => [

@@ -1,21 +1,5 @@
 import 'package:flutter/material.dart';
 
-abstract final class AppColors {
-  static const background = Color(0xFFF7F8F6);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceHover = Color(0xFFF1F4F1);
-  static const ink = Color(0xFF171A18);
-  static const muted = Color(0xFF68706B);
-  static const line = Color(0xFFE3E7E4);
-  static const brand = Color(0xFF16A36A);
-  static const brandHover = Color(0xFF12875A);
-  static const brandSoft = Color(0xFFE7F6EF);
-  static const mint = Color(0xFF74E3B5);
-  static const warning = Color(0xFFE5A524);
-  static const success = Color(0xFF16A36A);
-  static const danger = Color(0xFFDC4C4C);
-}
-
 abstract final class EmeraldColors {
   static const background = Color(0xFF050907);
   static const backgroundSecondary = Color(0xFF080F0C);
@@ -31,6 +15,7 @@ abstract final class EmeraldColors {
   static const textMuted = Color(0xFF718078);
   static const border = Color(0xFF23382E);
   static const borderHighlight = Color(0xFF176B4A);
+  static const warning = Color(0xFFE5A524);
   static const error = Color(0xFFFF6464);
 }
 
@@ -63,120 +48,6 @@ abstract final class AppMotion {
 }
 
 abstract final class AppTheme {
-  static ThemeData get light {
-    const scheme = ColorScheme.light(
-      // White labels on the brighter brand green miss comfortable contrast.
-      // Keep that green as an accent and use the deeper brand shade for actions.
-      primary: AppColors.brandHover,
-      onPrimary: Colors.white,
-      secondary: AppColors.brand,
-      onSecondary: AppColors.ink,
-      surface: AppColors.surface,
-      onSurface: AppColors.ink,
-      error: AppColors.danger,
-      onError: Colors.white,
-      outline: AppColors.line,
-      surfaceContainerHighest: AppColors.surfaceHover,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'sans-serif',
-      textTheme: const TextTheme(
-        displaySmall: TextStyle(
-          fontSize: 36,
-          height: 1.08,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -1.2,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 28,
-          height: 1.15,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -.6,
-        ),
-        headlineSmall: TextStyle(
-          fontSize: 22,
-          height: 1.2,
-          fontWeight: FontWeight.w700,
-        ),
-        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        bodyLarge: TextStyle(fontSize: 16, height: 1.45),
-        bodyMedium: TextStyle(fontSize: 14, height: 1.45),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.ink,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.ink,
-        contentTextStyle: const TextStyle(color: Colors.white),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-      ),
-      cardTheme: const CardThemeData(
-        color: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: AppColors.line),
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.surface,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        border: OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.line),
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.line),
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.brand, width: 1.5),
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 48),
-          side: const BorderSide(color: AppColors.line),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-          foregroundColor: AppColors.ink,
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ),
-      navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.brandSoft,
-        height: 68,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      ),
-      dividerColor: AppColors.line,
-    );
-  }
-
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
       primary: EmeraldColors.primary,

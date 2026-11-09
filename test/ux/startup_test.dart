@@ -36,7 +36,7 @@ void main() {
     );
     final lightBoxes = tester
         .widgetList<ColoredBox>(find.byType(ColoredBox))
-        .where((box) => box.color == AppColors.background)
+        .where((box) => box.color == const Color(0xFFF7F8F6))
         .toList();
     expect(
       lightBoxes,

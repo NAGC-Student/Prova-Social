@@ -43,7 +43,7 @@ Uma função essencial é criar automaticamente uma nova prova somente com quest
 - Símbolo: livro aberto com traços verdes/neon e borda arredondada.
 - Nunca voltar ao ícone padrão do Flutter no Android, PWA, favicon ou Flutter Web.
 
-### Tokens claros
+### Tokens do site (claros)
 
 - `background`: `#F7F8F6`
 - `surface`: `#FFFFFF`
@@ -57,12 +57,28 @@ Uma função essencial é criar automaticamente uma nova prova somente com quest
 - `warning`: `#E5A524`
 - `danger`: `#DC4C4C`
 
-### Tokens escuros
+### Tokens do app (esmeralda, dark-only)
 
-- `background`: `#101311`
-- `surface`: `#181C19`
-- `textPrimary`: `#F3F5F3`
-- `border`: `#2A302C`
+O app usa exclusivamente `EmeraldColors` em `lib/core/theme/app_theme.dart`.
+Decisão registrada no ADR-0001: o app é dark-only esmeralda e o site mantém a
+paleta clara. Os dois conjuntos não se misturam.
+
+- `background`: `#050907`
+- `backgroundSecondary`: `#080F0C`
+- `surface`: `#101A15`
+- `surfaceElevated`: `#14231B`
+- `surfaceHighlight`: `#193329`
+- `primary`: `#20D99A`
+- `primaryLight`: `#50F0B5`
+- `primaryDark`: `#087C52`
+- `primaryGlow`: `#00E6A0`
+- `textPrimary`: `#F5F7F6`
+- `textSecondary`: `#AAB7B0`
+- `textMuted`: `#718078`
+- `border`: `#23382E`
+- `borderHighlight`: `#176B4A`
+- `warning`: `#E5A524`
+- `error`: `#FF6464`
 
 ### Sistema
 

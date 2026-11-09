@@ -2415,17 +2415,9 @@ abstract final class _HomeColors {
   static Color brand(BuildContext context) =>
       Theme.of(context).colorScheme.primary;
 
-  static Color brandHover(BuildContext context) {
-    final theme = Theme.of(context);
-    return theme.brightness == Brightness.dark
-        ? theme.colorScheme.primary
-        : AppColors.brandHover;
-  }
+  static Color brandHover(BuildContext context) =>
+      Theme.of(context).colorScheme.primary;
 
-  static Color brandSoft(BuildContext context) {
-    final theme = Theme.of(context);
-    return theme.brightness == Brightness.dark
-        ? theme.colorScheme.primary.withValues(alpha: .16)
-        : AppColors.brandSoft;
-  }
+  static Color brandSoft(BuildContext context) =>
+      Theme.of(context).colorScheme.primary.withValues(alpha: .16);
 }

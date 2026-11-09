@@ -202,7 +202,7 @@ void main() {
     LocalExamStore.storageOverride = storage;
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
@@ -240,7 +240,7 @@ void main() {
       );
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.dark,
           home: editor(questions: questions),
         ),
       );
@@ -303,7 +303,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         home: const AuthPage(closeAfterAuth: true),
       ),
@@ -325,7 +325,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         home: const HomePage(),
       ),
@@ -353,7 +353,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         home: const HomePage(),
       ),
@@ -371,7 +371,7 @@ void main() {
     failCatalogRequest = true;
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         home: const HomePage(),
       ),
@@ -392,7 +392,7 @@ void main() {
   ) async {
     provideHomeCatalog = true;
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const HomePage()),
+      MaterialApp(theme: AppTheme.dark, home: const HomePage()),
     );
     await tester.pumpAndSettle();
     expect(find.text('Prova 2024'), findsOneWidget);
@@ -446,7 +446,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.dark,
           darkTheme: AppTheme.dark,
           home: const HomePage(),
         ),
@@ -505,7 +505,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         home: const HomePage(),
       ),
@@ -567,7 +567,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.dark,
           darkTheme: AppTheme.dark,
           home: const HomePage(),
         ),
@@ -677,7 +677,7 @@ void main() {
       await login();
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.dark,
           darkTheme: AppTheme.dark,
           home: const HomePage(),
         ),
@@ -811,7 +811,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
-          theme: width == 320 ? AppTheme.light : AppTheme.dark,
+          theme: AppTheme.dark,
           home: MediaQuery(
             data: MediaQueryData(
               size: Size(width, 800),

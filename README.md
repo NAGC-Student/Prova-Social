@@ -55,7 +55,7 @@ O aplicativo foi desenvolvido para celular primeiro:
 
 - Interface rápida e responsiva
 - Target de toque ~48×48 px
-- Tema escuro em todo o app (a escolha de tema ainda não existe)
+- Tema escuro fixo no app, por decisão (ADR-0001); o site mantém a paleta clara
 - Suporte à redução de movimento
 - Loading que preserva o formato da página
 
@@ -151,7 +151,7 @@ Listado para que a promessa do produto e o estado real do app não se confundam:
 - **Comunidades**: não há entidade, tela ou consulta de comunidade.
 - **Questões discursivas**: o modelo de questão aceita uma única alternativa correta.
 - **Importação por imagem ou câmera**: só PDF, JSON e criação manual existem. O OCR recebe página de PDF (`lib/core/import/ocr_service_native.dart`), não arquivo de imagem; não há `image_picker`, pacote `camera` nem permissão `CAMERA`. Fora do escopo por decisão (ADR-0006, alternativa A, 2026-11-07) — implementar exige ADR próprio, prova de conceito sobre foto e benchmark dos motores em aparelho.
-- **Tema claro**: `AppTheme.light` existe, mas o app força `ThemeMode.dark` e o Modo Foco ainda usa cores escuras fixas. Uma tela de preferência é pré-requisito.
+- **Tema claro no app**: não faz parte do app por decisão (ADR-0001). O app é dark-only esmeralda; o site mantém a paleta clara e tem teste próprio de contraste.
 
 ## 📦 Distribuição
 

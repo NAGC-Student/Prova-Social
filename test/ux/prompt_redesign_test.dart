@@ -36,7 +36,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         home: SearchPage(search: (_) async => [_exam()], onOpen: (_) {}),
       ),
     );
@@ -99,7 +99,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const PublishPage()),
+      MaterialApp(theme: AppTheme.dark, home: const PublishPage()),
     );
 
     final pdf = tester.getTopLeft(find.text('Importar PDF'));
@@ -117,7 +117,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const PublishPage()),
+      MaterialApp(theme: AppTheme.dark, home: const PublishPage()),
     );
 
     final pdf = tester.getTopLeft(find.text('Importar PDF'));

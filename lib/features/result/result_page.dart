@@ -150,8 +150,8 @@ class _PendingResultPageState extends State<PendingResultPage>
                     icon,
                     size: 56,
                     color: state == AttemptSyncState.requiresAttention
-                        ? AppColors.danger
-                        : AppColors.brand,
+                        ? EmeraldColors.error
+                        : EmeraldColors.primary,
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -209,7 +209,7 @@ class ResultPage extends StatelessWidget {
                 children: [
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.brandHover,
+                      color: EmeraldColors.surfaceHighlight,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Padding(
@@ -220,7 +220,7 @@ class ResultPage extends StatelessWidget {
                           const Text(
                             'PROVA CONCLUÍDA',
                             style: TextStyle(
-                              color: AppColors.mint,
+                              color: EmeraldColors.primaryLight,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.2,
@@ -232,7 +232,7 @@ class ResultPage extends StatelessWidget {
                                 ? '—'
                                 : '${result.scorePercent}%',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: EmeraldColors.textPrimary,
                               fontSize: 64,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -3,
@@ -243,7 +243,7 @@ class ResultPage extends StatelessWidget {
                                 ? 'Nenhuma questão tem gabarito para corrigir'
                                 : '${result.correct} de ${result.correctableCount} questões corrigíveis',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: EmeraldColors.textPrimary,
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                             ),
@@ -251,7 +251,7 @@ class ResultPage extends StatelessWidget {
                           const SizedBox(height: 6),
                           const Text(
                             'Confira seu desempenho e revise as questões quando quiser.',
-                            style: TextStyle(color: Color(0xFFD7F3E7)),
+                            style: TextStyle(color: EmeraldColors.textPrimary),
                           ),
                         ],
                       ),

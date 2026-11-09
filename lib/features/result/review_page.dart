@@ -135,7 +135,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                         ? Icons.check_circle_rounded
                                         : Icons.error_outline_rounded,
                                     color: isCorrect
-                                        ? AppColors.success
+                                        ? EmeraldColors.primary
                                         : Theme.of(context).colorScheme.error,
                                   ),
                                   const SizedBox(width: 8),

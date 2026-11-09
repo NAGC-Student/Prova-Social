@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../backend/supabase_config.dart';
+import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 
 class StartupGate extends StatefulWidget {
@@ -106,7 +107,7 @@ class _StartupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF101311),
+      backgroundColor: EmeraldColors.background,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -145,7 +146,7 @@ class _StartupScreen extends StatelessWidget {
                 const Text(
                   'Prova Social',
                   style: TextStyle(
-                    color: Color(0xFFF3F7F4),
+                    color: EmeraldColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -.6,
@@ -165,7 +166,7 @@ class _StartupScreen extends StatelessWidget {
                     key: ValueKey('$showMessage-${error != null}'),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Color(0xFF9EAAA3),
+                      color: EmeraldColors.textSecondary,
                       fontSize: 14,
                     ),
                   ),
@@ -178,7 +179,7 @@ class _StartupScreen extends StatelessWidget {
                         : 'Verifique sua conexão e tente novamente. Suas provas locais não foram alteradas.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Color(0xFFCDD6D0),
+                      color: EmeraldColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -188,8 +189,8 @@ class _StartupScreen extends StatelessWidget {
                   FilledButton(
                     onPressed: onRetry,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF19D88C),
-                      foregroundColor: const Color(0xFF052017),
+                      backgroundColor: EmeraldColors.primary,
+                      foregroundColor: EmeraldColors.background,
                     ),
                     child: const Text('Tentar novamente'),
                   ),
@@ -220,9 +221,7 @@ class _LoadingRingPainter extends CustomPainter {
       width: size.width - 8,
       height: size.height - 8,
     );
-    final ringColor = showError
-        ? const Color(0xFFFF6B69)
-        : const Color(0xFF19D88C);
+    final ringColor = showError ? EmeraldColors.error : EmeraldColors.primary;
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4

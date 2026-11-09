@@ -126,7 +126,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               margin: const EdgeInsets.symmetric(horizontal: 3),
                               decoration: BoxDecoration(
                                 color: index == page
-                                    ? AppColors.brand
+                                    ? EmeraldColors.primary
                                     : Theme.of(context).colorScheme.outline,
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -319,12 +319,16 @@ class _FeaturePreview extends StatelessWidget {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.brandSoft,
+                  color: EmeraldColors.surfaceHighlight,
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Icon(icon, color: AppColors.brandHover, size: 24),
+                  child: Icon(
+                    icon,
+                    color: EmeraldColors.primaryLight,
+                    size: 24,
+                  ),
                 ),
               ),
               if (compactHeight >= 112) ...[

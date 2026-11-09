@@ -1145,7 +1145,7 @@ class _FocusActions extends StatelessWidget {
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                   ),
-                  color: marked ? AppColors.warning : null,
+                  color: marked ? EmeraldColors.warning : null,
                 );
                 final previous = OutlinedButton(
                   onPressed: onPrevious,
@@ -1322,7 +1322,7 @@ class _NumberButton extends StatelessWidget {
               : Theme.of(context).colorScheme.surface,
           border: Border.all(
             color: marked
-                ? AppColors.warning
+                ? EmeraldColors.warning
                 : current
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.outline,
@@ -1358,10 +1358,7 @@ class _NumberButton extends StatelessWidget {
 }
 
 Color _quizSelectedSurface(BuildContext context) {
-  final colorScheme = Theme.of(context).colorScheme;
-  return Theme.of(context).brightness == Brightness.dark
-      ? colorScheme.primary.withValues(alpha: .16)
-      : AppColors.brandSoft;
+  return Theme.of(context).colorScheme.primary.withValues(alpha: .16);
 }
 
 class _Legend extends StatelessWidget {
