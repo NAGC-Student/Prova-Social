@@ -266,7 +266,7 @@ jobs:
         run: |
           flutter pub get --enforce-lockfile
           dart run tool/generate_web_icons.dart
-          dart format --output=none --set-exit-if-changed lib test tool packages
+          dart format --output=none --set-exit-if-changed lib test tool packages integration_test
           flutter analyze
           flutter test
 
