@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
 import 'package:prova_social/core/backend/attempt_submission.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
+import 'package:prova_social/core/backend/local_payload_store.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Caracterização do estado de 05a8fc1: o rascunho guarda índices posicionais e o
 // clientAttemptId da tentativa anterior (attempt_draft_store.dart:7-28,
@@ -125,6 +129,50 @@ void main() {
     final retomado = await store.load(prova.id);
     expect(retomado!.clientAttemptId, '44444444-4444-4444-8444-444444444444');
   });
+
+  test(
+    'rascunho sobrevive a um reinício com armazenamento em arquivo',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final directory = await Directory.systemTemp.createTemp('draft_restart');
+      addTearDown(() async {
+        if (await directory.exists()) await directory.delete(recursive: true);
+      });
+
+      final before = AttemptDraftStore(
+        storage: PayloadDraftStorage(
+          store: createLocalPayloadStore(directoryPath: directory.path),
+        ),
+      );
+      await before.save(
+        'exam',
+        const AttemptDraft(
+          answers: {0: 1, 1: 0},
+          review: {1},
+          current: 1,
+          elapsedSeconds: 42,
+          clientAttemptId: '77777777-7777-4777-8777-777777777777',
+          examContentHash: 'hash-atual',
+        ),
+      );
+      before.dispose();
+
+      // Simula outro processo: uma nova instância lê o mesmo diretório.
+      final after = AttemptDraftStore(
+        storage: PayloadDraftStorage(
+          store: createLocalPayloadStore(directoryPath: directory.path),
+        ),
+      );
+      final retomado = await after.load('exam');
+      expect(retomado!.answers, {0: 1, 1: 0});
+      expect(retomado.review, {1});
+      expect(retomado.current, 1);
+      expect(retomado.elapsedSeconds, 42);
+      expect(retomado.clientAttemptId, '77777777-7777-4777-8777-777777777777');
+      expect(retomado.examContentHash, 'hash-atual');
+      after.dispose();
+    },
+  );
 
   test(
     'o mesmo clientAttemptId com outro payload é recusado pela fila',

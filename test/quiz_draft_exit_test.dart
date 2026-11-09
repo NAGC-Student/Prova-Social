@@ -29,6 +29,19 @@ class SlowDraftStorage implements DraftStorage {
   }
 }
 
+class _FailingDraftStorage implements DraftStorage {
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<void> write(String key, String value) async {
+    throw StateError('disco cheio');
+  }
+
+  @override
+  Future<void> remove(String key) async {}
+}
+
 class _MemoryQueueStorage implements AttemptQueueStorage {
   String? value;
 
@@ -104,6 +117,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(QuizPage), findsNothing);
     expect((await store.load('exam'))!.answers[0], 1);
+    store.dispose();
+  });
+
+  testWidgets('falha ao salvar mantém a resposta e impede sair', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AttemptDraftStore(storage: _FailingDraftStorage());
+    final syncService = AttemptSyncService(
+      store: AttemptQueueStore(storage: _MemoryQueueStorage()),
+    );
+    const exam = Exam(
+      id: 'exam-falha',
+      category: 'Geral',
+      title: 'Prova',
+      description: '',
+      author: 'Fonte',
+      durationMinutes: 30,
+      attempts: 0,
+      questions: [
+        Question(
+          id: 'q1',
+          topic: 'Geral',
+          statement: 'Pergunta?',
+          options: ['Um', 'Dois'],
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: QuizPage(exam: exam, draftStore: store, syncService: syncService),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    await tester.tap(find.text('Dois'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Falha ao salvar'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Sair da prova'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sair'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuizPage), findsOneWidget);
+    expect(
+      find.text(
+        'Não foi possível salvar no aparelho. Tente novamente antes de sair.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
     store.dispose();
   });
 }

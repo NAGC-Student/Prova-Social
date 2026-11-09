@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,10 +7,12 @@ import 'package:prova_social/core/theme/app_theme.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
 import 'package:prova_social/core/backend/attempt_submission.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
+import 'package:prova_social/core/backend/local_payload_store.dart';
 import 'package:prova_social/core/content/content_version.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
 import 'package:prova_social/features/result/result_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MemoryDraftStorage implements DraftStorage {
   final values = <String, String>{};
@@ -120,6 +124,44 @@ const exam = Exam(
 );
 
 void main() {
+  test(
+    'fila offline sobrevive a um reinício com armazenamento em arquivo',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final directory = await Directory.systemTemp.createTemp('queue_restart');
+      addTearDown(() async {
+        if (await directory.exists()) await directory.delete(recursive: true);
+      });
+      AttemptSyncService openQueue() => AttemptSyncService(
+        store: AttemptQueueStore(
+          storage: PayloadQueueStorage(
+            store: createLocalPayloadStore(directoryPath: directory.path),
+          ),
+        ),
+        submitter: TransientSubmitter(),
+      );
+      const clientAttemptId = '88888888-8888-4888-8888-888888888888';
+
+      await openQueue().saveForSync(
+        AttemptSubmission(
+          clientAttemptId: clientAttemptId,
+          exam: exam,
+          answers: const {0: 1},
+          markedForReview: const {},
+          durationSeconds: 30,
+          finishedAt: DateTime.utc(2026, 11, 8),
+        ),
+      );
+
+      // Simula outro processo: a fila é reconstruída do mesmo diretório.
+      final pending = await openQueue().store.pending();
+      expect(pending, hasLength(1));
+      expect(pending.single.submission.clientAttemptId, clientAttemptId);
+      expect(pending.single.submission.answers, {0: 1});
+      expect(pending.single.state, AttemptSyncState.pendingSync);
+    },
+  );
+
   testWidgets('alternativa selecionada usa superfície e texto do tema escuro', (
     tester,
   ) async {
