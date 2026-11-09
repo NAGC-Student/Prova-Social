@@ -694,6 +694,15 @@ jobs:
             --dart-define=APP_ENV=production \
             --dart-define=WEB_AUTH_CALLBACK="https://prova-social.pages.dev/app/"
 
+      - name: Relatar tamanho dos APKs
+        run: |
+          python3 tool/apk_size_report.py \
+            --input build/app/outputs/flutter-apk \
+            --json build/apk-sizes.json \
+            --markdown build/apk-sizes.md
+          test -s build/apk-sizes.json
+          test -s build/apk-sizes.md
+
       - name: Compilar Flutter Web para release
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -721,6 +730,8 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/release/*.zip
+            build/apk-sizes.json
+            build/apk-sizes.md
 
       - name: Publicar GitHub Release
         env:
@@ -732,9 +743,20 @@ jobs:
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-x86_64-release.apk
             build/release/prova-social-web-${GITHUB_REF_NAME}.zip
+            build/apk-sizes.json
+            build/apk-sizes.md
           )
 
           gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "Prova Social $GITHUB_REF_NAME" \
             --generate-notes
+
+          # Preserva as notas geradas e acrescenta a tabela de tamanho/SHA-256.
+          gh release view "$GITHUB_REF_NAME" --repo "${GITHUB_REPOSITORY}" \
+            --json body --jq .body \
+            > "$RUNNER_TEMP/release-notes.md"
+          printf '\n\n' >> "$RUNNER_TEMP/release-notes.md"
+          cat build/apk-sizes.md >> "$RUNNER_TEMP/release-notes.md"
+          gh release edit "$GITHUB_REF_NAME" --repo "${GITHUB_REPOSITORY}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
