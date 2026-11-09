@@ -38,18 +38,80 @@ document.querySelector('[data-restart]').addEventListener('click', () => {
   renderStep(0);
 });
 
+const releasePage = 'https://github.com/NAGCODE-Dev/Prova-Social/releases';
+const abiAssets = {
+  'arm64-v8a': 'app-arm64-v8a-release.apk',
+  'armeabi-v7a': 'app-armeabi-v7a-release.apk',
+  'x86_64': 'app-x86_64-release.apk',
+};
+
+function abiFromUserAgent(userAgent) {
+  const value = String(userAgent || '').toLowerCase();
+  if (/arm64|aarch64/.test(value)) return 'arm64-v8a';
+  if (/x86_64|x64|amd64/.test(value)) return 'x86_64';
+  if (/armv7|armeabi/.test(value)) return 'armeabi-v7a';
+  return null;
+}
+
+function abiFromHighEntropy(architecture, bitness) {
+  const arch = String(architecture || '').toLowerCase();
+  const bits = String(bitness || '').toLowerCase();
+  if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
+    return bits === '32' ? 'armeabi-v7a' : 'arm64-v8a';
+  }
+  if (arch === 'x86_64' || arch === 'x64' || arch === 'amd64' || (arch === 'x86' && bits === '64')) return 'x86_64';
+  if (arch === 'armv7' || arch === 'armeabi' || arch === 'armeabi-v7a') return 'armeabi-v7a';
+  return null;
+}
+
+async function detectAndroidAbi() {
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  const userAgent = nav?.userAgent || '';
+  const platform = nav?.userAgentData?.platform || nav?.platform || '';
+  if (!/android/i.test(`${userAgent} ${platform}`)) return null;
+  try {
+    const values = await nav?.userAgentData?.getHighEntropyValues?.(['architecture', 'bitness']);
+    if (values) {
+      const abi = abiFromHighEntropy(values.architecture, values.bitness);
+      if (abi) return abi;
+    }
+  } catch (_) {
+    // A API de alto nível de entropia pode estar bloqueada; usa o user agent.
+  }
+  return abiFromUserAgent(userAgent) || abiFromUserAgent(platform);
+}
+
 async function loadRelease() {
-  const buttons = document.querySelectorAll('[data-apk]');
+  const buttons = [...document.querySelectorAll('[data-apk]')];
+  const fallback = document.querySelector('[data-apk-fallback]');
+  const fallbackLinks = [...document.querySelectorAll('[data-apk-abi]')];
+  let release = null;
   try {
     const response = await fetch('https://api.github.com/repos/NAGCODE-Dev/Prova-Social/releases/latest');
     if (!response.ok) throw new Error('Release indisponível');
-    const release = await response.json();
-    const asset = release.assets.find(item => /arm64-v8a.*\.apk$/i.test(item.name)) || release.assets.find(item => /prova-social.*\.apk$/i.test(item.name)) || release.assets.find(item => /\.apk$/i.test(item.name));
-    if (asset) buttons.forEach(button => { button.href = asset.browser_download_url; });
-    if (release.tag_name) document.querySelector('[data-version]').textContent = `Versão ${release.tag_name} · Android e Web`;
+    release = await response.json();
   } catch (_) {
-    buttons.forEach(button => { button.href = 'https://github.com/NAGCODE-Dev/Prova-Social/releases'; });
+    // A página de releases continua sendo um destino utilizável.
   }
+
+  const releaseUrl = release?.html_url || releasePage;
+  if (release?.tag_name) document.querySelector('[data-version]').textContent = `Versão ${release.tag_name} · Android e Web`;
+  const assetFor = abi => (release?.assets || []).find(item => item.name === abiAssets[abi]);
+  const abi = await detectAndroidAbi();
+  const asset = abi ? assetFor(abi) : null;
+
+  if (asset) {
+    buttons.forEach(button => { button.href = asset.browser_download_url; });
+    if (fallback) fallback.hidden = true;
+    return;
+  }
+
+  buttons.forEach(button => { button.href = releaseUrl; });
+  if (fallback) fallback.hidden = false;
+  fallbackLinks.forEach(link => {
+    const named = assetFor(link.dataset.apkAbi);
+    link.href = named?.browser_download_url || releaseUrl;
+  });
 }
 
 renderStep(0);
