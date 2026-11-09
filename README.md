@@ -147,7 +147,7 @@ cp .env.supabase.json.example .env.supabase.json
 Listado para que a promessa do produto e o estado real do app não se confundam:
 
 - **Explicação de questão**: `Question` não tem campo de explicação e a revisão mostra apenas o gabarito. Depende de conteúdo, não só de interface.
-- **Seguir provas, bancas e concursos**: só `topic_follows` (assuntos) é usado pelo app. As tabelas `profile_follows`, `collections` e `collection_exams` existem apenas no desenho de backend (`supabase/prova_social_backend_v1.sql`), sem migração aplicada.
+- **Seguir provas, bancas e concursos**: só `topic_follows` (assuntos) é usado pelo app. As tabelas `profile_follows`, `collections` e `collection_exams` têm migration local (`supabase/migrations/202611070001_social_graph.sql`), mas o app ainda não as usa e nenhuma migration desta rodada foi aplicada ao projeto Supabase remoto.
 - **Comunidades**: não há entidade, tela ou consulta de comunidade.
 - **Questões discursivas**: o modelo de questão aceita uma única alternativa correta.
 - **Importação por imagem ou câmera**: só PDF, JSON e criação manual existem. O OCR recebe página de PDF (`lib/core/import/ocr_service_native.dart`), não arquivo de imagem; não há `image_picker`, pacote `camera` nem permissão `CAMERA`. Fora do escopo por decisão (ADR-0006, alternativa A, 2026-11-07) — implementar exige ADR próprio, prova de conceito sobre foto e benchmark dos motores em aparelho.

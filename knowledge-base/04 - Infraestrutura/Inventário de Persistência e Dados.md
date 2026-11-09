@@ -17,35 +17,38 @@ ficou como inventário de 42 linhas e nunca foi preenchido; esta nota o substitu
 como insumo de engenharia. Não é auditoria de segurança e não afirma nada sobre o
 Supabase remoto.
 
-## 1. As três trilhas de SQL (a divergência estrutural)
+## 1. As trilhas de SQL e a consolidação de 2026-11-08
 
 | Trilha | Arquivos | Tabelas | Policies | Aplicada por |
 |---|---|---:|---:|---|
-| Migrations versionadas | `supabase/migrations/*.sql` (9) | 9 | 23 | `scripts/pglite_test.mjs:37-46` e `scripts/local_db_test.sh:72-75` |
-| SQL solto | `prova_social_backend_v1.sql` (158 linhas), `content_delivery_v1.sql` (140), `digitalization_v1.sql` (146) | 11 | 38 | **ninguém** — nem teste, nem CI, nem script |
-| Testes de banco | `supabase/tests/*.sql` (3) | — | — | aplicados sobre as migrations |
+| Migrations versionadas | `supabase/migrations/*.sql` (11) | 17 | 47 | `scripts/local_db_test.sh` |
+| SQL histórico congelado | `docs/historico/sql/*.sql` (3) | — | — | ninguém; só evidência |
+| Testes de banco | `supabase/tests/*.sql` (4) | — | — | aplicados sobre as migrations |
 
-`create table if not exists` + nenhuma ferramenta aplicando os arquivos soltos
-significa: o schema **não é reproduzível a partir do repositório**.
+Em 2026-11-08, o SQL social e o de pacotes foram promovidos a migrations
+(`202611070001_social_graph.sql` e `202611070002_content_delivery.sql`) e o
+script local passou a aplicá-los, com `supabase/tests/social_schema.sql`. Os
+arquivos originais ficaram congelados em `docs/historico/sql/`. O schema agora é
+reproduzível a partir do repositório; **nenhuma migration foi aplicada no
+projeto Supabase remoto**. O CI ainda não executa `scripts/local_db_test.sh`.
 
 ### Consequência medida no cliente
 
-Tabelas que o Dart lê/grava e que **só** existem no SQL solto:
+Tabelas que o Dart lê/grava e que agora são criadas por migration:
 
-| Tabela | Uso no cliente | Criada em migration? |
+| Tabela | Uso no cliente | Migration |
 |---|---|---|
-| `topics` | `question_discussion_repository.dart:132` | **não** |
-| `topic_follows` | `question_discussion_repository.dart:97,118,123` | **não** |
-| `question_comments` | `question_discussion_repository.dart:41,78` | **não** |
-| `content_files` | `content_delivery_repository.dart:53,98,108` | **não** |
+| `topics` | `question_discussion_repository.dart:132` | `202611070001_social_graph.sql` |
+| `topic_follows` | `question_discussion_repository.dart:97,118,123` | `202611070001_social_graph.sql` |
+| `question_comments` | `question_discussion_repository.dart:41,78` | `202611070001_social_graph.sql` |
+| `content_files` | `content_delivery_repository.dart:53,98,108` | `202611070002_content_delivery.sql` |
 
-Tabelas definidas **nas duas** trilhas (rascunho e migração), com colunas
-idênticas e formatações diferentes: `media_assets`, `exam_media`
-(`digitalization_v1.sql:1,16` × `20261101002428_exam_media_publication.sql:3,16`).
+`media_assets` e `exam_media` são criadas por
+`20261101002428_exam_media_publication.sql`; `docs/historico/sql/digitalization_v1.sql:2,17`
+é apenas a versão histórica das mesmas tabelas.
 
-Existentes só no SQL solto e nunca usadas pelo app: `exam_topics`, `collections`,
-`collection_exams`, `profile_follows`, `comment_votes`. O README já admite isto
-(`README.md:151`), mas nenhuma migration as traz.
+Migradas e nunca usadas pelo app: `exam_topics`, `collections`,
+`collection_exams`, `profile_follows`, `comment_votes`.
 
 ## 2. O schema atual vs o produto alvo (achado de 2026-11-05)
 

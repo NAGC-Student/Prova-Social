@@ -4,10 +4,10 @@ area: social e comunidades
 status: INTENÇÃO
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
-fonte_codigo: [AGENTS.md, lib/core/backend/question_discussion_repository.dart, lib/features/share/question_discussion.dart, lib/features/share/share_link_page.dart, supabase/prova_social_backend_v1.sql, supabase/content_delivery_v1.sql, supabase/migrations/202609210001_core.sql]
+fonte_codigo: [AGENTS.md, lib/core/backend/question_discussion_repository.dart, lib/features/share/question_discussion.dart, lib/features/share/share_link_page.dart, supabase/migrations/202611070001_social_graph.sql, supabase/migrations/202611070002_content_delivery.sql, supabase/migrations/202609210001_core.sql]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: media
-atualizado: 2026-11-07
+atualizado: 2026-11-08
 ---
 
 # ADR-0010 — Comunidades, moderação e ciclo de vida
@@ -19,6 +19,15 @@ atualizado: 2026-11-07
 - **Urgência:** Média
 
 ## Contexto
+
+> **Atualização 2026-11-08.** O SQL social e o de pacotes foram promovidos a
+> `supabase/migrations/202611070001_social_graph.sql` e
+> `supabase/migrations/202611070002_content_delivery.sql`, com teste local em
+> `supabase/tests/social_schema.sql`. Os parágrafos abaixo descrevem o estado
+> em `05a8fc1`; onde dizem “SQL solto”, leia-se “SQL hoje congelado em
+> `docs/historico/sql/`”. **Nenhuma migration foi aplicada no Supabase
+> remoto.** A moderação mínima é implementada em seguida, na migration
+> `202611070003_moderation.sql`.
 
 “Comunidade” no código é um rótulo de origem de prova, não uma entidade. O
 normativo pede um sistema social inteiro que não existe.
@@ -43,7 +52,7 @@ normativo pede um sistema social inteiro que não existe.
   e `lib/core/backend/exam_publication_service.dart:80,187`; no SQL, é o
   check `source_type in ('official','community','unverified')`
   (`supabase/migrations/202609210001_core.sql:24-25`,
-  `supabase/prova_social_backend_v1.sql:4-5`). **Não existe tabela
+  `docs/historico/sql/prova_social_backend_v1.sql:4-5`). **Não existe tabela
   `communities`** em migration nem em SQL solto.
 - **O social implementado é comentário + seguir tópico.**
   `lib/core/backend/question_discussion_repository.dart` (137 linhas) e
@@ -51,7 +60,7 @@ normativo pede um sistema social inteiro que não existe.
   `lib/features/share/share_link_page.dart:122`.
   `grep -niE "denunc|report|moder|admin|block"` nessa UI → **0** linhas.
 - **Moderação não é alcançável nem pelo schema.**
-  `supabase/prova_social_backend_v1.sql:61` define
+  `docs/historico/sql/prova_social_backend_v1.sql:61` define
   `status … check (status in ('visible','hidden','deleted'))`, mas a política
   de update é só do autor e só permite `('visible','deleted')` (`:132-134`);
   a de delete é só do autor (`:135`). Não há papel de moderador, política
@@ -61,17 +70,17 @@ normativo pede um sistema social inteiro que não existe.
 - **Ciclo de vida inexistente.** Não há código nem tabela para sair,
   arquivar, reabrir, fundir ou marcar inatividade. O `on delete cascade` de
   `question_comments.question_id` e `.author_id`
-  (`prova_social_backend_v1.sql:57-58`) faz o oposto do que o normativo pede
+  (`docs/historico/sql/prova_social_backend_v1.sql:57-58`) faz o oposto do que o normativo pede
   para conteúdo inativo: apagar a questão ou o perfil apaga a discussão.
-- **Quatro tabelas lidas pelo app não estão migradas.** O app lê
-  `topics`, `topic_follows`, `question_comments`
-  (`supabase/prova_social_backend_v1.sql:9,22,55`) e `content_files`
-  (`supabase/content_delivery_v1.sql:2`), que existem só como SQL solto.
-  As migrations criam 9 tabelas (`profiles`, `exams`, `questions`,
-  `private.question_keys`, `favorites`, `attempts`, `attempt_answers`,
-  `media_assets`, `exam_media`); `supabase/digitalization_v1.sql:1,16`
-  duplica as duas últimas. São 15 arquivos `.sql` rastreados, todos em
-  `supabase/`.
+- **Quatro tabelas lidas pelo app não estavam migradas (histórico).** Em
+  `05a8fc1`, o app lia `topics`, `topic_follows`, `question_comments`
+  (`prova_social_backend_v1.sql:9,22,55`) e `content_files`
+  (`content_delivery_v1.sql:2`) de SQL solto. As migrations criavam 9 tabelas
+  (`profiles`, `exams`, `questions`, `private.question_keys`, `favorites`,
+  `attempts`, `attempt_answers`, `media_assets`, `exam_media`);
+  `digitalization_v1.sql:2,17` duplicava as duas últimas. **Em 2026-11-08, as
+  quatro tabelas passaram a ser criadas por migrations locais**, e o script
+  local passou a aplicá-las e testá-las.
 - **RPCs existem e são usados.** `grep -rn "\.rpc" lib/ --include=*.dart`
   → **6** chamadas: `attempt_repository.dart:40` (`submit_exam_attempt`) e
   `exam_publication_service.dart:101,102,119,133,134` (`publish_exam*`).
@@ -160,8 +169,8 @@ já está exposto e sem proteção, e registrar o resto como fase posterior:
 - Código e SQL: [question_discussion_repository.dart](../../../lib/core/backend/question_discussion_repository.dart),
   [question_discussion.dart](../../../lib/features/share/question_discussion.dart),
   [share_link_page.dart](../../../lib/features/share/share_link_page.dart),
-  [prova_social_backend_v1.sql](../../../supabase/prova_social_backend_v1.sql),
-  [content_delivery_v1.sql](../../../supabase/content_delivery_v1.sql),
+  [docs/historico/sql/prova_social_backend_v1.sql](../../../docs/historico/sql/prova_social_backend_v1.sql),
+  [docs/historico/sql/content_delivery_v1.sql](../../../docs/historico/sql/content_delivery_v1.sql),
   [202609210001_core.sql](../../../supabase/migrations/202609210001_core.sql),
   [AGENTS.md](../../../AGENTS.md).
 - Testes: [question_discussion_repository_test.dart](../../../test/question_discussion_repository_test.dart),
@@ -172,12 +181,15 @@ já está exposto e sem proteção, e registrar o resto como fase posterior:
   inventário das tabelas realmente existentes no banco local comparado com
   as migrations; teste de que `hidden` é alcançável só por quem deve;
   para B, decisão de produto sobre agrupamento e consentimento antes de
-  qualquer schema.
+  qualquer schema. **Parcialmente cumprido em 2026-11-08:** o schema social
+  foi migrado e `social_schema.sql` cobre autor, outro usuário e anônimo; a
+  moderação e a denúncia entram na tarefa seguinte. A decisão de produto
+  sobre comunidades (alternativa B) continua pendente.
 - Comandos de reprodução:
   `find lib -ipath "*communit*" -o -ipath "*comunidade*"` (vazio);
   `grep -rniE "communit|comunidade" supabase/*.sql supabase/migrations/*.sql`
   (só `source_type`); `grep -rn "\.rpc" lib/ --include=*.dart | wc -l` → 6;
-  `sed -n '129,136p' supabase/prova_social_backend_v1.sql`.
+  `sed -n '129,136p' docs/historico/sql/prova_social_backend_v1.sql`.
 - Relacionados: [[ADR-0002 - Modelo de questão, gabarito e publicação|ADR-0002]],
   [[ADR-0003 - Versionamento de conteúdo e vínculo da tentativa|ADR-0003]]
   (cascade e histórico), [[ADR-0007 - Licença do app e fixtures de terceiros|ADR-0007]],

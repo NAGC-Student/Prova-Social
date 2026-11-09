@@ -1,4 +1,4 @@
--- Prova Social backend v1: social graph, library and trustworthy attempts.
+-- HISTÓRICO — congelado em 2026-11-07. Fonte viva: supabase/migrations/202611070001_social_graph.sql. Backend social v1 original.
 
 alter table public.exams
   add column if not exists source_type text not null default 'community'

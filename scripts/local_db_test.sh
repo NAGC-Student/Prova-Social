@@ -69,6 +69,42 @@ grant usage on schema auth to anon, authenticated;
 grant execute on function auth.uid() to anon, authenticated;
 SQL
 
+# Minimal local Supabase Storage compatibility. The migrations create bucket
+# policies and insert the bucket; no table grants are added here, so this stub
+# does not emulate Storage behavior.
+psql "$test_uri" -v ON_ERROR_STOP=1 <<'SQL'
+create schema if not exists storage;
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null unique,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[],
+  created_at timestamptz not null default now()
+);
+create table if not exists storage.objects (
+  id uuid primary key,
+  bucket_id text not null references storage.buckets(id),
+  name text not null,
+  owner uuid,
+  created_at timestamptz not null default now(),
+  unique (bucket_id, name)
+);
+create or replace function storage.foldername(name text)
+returns text[]
+language sql
+immutable
+as $$
+  select case
+    when array_length(string_to_array(name, '/'), 1) > 1 then
+      (string_to_array(name, '/'))[
+        1:array_length(string_to_array(name, '/'), 1) - 1
+      ]
+    else array[]::text[]
+  end
+$$;
+SQL
+
 for migration in "$repo_dir"/supabase/migrations/*.sql; do
   echo "Aplicando $(basename "$migration")"
   psql "$test_uri" -v ON_ERROR_STOP=1 -f "$migration"
@@ -77,6 +113,10 @@ for migration in "$repo_dir"/supabase/migrations/*.sql; do
       -f "$repo_dir/supabase/tests/legacy_attempt_schema.sql"
   fi
 done
+
+echo "Executando testes do schema social e de pacotes"
+psql "$test_uri" -v ON_ERROR_STOP=1 \
+  -f "$repo_dir/supabase/tests/social_schema.sql"
 
 echo "Executando testes SQL sequenciais, RLS e rollback"
 psql "$test_uri" -v ON_ERROR_STOP=1 \

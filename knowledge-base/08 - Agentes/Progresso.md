@@ -393,9 +393,9 @@ atualizado: 2026-11-07
   fork para `NAGCODE-Dev/main` fechar o baseline verde; **(2)** ADR-0002/0003/0004
   aceitos em 2026-11-07 — são a especificação do schema, e o schema é o primeiro deliverable
   porque `questions` não tem `format`, força 2–8 alternativas e não tem coluna de
-  versão; **(3)** promover o SQL solto (`prova_social_backend_v1.sql`,
-  `content_delivery_v1.sql`, `digitalization_v1.sql`) a migrations e colocar
-  `scripts/local_db_test.sh` no CI; **(4)** caracterizar o que falta — validação de
+  versão; **(3)** ~~promover o SQL solto a migrations~~ — feito em 2026-11-08 para
+  social e pacotes (`202611070001_social_graph.sql`, `202611070002_content_delivery.sql`);
+  falta colocar `scripts/local_db_test.sh` no CI; **(4)** caracterizar o que falta — validação de
   publicação na tela e uma rede que sobreviva à extração de controller de
   `QuizPage`; **(5)** Domain/Application + ports com injeção real e o fluxo
   importar→revisar→publicar atravessando primeiro; **(6)** um fluxo por vez

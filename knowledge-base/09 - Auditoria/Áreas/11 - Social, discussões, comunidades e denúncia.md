@@ -4,11 +4,17 @@ area: social, discussões, comunidades e denúncia
 status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 2, acoplamento: 4, clareza: 4, seguranca: 3, robustez: 2, aderencia: 1, portabilidade: 4}
-fonte_codigo: [lib/features/share/question_discussion.dart, lib/features/share/share_link_page.dart, lib/core/backend/question_discussion_repository.dart, supabase/prova_social_backend_v1.sql]
+fonte_codigo: [lib/features/share/question_discussion.dart, lib/features/share/share_link_page.dart, lib/core/backend/question_discussion_repository.dart, supabase/migrations/202611070001_social_graph.sql]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-08
 ---
+
+> **Atualização 2026-11-08.** O schema social foi promovido de SQL solto para
+> `supabase/migrations/202611070001_social_graph.sql`, aplicado e testado por
+> `scripts/local_db_test.sh` com `supabase/tests/social_schema.sql`. O arquivo
+> original está congelado em `docs/historico/sql/`. A moderação mínima entra na
+> migration seguinte; **nada foi aplicado no Supabase remoto**.
 
 # Social, discussões, comunidades e denúncia
 
@@ -20,10 +26,11 @@ funciona para o que existe — leitura pública, login contextual, texto preserv
 em falha e RLS coerente —, mas o produto descrito no `AGENTS.md` está em grande
 parte ausente: não há comunidades, sugestão por demanda, ciclos de vida,
 moderação, denúncia, votos, respostas, follow de banca/concurso/disciplina,
-notificações ou feed social. O schema social está em um SQL solto
-(`supabase/prova_social_backend_v1.sql`), fora das migrations versionadas, e a
-publicação força todo assunto para `Geral`, o que esvazia o único follow
-existente. Classificação: **EVOLUIR** — a base é pequena e correta, mas precisa
+notificações ou feed social. Em `05a8fc1`, o schema social estava em um SQL
+solto (`prova_social_backend_v1.sql`), fora das migrations versionadas, e a
+publicação forçava todo assunto para `Geral` — o tópico foi corrigido em
+`13bff7b`. O schema foi promovido a migration em 2026-11-08; a aplicação no
+remoto continua pendente. Classificação: **EVOLUIR** — a base é pequena e correta, mas precisa
 ser transformada em rede social de verdade.
 
 ## Escopo e método
@@ -31,11 +38,11 @@ ser transformada em rede social de verdade.
 - Leitura integral de `lib/features/share/question_discussion.dart` (278 linhas),
   `lib/core/backend/question_discussion_repository.dart` (137) e
   `lib/features/share/share_link_page.dart` (187).
-- Leitura do bloco social de `supabase/prova_social_backend_v1.sql:1-170`
+- Leitura do bloco social de `docs/historico/sql/prova_social_backend_v1.sql:1-170`
   (tópicos, follows, coleções, comentários, votos e RLS).
-- Confirmação de que nenhuma migration em `supabase/migrations/` cria
-  `question_comments`, `topic_follows`, `collections`, `profile_follows` ou
-  `comment_votes`.
+- Confirmação, em `05a8fc1`, de que nenhuma migration em `supabase/migrations/`
+  criava `question_comments`, `topic_follows`, `collections`, `profile_follows`
+  ou `comment_votes`; hoje essas tabelas estão em `202611070001_social_graph.sql`.
 - Leitura de `test/question_discussion_repository_test.dart`.
 - Não foi executado fluxo real com duas contas, nem teste de RLS, moderação ou
   denúncia. A análise é estática.
@@ -48,7 +55,7 @@ ser transformada em rede social de verdade.
 | Limitar a 100 comentários | Funcional | `question_discussion_repository.dart:48` |
 | Publicar comentário com login | Funcional | `question_discussion_repository.dart:68-86` |
 | Preservar texto em falha de publicação | Funcional | `question_discussion.dart:101-109` |
-| Leitura por visitante | Funcional | `question_discussion_repository.dart:39-49`; RLS `prova_social_backend_v1.sql:118-122` |
+| Leitura por visitante | Funcional | `question_discussion_repository.dart:39-49`; RLS `docs/historico/sql/prova_social_backend_v1.sql:118-122` |
 | Mostrar nome do autor | Funcional | `question_discussion_repository.dart:52-60` |
 | Seguir/deixar de seguir assunto | Funcional | `question_discussion_repository.dart:88-129` |
 | Não criar tópico inexistente | Funcional | `question_discussion_repository.dart:111-114` |
@@ -72,7 +79,7 @@ ser transformada em rede social de verdade.
 
 1. **Leitura pública sem login.** Qualquer visitante lê comentários de questão
    pública; a RLS exige que a prova esteja `published` e `is_public`
-   (`prova_social_backend_v1.sql:118-122`). Isso está alinhado com “login
+   (`docs/historico/sql/prova_social_backend_v1.sql:118-122`). Isso está alinhado com “login
    opcional para explorar”.
 2. **Login contextual correto.** Ao comentar sem sessão, o componente chama
    `onSignIn`, espera o retorno e só continua se houver usuário
@@ -84,13 +91,13 @@ ser transformada em rede social de verdade.
    ruim.
 4. **Validação em comprimento e vazio.** O repositório rejeita corpo vazio ou
    acima de 2000 caracteres (`question_discussion_repository.dart:73-76`), e a
-   constraint do banco repete o limite (`prova_social_backend_v1.sql:61`).
+   constraint do banco repete o limite (`docs/historico/sql/prova_social_backend_v1.sql:61`).
 5. **Identidade vem da sessão.** O `author_id` é preenchido com o usuário atual,
    não com valor arbitrário do cliente (`question_discussion_repository.dart:69-84`),
-   e a RLS exige `author_id = auth.uid()` (`prova_social_backend_v1.sql:123-125`).
+   e a RLS exige `author_id = auth.uid()` (`docs/historico/sql/prova_social_backend_v1.sql:123-125`).
 6. **Seguir assunto é idempotente por chave.** `topic_follows` tem PK
    `(user_id, topic_id)` e políticas de dono
-   (`prova_social_backend_v1.sql:22-28, 96-98`). Inserir duas vezes falha, mas
+   (`docs/historico/sql/prova_social_backend_v1.sql:22-28, 96-98`). Inserir duas vezes falha, mas
    não duplica.
 7. **Tópico não é criado pelo cliente.** `setTopicFollow` falha se o tópico não
    existir (`question_discussion_repository.dart:111-114`), evitando lixo de
@@ -110,7 +117,7 @@ ser transformada em rede social de verdade.
 ### Comentário plano, sem conversa
 
 O modelo tem `parent_id` e a tabela tem índice para ele
-(`prova_social_backend_v1.sql:55-64, 78`), mas o app:
+(`docs/historico/sql/prova_social_backend_v1.sql:55-64, 78`), mas o app:
 
 - não envia `parent_id`;
 - não renderiza árvore;
@@ -128,7 +135,7 @@ quando o limite é atingido.
 ### Votos e sinal de qualidade existem no banco, não no produto
 
 `comment_votes` tem tabela, RLS e índice
-(`prova_social_backend_v1.sql:66-72, 79, 132-134`), mas nenhum código Dart a usa.
+(`docs/historico/sql/prova_social_backend_v1.sql:66-72, 79, 132-134`), mas nenhum código Dart a usa.
 Não há “útil”, ordenação por votos, nem indicação de resposta aceita. O
 comentário mais útil e o mais popular têm o mesmo peso.
 
@@ -142,7 +149,7 @@ seguidos, não há tela “assuntos que você segue”, nem notificação. Além
   então “matemática” e “Matemática” são coisas diferentes;
 - a publicação força todas as questões para `Geral`
   (`exam_publication_service.dart:64`), mas `Geral` não está na seed de tópicos
-  (`prova_social_backend_v1.sql:157-165`), então seguir o assunto da questão
+  (`docs/historico/sql/prova_social_backend_v1.sql:157-165`), então seguir o assunto da questão
   publicada pelo app geralmente não encontra tópico;
 - não há follow de banca, concurso, instituição ou disciplina, que é o que o
   `AGENTS.md` §6 pede em Explorar.
@@ -163,15 +170,15 @@ Ou seja, o usuário logado que faz uma prova dentro do app não vê a discussão
 daquela questão em lugar nenhum, a menos que abra o link público. A rede social
 está desconectada do ciclo principal “fazer → errar → entender → discutir”.
 
-### Schema social fora das migrations
+### Schema social fora das migrations (histórico)
 
-`question_comments`, `topic_follows`, `topics`, `collections`, `profile_follows`
-e `comment_votes` estão em `supabase/prova_social_backend_v1.sql`, um arquivo
-solto. Nenhuma migration em `supabase/migrations/` cria essas tabelas. O README
-já reconhece parte disso para coleções e follows de perfil, mas o app **depende**
-de `question_comments` e `topic_follows` em produção. Se o banco foi montado só
-com migrations, a discussão quebra; se foi montado à mão, não há histórico
-versionado do schema social.
+Em `05a8fc1`, `question_comments`, `topic_follows`, `topics`, `collections`,
+`profile_follows` e `comment_votes` estavam em `prova_social_backend_v1.sql`, um
+arquivo solto; nenhuma migration criava essas tabelas. Se o banco fosse montado
+só com migrations, a discussão quebrava. **Resolvido em 2026-11-08** pela
+migration `202611070001_social_graph.sql`, que cria as tabelas, políticas e
+grants e é aplicada pelo script local; o banco remoto ainda não recebeu a
+migration.
 
 ### Sem moderação, denúncia ou bloqueio
 
@@ -238,7 +245,7 @@ para voltar à discussão depois de comentar.
 | “Denúncia e moderação” | Nenhuma tabela/UI | ausência total |
 | “Respostas e estatísticas agregadas” | Sem resposta, voto ou estatística | `question_comments` sem uso de `parent_id` |
 | “Feed de assuntos seguidos” | Follow não alimenta a home | `home_page.dart` não consulta `topic_follows` |
-| “Schema versionado” | Social está em SQL solto | `supabase/prova_social_backend_v1.sql` |
+| “Schema versionado” | Migrado em 2026-11-08; remoto não atualizado | `202611070001_social_graph.sql` |
 | “Assunto da questão preservado” | Publicação força `Geral` | `exam_publication_service.dart:64` |
 
 ## Evidência de testes

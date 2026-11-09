@@ -4,11 +4,18 @@ area: publicação, pacotes, mídia e Storage
 status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 2, acoplamento: 3, clareza: 4, seguranca: 4, robustez: 3, aderencia: 2, portabilidade: 4}
-fonte_codigo: [lib/features/publish/publish_page.dart, lib/core/backend/exam_publication_service.dart, lib/core/backend/digital_exam_service.dart, lib/core/backend/exam_media_repository.dart, lib/core/backend/content_delivery_repository.dart, lib/core/backend/content_package_service.dart, supabase/migrations/20261101002428_exam_media_publication.sql, supabase/content_delivery_v1.sql]
+fonte_codigo: [lib/features/publish/publish_page.dart, lib/core/backend/exam_publication_service.dart, lib/core/backend/digital_exam_service.dart, lib/core/backend/exam_media_repository.dart, lib/core/backend/content_delivery_repository.dart, lib/core/backend/content_package_service.dart, supabase/migrations/20261101002428_exam_media_publication.sql, supabase/migrations/202611070002_content_delivery.sql]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-08
 ---
+
+> **Atualização 2026-11-08.** `content_files`, o bucket `exam-content` e suas
+> políticas foram promovidos de SQL solto para
+> `supabase/migrations/202611070002_content_delivery.sql`, aplicado e testado
+> por `scripts/local_db_test.sh`. O arquivo original está congelado em
+> `docs/historico/sql/`. **Nenhuma migration foi aplicada no Supabase remoto.**
+> O texto de auditoria abaixo descreve o estado em `05a8fc1`.
 
 # Publicação, pacotes, mídia e Storage
 
@@ -37,7 +44,7 @@ Classificação: **EVOLUIR**.
   processamento (`428-915`), revisão e edição (`997-2301`), validação
   (`1317-1344`), exportação (`1273-1308`) e `_publish` (`1451-1572`).
 - Leitura da migration `20261101002428_exam_media_publication.sql` (209 linhas) e
-  de `supabase/content_delivery_v1.sql` (140).
+  de `docs/historico/sql/content_delivery_v1.sql` (140).
 - Leitura dos testes `test/content_package_test.dart`,
   `test/digital_exam_service_test.dart`, `test/exam_media_cache_test.dart` e
   `test/question_media_gallery_test.dart`.
@@ -73,7 +80,7 @@ Classificação: **EVOLUIR**.
 | Preservação do assunto da questão | Quebrado | `'topic': 'Geral'` fixo, `exam_publication_service.dart:64` |
 | Falha de pacote visível ao usuário | Ausente | erro só em `debugPrint`, `exam_publication_service.dart:195-197` |
 | Coleta de mídia órfã | Parcial | só assets criados na tentativa, `exam_media_repository.dart:173-188` |
-| Tabelas de pacote em migration | Quebrado | `content_files` só em `content_delivery_v1.sql` |
+| Tabelas de pacote em migration | Funcional (local) | `content_files`, bucket e políticas em `202611070002_content_delivery.sql` |
 
 ## O que funciona
 
@@ -92,7 +99,7 @@ Classificação: **EVOLUIR**.
    cada objeto a 25 MB e aceita apenas gzip, binário e imagens webp/svg/png/jpeg
    (`202611...sql:202-207`). As políticas de insert exigem que o caminho comece
    pelo UID e contenha `media` ou `exams/<examId>` de prova do próprio autor
-   (`content_delivery_v1.sql:100-116`). Leitura pública só para prova publicada.
+   (`docs/historico/sql/content_delivery_v1.sql:100-116`). Leitura pública só para prova publicada.
 4. **Deduplicação por conteúdo.** O asset é endereçado por
    `${user.id}/media/${sha256}.${ext}` e a tabela tem `unique (owner_id, sha256)`
    (`exam_media_repository.dart:106`; `202611...sql:13`). Duas questões que usam
@@ -193,22 +200,23 @@ depois `manifest.json.gz`; se o manifesto falhar, o arquivo de questões fica
 órfão em `content_files` e no bucket, sem limpeza
 (`digital_exam_service.dart:65-93`).
 
-### Tabelas de pacote fora das migrations
+### Tabelas de pacote fora das migrations (histórico)
 
-`content_files`, o bucket e as políticas de `exam-content` estão em
-`supabase/content_delivery_v1.sql`, um arquivo solto na raiz de `supabase/`. As
-migrations versionadas em `supabase/migrations/` só criam `media_assets` e
-`exam_media`. Se um ambiente novo for provisionado apenas com
-`supabase db push`, faltam:
+Em `05a8fc1`, `content_files`, o bucket e as políticas de `exam-content` estavam
+em `content_delivery_v1.sql`, um arquivo solto na raiz de `supabase/`, enquanto
+as migrations versionadas só criavam `media_assets` e `exam_media`. Um ambiente
+novo provisionado por migrations não tinha:
 
 - a tabela `content_files`;
 - as políticas de leitura/escrita de pacote;
 - o bucket e a política de `exams/...` no Storage.
 
-O código trata `PGRST202` para RPC ausente, mas não trata tabela ausente no
-upload do pacote — ele apenas falha em silêncio. O mesmo vale para
-`supabase/digitalization_v1.sql`, que também referencia `content_files`. Isso é
-uma divergência entre “schema versionado” e o que está no repositório.
+**Resolvido em 2026-11-08** pela migration
+`202611070002_content_delivery.sql`, que cria a tabela, insere o bucket e
+recria as políticas de forma idempotente. Continua válido o limite do código:
+ele trata `PGRST202` para RPC ausente, mas não trata tabela ausente no upload do
+pacote. `docs/historico/sql/digitalization_v1.sql` permanece como evidência
+histórica e não é aplicado.
 
 ### Sem coleta de órfãos e sem métrica de mídia
 
@@ -239,7 +247,7 @@ consulta.
 
 A política de update permite ao dono alterar qualquer coluna, incluindo
 `object_key`, `sha256`, `compressed_bytes` e `status`, desde que continue sendo o
-dono (`content_delivery_v1.sql:62-65`). Não há validação de que o novo objeto
+dono (`docs/historico/sql/content_delivery_v1.sql:62-65`). Não há validação de que o novo objeto
 existe, tem o tamanho declarado ou pertence ao mesmo exame. O download confia nos
 metadados para autorizar e limitar; um cliente malicioso com a própria conta pode
 criar metadados incoerentes. O impacto é limitado à própria prova, mas enfraquece
@@ -287,7 +295,7 @@ O usuário fica com uma prova pública incompleta e sem caminho de correção.
 | “Assunto por questão” | Publicação força `Geral` | `exam_publication_service.dart:64` |
 | “Distribuir JSON e imagens otimizadas” | Pacote existe, mas falha é silenciosa e não há versão | `exam_publication_service.dart:195-197` |
 | “Pacotes com hash e integridade” | Sim, no download | `exam_media_repository.dart:214-220`; `content_delivery_repository.dart:127-131` |
-| “Bucket configurado por migration” | `content_files` e parte do bucket estão em SQL solto | `supabase/content_delivery_v1.sql` |
+| “Bucket configurado por migration” | `content_files`, bucket e políticas migrados em 2026-11-08; remoto não atualizado | `202611070002_content_delivery.sql` |
 
 ## Evidência de testes
 
@@ -362,9 +370,9 @@ O usuário fica com uma prova pública incompleta e sem caminho de correção.
 
 ### Lote 4 — Schema versionado e consistência
 
-- Mover `content_delivery_v1.sql` (e o que ainda for necessário de
-  `digitalization_v1.sql`) para migrations idempotentes em
-  `supabase/migrations/`.
+- ~~Mover `content_delivery_v1.sql` para migration idempotente.~~ **Feito em
+  2026-11-08** em `202611070002_content_delivery.sql`; `digitalization_v1.sql`
+  já está coberto pela migration de mídia e ficou congelado como evidência.
 - Restringir o update de `content_files` ou validar no servidor que objeto,
   tamanho e hash conferem.
 - Criar rotina de coleta de assets/pacotes órfãos e métrica de uso.

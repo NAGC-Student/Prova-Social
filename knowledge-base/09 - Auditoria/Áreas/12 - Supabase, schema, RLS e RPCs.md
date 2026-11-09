@@ -4,11 +4,22 @@ area: Supabase, schema, RLS e RPCs
 status: PARCIAL
 classificacao: REFATORAR
 nivel: {correcao: 4, testes: 3, acoplamento: 3, clareza: 3, seguranca: 4, robustez: 3, aderencia: 2, portabilidade: 4}
-fonte_codigo: [supabase/migrations, supabase/prova_social_backend_v1.sql, supabase/content_delivery_v1.sql, supabase/digitalization_v1.sql, supabase/tests, scripts/local_db_test.sh]
+fonte_codigo: [supabase/migrations, supabase/tests, scripts/local_db_test.sh, docs/historico/sql]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-08
 ---
+
+> **Atualização 2026-11-08.** O SQL social e o de pacotes foram promovidos a
+> `supabase/migrations/202611070001_social_graph.sql` e
+> `supabase/migrations/202611070002_content_delivery.sql`, aplicados e testados
+> por `scripts/local_db_test.sh` com `supabase/tests/social_schema.sql`.
+> `digitalization_v1.sql` não gerou migration nova porque `media_assets` e
+> `exam_media` já existem em `20261101002428_exam_media_publication.sql`; o
+> arquivo original está congelado em `docs/historico/sql/` como evidência.
+> **Nenhuma migration foi aplicada no projeto Supabase remoto.** O texto de
+> auditoria abaixo descreve o estado em `05a8fc1` e foi corrigido apenas nos
+> caminhos e nos pontos marcados.
 
 # Supabase, schema, RLS e RPCs
 
@@ -18,10 +29,10 @@ O núcleo do backend é sólido: chaves de gabarito separadas em schema privado,
 RLS em todas as tabelas expostas, RPCs `security definer` com `search_path`
 restrito, publicação validada no servidor, entrega idempotente com índice único e
 testes SQL que exercitam RLS, privilégios e rollback. O problema é de
-**organização e cobertura do domínio**: o repositório tem três SQLs soltos
-(`prova_social_backend_v1.sql`, `content_delivery_v1.sql`,
-`digitalization_v1.sql`) que não são migrations e não são aplicados pelo script
-local; faltam entidades centrais (`exam_versions`, `sources`, comunidades,
+**organização e cobertura do domínio**: em `05a8fc1`, o repositório tinha três
+SQLs soltos (`prova_social_backend_v1.sql`, `content_delivery_v1.sql`,
+`digitalization_v1.sql`) fora das migrations. O social e os pacotes foram
+promovidos em 2026-11-08; faltam entidades centrais (`exam_versions`, `sources`, comunidades,
 denúncia); `exam_topics` nunca é alimentado; a procedência oficial é
 autodeclarada; e os testes SQL não rodam no GitHub Actions. Classificação:
 **REFATORAR** — o que existe é bom, mas o schema precisa ser consolidado e
@@ -35,8 +46,9 @@ versionado antes de crescer.
   `20260929110000_harden_exam_publication.sql` (159),
   `20261008181438_require_authenticated_attempts.sql` (203) e
   `20261101002428_exam_media_publication.sql` (209).
-- Leitura dos SQLs soltos `prova_social_backend_v1.sql` (158),
-  `content_delivery_v1.sql` (140) e `digitalization_v1.sql` (146).
+- Leitura dos SQLs históricos congelados em `docs/historico/sql/`:
+  `prova_social_backend_v1.sql` (158), `content_delivery_v1.sql` (140) e
+  `digitalization_v1.sql` (147, incluindo o banner de congelamento).
 - Leitura dos testes `supabase/tests/attempt_idempotency.sql` (452),
   `deployed_attempt_smoke.sql` (139) e `legacy_attempt_schema.sql` (18), e do
   script `scripts/local_db_test.sh`.
@@ -61,9 +73,9 @@ versionado antes de crescer.
 | Contagem de tentativas só em insert real | Funcional | `20261008181438...sql:116-117` |
 | Testes SQL de RLS e privilégios | Funcional | `supabase/tests/attempt_idempotency.sql:232-450` |
 | Smoke test transacional | Funcional | `supabase/tests/deployed_attempt_smoke.sql:1-139` |
-| Social em migration | Ausente | só `prova_social_backend_v1.sql` |
-| Pacotes em migration | Ausente | só `content_delivery_v1.sql` |
-| Digitalização em migration | Ausente | só `digitalization_v1.sql` |
+| Social em migration | Funcional (local) | `202611070001_social_graph.sql`; testado por `supabase/tests/social_schema.sql` |
+| Pacotes em migration | Funcional (local) | `202611070002_content_delivery.sql`; bucket e políticas incluídos |
+| Digitalização em migration | Funcional | `20261101002428_exam_media_publication.sql`; original congelado em `docs/historico/sql/` |
 | `exam_versions` | Ausente | nenhuma tabela de versão |
 | `sources` | Ausente | procedência em colunas de `exams` |
 | Comunidades e denúncia | Ausente | nenhuma tabela |
@@ -122,34 +134,38 @@ versionado antes de crescer.
 
 ## O que está parcial
 
-### Três subsistemas fora das migrations
+### Três subsistemas fora das migrations (histórico)
 
-O script local aplica **apenas** `supabase/migrations/*.sql`
-(`scripts/local_db_test.sh:72-78`). Ficam de fora:
+Em `05a8fc1`, o script local aplicava **apenas** `supabase/migrations/*.sql`
+(`scripts/local_db_test.sh:72-78`). Ficavam de fora:
 
 - `prova_social_backend_v1.sql` — tópicos, follows, coleções, comentários, votos;
 - `content_delivery_v1.sql` — `content_files`, bucket e políticas de pacote;
 - `digitalization_v1.sql` — tabelas auxiliares de digitalização.
 
-Consequências:
+Consequências naquele estado:
 
-- um ambiente criado por migrations não tem `question_comments`,
+- um ambiente criado por migrations não tinha `question_comments`,
   `topic_follows` nem `content_files`;
-- o app social e o pacote offline quebram nesse ambiente;
-- não há histórico de quando/por que essas tabelas foram aplicadas em produção;
-- `supabase db reset` não reproduz o estado real;
-- o teste local não cobre as partes que mais dependem de RLS.
+- o app social e o pacote offline quebravam nesse ambiente;
+- não havia histórico de quando/por que essas tabelas foram aplicadas em
+  produção;
+- `supabase db reset` não reproduzia o estado real;
+- o teste local não cobria as partes que mais dependem de RLS.
 
-O README já reconhece que coleções e follows de perfil estão “sem migração
-aplicada”, mas o problema é maior: comentários, tópicos e pacotes também estão
-nesse limbo.
+**Resolvido em 2026-11-08 para o social e os pacotes.** O script local agora
+aplica `202611070001_social_graph.sql` e `202611070002_content_delivery.sql` e
+executa `supabase/tests/social_schema.sql`. A aplicação no remoto continua
+pendente de autorização; `digitalization_v1.sql` permanece apenas como
+evidência histórica porque seu conteúdo já está coberto pelas migrations de
+mídia.
 
 ### `exam_topics` nunca é alimentado
 
 A tabela existe, tem índice e política
-(`prova_social_backend_v1.sql:12-20, 82, 94`), mas nenhum código Dart ou RPC
+(`docs/historico/sql/prova_social_backend_v1.sql:12-20, 82, 94`), mas nenhum código Dart ou RPC
 insere nela. A publicação grava `questions.topic`, não `exam_topics`; a seed de
-tópicos tem apenas seis linhas (`prova_social_backend_v1.sql:157-165`). Portanto:
+tópicos tem apenas seis linhas (`docs/historico/sql/prova_social_backend_v1.sql:157-165`). Portanto:
 
 - seguir assunto não tem catálogo real;
 - busca por tópico usa `questions.topic` diretamente;
@@ -187,8 +203,8 @@ O `AGENTS.md` §14 lista entidades mínimas esperadas. Comparando com o schema:
 | Entidade esperada | Estado |
 |---|---|
 | profiles | Existe |
-| topics | Existe em SQL solto |
-| follows | `topic_follows` e `profile_follows` em SQL solto |
+| topics | Migrado em `202611070001_social_graph.sql` |
+| follows | `topic_follows` e `profile_follows` migrados; `exam_topics` sem uso |
 | exams | Existe |
 | exam_versions | **Ausente** |
 | questions | Existe |
@@ -196,7 +212,7 @@ O `AGENTS.md` §14 lista entidades mínimas esperadas. Comparando com o schema:
 | answer_keys | Em `private.question_keys` |
 | sources | **Ausente** (colunas em `exams`) |
 | media | `media_assets` + `exam_media` |
-| collections | SQL solto, sem uso no app |
+| collections | Migrado; sem uso no app |
 | collection_items | `collection_exams`, sem uso |
 | attempts | Existe |
 | attempt_answers | Existe |
@@ -233,7 +249,7 @@ Algumas migrations usam `create table if not exists`, mas outras fazem
 `alter table ... add column` sem `if not exists` ou recriam funções com
 assinatura antiga. O histórico foi desenhado para rodar uma vez em ordem, não
 para ser reaplicado. Isso é normal em migrations, mas dificulta recuperar um
-ambiente com drift (que é justamente o caso dos SQLs soltos).
+ambiente com drift (que foi o caso dos SQLs soltos até 2026-11-08).
 
 ### `attempts_count` sem reconciliação
 
@@ -244,8 +260,6 @@ cascade (exclusão de usuário ou prova). O número pode ficar maior que o real.
 
 ## O que está ausente ou quebrado
 
-- `prova_social_backend_v1.sql`, `content_delivery_v1.sql` e
-  `digitalization_v1.sql` em migrations versionadas.
 - `exam_versions`, `sources`, comunidades, membros, candidatos e denúncia.
 - Alimentação de `exam_topics`.
 - Verificação de procedência oficial.
@@ -261,14 +275,14 @@ cascade (exclusão de usuário ou prova). O número pode ficar maior que o real.
 
 | Afirmação | Realidade no SHA | Evidência |
 |---|---|---|
-| “Toda tabela com dados de usuário tem RLS coerente” | Núcleo sim; SQLs soltos não são migrations nem testados | `scripts/local_db_test.sh:72-78` |
+| “Toda tabela com dados de usuário tem RLS coerente” | Núcleo, social e pacotes testados no banco local; CI ainda não roda os testes SQL | `scripts/local_db_test.sh` |
 | “Entidades mínimas incluem exam_versions, sources, communities, reports” | Nenhuma delas existe | schema |
 | “Procedência oficial confiável” | `source_type` vem do cliente | `20260929110000...sql:36-41` |
-| “Schema evolui por migrations” | Três SQLs soltos fora do histórico | `supabase/*.sql` |
+| “Schema evolui por migrations” | Social e pacotes promovidos em 2026-11-08; nenhuma migration aplicada no remoto | `supabase/migrations/20261107000*.sql` |
 | “Testes de RLS” | Existem, mas não rodam no CI | `.github/workflows` |
 | “Gabarito completo para publicar” | Só a RPC garante; update direto e provas antigas não | `202609210001_core.sql:150-153` |
-| “Tópicos e follows” | Tabelas em SQL solto; `exam_topics` sem uso | `prova_social_backend_v1.sql` |
-| “Pacotes com metadados” | `content_files` em SQL solto | `content_delivery_v1.sql` |
+| “Tópicos e follows” | Migrados; `exam_topics` continua sem uso | `202611070001_social_graph.sql` |
+| “Pacotes com metadados” | `content_files` migrado; update ainda não valida hash no servidor | `202611070002_content_delivery.sql` |
 
 ## Evidência de testes
 
@@ -304,9 +318,11 @@ cascade (exclusão de usuário ou prova). O número pode ficar maior que o real.
 
 ### Lote 1 — Consolidar migrations
 
-- Converter `prova_social_backend_v1.sql`, `content_delivery_v1.sql` e
-  `digitalization_v1.sql` em migrations idempotentes, na ordem correta.
+- ~~Converter os SQLs soltos em migrations idempotentes.~~ **Feito em 2026-11-08**
+  para o social e os pacotes; a digitalização já estava coberta pela migration
+  de mídia.
 - Fazer `scripts/local_db_test.sh` aplicar exatamente o que produção aplica.
+  **Feito para as migrations locais; falta aplicar no remoto.**
 - Adicionar verificação que toda tabela em `public` tem RLS e pelo menos uma
   política, exceto as explicitamente privadas.
 - Critério de aceite: `supabase db reset` reproduz o app completo; nenhuma
@@ -356,7 +372,7 @@ cascade (exclusão de usuário ou prova). O número pode ficar maior que o real.
 |---|---:|---|
 | Correção | 4 | Núcleo correto e validado; faltam invariantes e entidades. |
 | Testes | 3 | Testes SQL fortes, mas fora do CI e sem cobertura social/pacotes. |
-| Acoplamento | 3 | Funções coesas; schema dividido em migrations e SQL solto. |
+| Acoplamento | 3 | Funções coesas; schema agora em migrations, com histórico congelado. |
 | Clareza | 3 | Nomes e comentários bons; drift e ordem pouco claros. |
 | Segurança | 4 | Chave privada, RLS, definer e grants; procedência e update de pacote frágeis. |
 | Robustez | 3 | Idempotência e constraints; migrations não reprodutíveis. |
@@ -378,7 +394,7 @@ completado com as entidades que o produto exige.
 
 ## O que não foi verificado
 
-- Estado real do projeto Supabase (quais SQLs soltos foram aplicados).
+- Estado real do projeto Supabase (quais migrations foram aplicadas no remoto).
 - `supabase db reset` e `supabase test db` neste repositório.
 - Execução dos testes SQL no ambiente local.
 - Performance das consultas com volume real.

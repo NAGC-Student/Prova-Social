@@ -1,3 +1,4 @@
+-- HISTÓRICO — congelado em 2026-11-07. Fonte viva: supabase/migrations/20261101002428_exam_media_publication.sql.
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,

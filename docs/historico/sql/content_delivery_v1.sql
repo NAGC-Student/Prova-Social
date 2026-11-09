@@ -1,4 +1,4 @@
--- Metadados de pacotes compactados armazenados no Supabase Storage.
+-- HISTÓRICO — congelado em 2026-11-07. Fonte viva: supabase/migrations/202611070002_content_delivery.sql. Metadados de pacotes originais.
 create table if not exists public.content_files (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
