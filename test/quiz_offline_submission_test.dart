@@ -119,7 +119,7 @@ const exam = Exam(
 );
 
 void main() {
-  testWidgets('alternativa selecionada mantém contraste no tema escuro', (
+  testWidgets('alternativa selecionada usa superfície e texto do tema escuro', (
     tester,
   ) async {
     final drafts = AttemptDraftStore(storage: MemoryDraftStorage());

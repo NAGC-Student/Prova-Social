@@ -12,7 +12,7 @@ abstract final class EmeraldColors {
   static const primaryGlow = Color(0xFF00E6A0);
   static const textPrimary = Color(0xFFF5F7F6);
   static const textSecondary = Color(0xFFAAB7B0);
-  static const textMuted = Color(0xFF718078);
+  static const textMuted = Color(0xFF85938C);
   static const border = Color(0xFF23382E);
   static const borderHighlight = Color(0xFF176B4A);
   static const warning = Color(0xFFE5A524);
