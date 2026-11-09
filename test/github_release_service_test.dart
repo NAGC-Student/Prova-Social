@@ -9,7 +9,7 @@ void main() {
     expect(GithubReleaseService.isNewer('0.1.9', '0.2.0'), isFalse);
   });
 
-  test('prefers the ABI-specific APK and falls back to the universal APK', () {
+  test('prefers the ABI-specific APK', () {
     final assets = [
       {'name': 'prova-social-android.apk', 'browser_download_url': 'universal'},
       {'name': 'app-arm64-v8a-release.apk', 'browser_download_url': 'arm64'},
@@ -31,17 +31,36 @@ void main() {
       'x64',
     );
     expect(
-      GithubReleaseService.selectApkAsset(
-        assets,
-        abi: 'unknown',
-      )?['browser_download_url'],
-      'universal',
-    );
-    expect(
       GithubReleaseService.selectApkAsset([
         {'name': 'app-arm64-v8a-release.apk'},
       ], abi: 'x86_64'),
       isNull,
     );
+  });
+
+  test('new split releases do not fall back to a universal APK', () {
+    final assets = [
+      {'name': 'prova-social-android.apk', 'browser_download_url': 'universal'},
+      {'name': 'app-arm64-v8a-release.apk', 'browser_download_url': 'arm64'},
+    ];
+
+    expect(GithubReleaseService.selectApkAsset(assets, abi: null), isNull);
+    expect(GithubReleaseService.selectApkAsset(assets, abi: 'unknown'), isNull);
+  });
+
+  test('legacy releases keep the universal APK fallback', () {
+    final assets = [
+      {'name': 'prova-social-android.apk', 'browser_download_url': 'universal'},
+    ];
+
+    for (final abi in [null, 'unknown', 'arm64-v8a']) {
+      expect(
+        GithubReleaseService.selectApkAsset(
+          assets,
+          abi: abi,
+        )?['browser_download_url'],
+        'universal',
+      );
+    }
   });
 }

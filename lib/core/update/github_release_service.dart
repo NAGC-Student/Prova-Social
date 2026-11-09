@@ -80,18 +80,29 @@ class GithubReleaseService {
     }
   }
 
-  /// Prefer the device-specific split; retain the universal APK as a safe
-  /// fallback for old releases and unsupported Android ABIs.
+  /// Prefere o split da ABI quando ela é reconhecida. Em releases novas, que
+  /// publicam apenas splits, a ausência de correspondência leva à página da
+  /// release. Os nomes universais só são aceitos em releases antigas, que não
+  /// têm nenhum split.
   static Map<String, dynamic>? selectApkAsset(
     List<Map<String, dynamic>> assets, {
     required String? abi,
   }) {
-    if (abi != null &&
-        const {'arm64-v8a', 'armeabi-v7a', 'x86_64'}.contains(abi)) {
+    const splitNames = {
+      'arm64-v8a': 'app-arm64-v8a-release.apk',
+      'armeabi-v7a': 'app-armeabi-v7a-release.apk',
+      'x86_64': 'app-x86_64-release.apk',
+    };
+    final splitAsset = splitNames[abi];
+    if (splitAsset != null) {
       for (final asset in assets) {
-        if (asset['name'] == 'app-$abi-release.apk') return asset;
+        if (asset['name'] == splitAsset) return asset;
       }
     }
+    final hasSplits = assets.any(
+      (asset) => splitNames.containsValue(asset['name']),
+    );
+    if (hasSplits) return null;
     for (final asset in assets) {
       if (asset['name'] == 'prova-social-android.apk' ||
           asset['name'] == 'app-release.apk') {

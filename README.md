@@ -156,7 +156,7 @@ Listado para que a promessa do produto e o estado real do app não se confundam:
 ## 📦 Distribuição
 
 - **Flutter Web**: `/app/` ou rota oficial
-- **APK por arquitetura**: releases novas distribuem apenas os APKs menores (`arm64-v8a`, `armeabi-v7a` e `x86_64`); o atualizador escolhe o compatível com o aparelho. O APK universal continua como fallback para releases antigas.
+- **APK por arquitetura**: releases novas distribuem apenas os APKs menores (`arm64-v8a`, `armeabi-v7a` e `x86_64`); o site e o atualizador escolhem o compatível quando reconhecem a ABI. Sem ABI reconhecida, o destino é a página da release, não um universal que não existe. O APK universal (`prova-social-android.apk`/`app-release.apk`) continua como fallback somente para releases antigas.
 - **Site**: `https://prova-social.pages.dev/`
 - **Atualizações**: O app consulta releases do GitHub de forma resiliente
 
