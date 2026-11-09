@@ -143,6 +143,29 @@ examId, revision : int
 - **Testes exigidos:** duas versões da mesma prova produzem resultados não
   comparáveis entre si; versão do conteúdo resolvido fica gravada na tentativa.
 
+### Estado em 2026-11-08 (ADR-0003, alternativa B)
+
+O passo imediato **não cria** `contentVersions` no servidor nem migration. A
+revisão de conteúdo é um hash SHA-256 calculado no cliente em
+`lib/core/content/content_version.dart`:
+
+- `ContentVersion.ofQuestions` cobre posição, enunciado, alternativas, gabarito
+  e tópico; `ofImportedQuestions` inclui também `format`. Resposta esperada e
+  rubrica entram quando o modelo discursivo existir (ADR-0002, etapa 2).
+- `AttemptDraft.examContentHash` grava o hash no rascunho. Rascunho sem o campo
+  (formato anterior) continua sendo restaurado; rascunho com hash diferente do
+  conteúdo atual não restaura respostas e mostra “O conteúdo desta prova mudou.
+  Comece uma nova tentativa.”.
+- `LocalExam.attemptExamId` mantém o hash legado de
+  `{statement, options, correctIndex}` para não invalidar rascunhos já gravados.
+  Ele **não** é o `ContentVersion`.
+- `schemaVersion` continua sendo o formato do pacote (`1` em
+  `digital_exam_service.dart`) e `versionLabel` continua sendo a variante de
+  banca. Nenhum dos dois é revisão de conteúdo.
+- **Ainda fora de escopo:** coluna/tabela de revisão no Supabase, backfill de
+  provas publicadas, recusa de envio no servidor e UI de exportação do rascunho
+  antigo.
+
 ## C6 — `PublicationPolicy`
 
 Decisão única, hoje duplicada em `publish_page.dart:1317-1344` e

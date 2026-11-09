@@ -7,7 +7,7 @@ nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robust
 fonte_codigo: [lib/core/backend/local_exam_store.dart, lib/core/backend/attempt_draft_store.dart, lib/core/backend/attempt_repository.dart, lib/core/import/question_parser.dart, supabase/migrations/202609210001_core.sql, supabase/migrations/202609210003_attempt_idempotency.sql, AGENTS.md]
 sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
 confianca: media
-atualizado: 2026-11-07
+atualizado: 2026-11-08
 ---
 
 # ADR-0003 — Versionamento de conteúdo e vínculo da tentativa à versão resolvida
@@ -146,6 +146,38 @@ para etapa posterior, com SQL autorizado. A decisão aprovada é:
   hashes gravados viram campo ignorado (sem perda). C e D só são reversíveis
   com migration de descida escrita **antes** da subida e com backup
   verificado; trocar cascade de volta não recupera linhas já apagadas.
+
+## Implementação
+
+**Executada em 2026-11-08, no escopo local (sem migration, envio ou
+publicação).**
+
+- `lib/core/content/content_version.dart` calcula o hash SHA-256 canônico de
+  `Question` e de `ImportedQuestion`. O payload inclui posição, enunciado,
+  alternativas, gabarito e tópico; a versão importada inclui `format`.
+  Resposta esperada e rubrica ainda não existem no modelo (ADR-0002, etapa 2).
+- `AttemptDraft.examContentHash` guarda o hash no mesmo JSON do rascunho
+  (`attempt_draft_store.dart`). Rascunhos v1 sem o campo continuam legíveis e
+  são restaurados como antes; o campo é opcional para preservar dados já
+  gravados.
+- `QuizPage._restoreDraft` recusa restaurar quando o hash gravado existe e
+  difere do conteúdo atual, mostra “O conteúdo desta prova mudou. Comece uma
+  nova tentativa.” e inicia uma tentativa limpa. `_persistDraft` grava o hash
+  atual.
+- `LocalExam.attemptExamId` foi mantido com o hash antigo de
+  `{statement, options, correctIndex}`, coberto por teste de compatibilidade,
+  para não invalidar rascunhos de provas locais já existentes.
+- **Nomes fixados:** `schemaVersion` = formato do arquivo/pacote;
+  `versionLabel` = variante de banca; revisão de conteúdo = hash SHA-256 do
+  conjunto de questões; tentativa vinculada ao hash no rascunho.
+- **Limite conhecido:** a recusa preserva o rascunho antigo no aparelho até o
+  próximo salvamento da nova tentativa, que reutiliza a mesma chave. Ainda não
+  há exportação do rascunho antigo nem bloqueio de envio no servidor.
+- **Testes executados:** `flutter test test/content_version_test.dart
+  test/attempt_draft_store_test.dart test/draft_resume_characterization_test.dart
+  test/quiz_offline_submission_test.dart test/ux/local_exam_test.dart
+  test/ux/navigation_editor_test.dart`, `flutter analyze`,
+  `python3 tool/test_design_tokens.py`.
 
 ## Evidências e validação
 
