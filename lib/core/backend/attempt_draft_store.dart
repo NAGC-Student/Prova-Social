@@ -10,6 +10,7 @@ class AttemptDraft {
     required this.current,
     required this.elapsedSeconds,
     this.clientAttemptId,
+    this.examContentHash,
   });
 
   final Map<int, int> answers;
@@ -18,12 +19,17 @@ class AttemptDraft {
   final int elapsedSeconds;
   final String? clientAttemptId;
 
+  /// Hash da revisão de conteúdo resolvida. Rascunhos antigos não têm o campo
+  /// e continuam sendo restaurados como antes (ADR-0003).
+  final String? examContentHash;
+
   AttemptDraft snapshot() => AttemptDraft(
     answers: Map.of(answers),
     review: Set.of(review),
     current: current,
     elapsedSeconds: elapsedSeconds,
     clientAttemptId: clientAttemptId,
+    examContentHash: examContentHash,
   );
 }
 
@@ -83,6 +89,7 @@ class AttemptDraftStore {
           'current': draft.current,
           'elapsedSeconds': draft.elapsedSeconds,
           'clientAttemptId': draft.clientAttemptId,
+          'examContentHash': draft.examContentHash,
         }),
       );
       if (revision > _savedRevision) _savedRevision = revision;
@@ -137,6 +144,7 @@ class AttemptDraftStore {
       current: json['current'] as int,
       elapsedSeconds: json['elapsedSeconds'] as int,
       clientAttemptId: json['clientAttemptId'] as String?,
+      examContentHash: json['examContentHash'] as String?,
     );
   }
 

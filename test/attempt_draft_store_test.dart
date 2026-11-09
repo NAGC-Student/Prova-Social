@@ -135,6 +135,27 @@ void main() {
     expect(loaded.review, {0});
     expect(loaded.elapsedSeconds, 12);
     expect(loaded.clientAttemptId, isNull);
+    expect(loaded.examContentHash, isNull);
+    store.dispose();
+  });
+
+  test('preserva o hash de conteúdo no rascunho', () async {
+    final storage = ControlledStorage();
+    final store = AttemptDraftStore(storage: storage);
+    final saving = store.save(
+      'exam',
+      const AttemptDraft(
+        answers: {0: 1},
+        review: {},
+        current: 0,
+        elapsedSeconds: 8,
+        examContentHash: 'abc123',
+      ),
+    );
+    await tick();
+    storage.gates.single.complete();
+    await saving;
+    expect((await store.load('exam'))!.examContentHash, 'abc123');
     store.dispose();
   });
 

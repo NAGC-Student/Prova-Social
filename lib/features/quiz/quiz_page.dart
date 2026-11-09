@@ -9,6 +9,7 @@ import '../../core/backend/attempt_draft_store.dart';
 import '../../core/backend/attempt_submission.dart';
 import '../../core/backend/attempt_sync_service.dart';
 import '../../core/backend/focus_timer_settings.dart';
+import '../../core/content/content_version.dart';
 import '../../core/navigation/share_link_service.dart';
 import '../../core/widgets/question_media_gallery.dart';
 import '../../domain/models/exam.dart';
@@ -46,6 +47,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
   Timer? timer;
   late Future<void> restoration;
   Future<void>? pauseFlush;
+  String? examContentHash;
   int current = 0;
   bool restoring = true;
   bool restoreFailed = false;
@@ -85,8 +87,15 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
       if (exam.questions.isEmpty) {
         throw StateError('A prova não possui questões disponíveis.');
       }
+      final currentContentHash = ContentVersion.ofQuestions(exam.questions);
+      examContentHash = currentContentHash;
       final draft = await draftStore.load(exam.id);
       if (!mounted) return;
+      // Rascunhos gravados antes do hash existir continuam válidos. A partir do
+      // momento em que há hash, ele precisa bater com o conteúdo atual.
+      final contentChanged =
+          draft?.examContentHash != null &&
+          draft!.examContentHash != currentContentHash;
       // A entrega pode ter sido persistida antes de o app fechar ou de a
       // remoção do rascunho falhar. Nunca reutilize seu ID para novas respostas.
       final deliveredId = draft?.clientAttemptId;
@@ -119,13 +128,14 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
       await syncService.store.saveStartedExam(exam);
       if (!mounted) return;
       setState(() {
-        if (draft == null && widget.initialQuestionId != null) {
+        if ((draft == null || contentChanged) &&
+            widget.initialQuestionId != null) {
           final linkedIndex = exam.questions.indexWhere(
             (question) => question.id == widget.initialQuestionId,
           );
           if (linkedIndex >= 0) current = linkedIndex;
         }
-        if (draft != null) {
+        if (draft != null && !contentChanged) {
           answers.addAll(draft.answers);
           review.addAll(draft.review);
           current = draft.current.clamp(0, exam.questions.length - 1).toInt();
@@ -135,6 +145,15 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
         restoring = false;
         restoreFailed = false;
       });
+      if (contentChanged) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'O conteúdo desta prova mudou. Comece uma nova tentativa.',
+            ),
+          ),
+        );
+      }
       _startTicker();
     } catch (_) {
       if (!mounted) return;
@@ -161,6 +180,8 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
       current: current,
       elapsedSeconds: elapsed.value,
       clientAttemptId: clientAttemptId,
+      examContentHash:
+          examContentHash ?? ContentVersion.ofQuestions(exam.questions),
     ),
   );
 

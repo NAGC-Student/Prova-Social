@@ -5,6 +5,7 @@ import 'package:prova_social/core/theme/app_theme.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
 import 'package:prova_social/core/backend/attempt_submission.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
+import 'package:prova_social/core/content/content_version.dart';
 import 'package:prova_social/domain/models/exam.dart';
 import 'package:prova_social/features/quiz/quiz_page.dart';
 import 'package:prova_social/features/result/result_page.dart';
@@ -193,12 +194,13 @@ void main() {
     final drafts = AttemptDraftStore(storage: MemoryDraftStorage());
     await drafts.save(
       exam.id,
-      const AttemptDraft(
-        answers: {0: 1},
-        review: {},
+      AttemptDraft(
+        answers: const {0: 1},
+        review: const {},
         current: 0,
         elapsedSeconds: 15,
         clientAttemptId: '11111111-1111-4111-8111-111111111111',
+        examContentHash: ContentVersion.ofQuestions(exam.questions),
       ),
     );
     final changed = exam.copyWith(

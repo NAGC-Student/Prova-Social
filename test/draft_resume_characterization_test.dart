@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/backend/attempt_draft_store.dart';
 import 'package:prova_social/core/backend/attempt_submission.dart';
 import 'package:prova_social/core/backend/attempt_sync_service.dart';
 import 'package:prova_social/domain/models/exam.dart';
+import 'package:prova_social/features/quiz/quiz_page.dart';
 
 // Caracterização do estado de 05a8fc1: o rascunho guarda índices posicionais e o
 // clientAttemptId da tentativa anterior (attempt_draft_store.dart:7-28,
@@ -184,6 +186,50 @@ void main() {
       throwsStateError,
     );
   });
+
+  testWidgets('rascunho de outro conteúdo não é restaurado', (tester) async {
+    // Criado dentro do teste: o store inicia uma Future no construtor, e uma
+    // Future criada no setUp não avança sob o fake async do testWidgets.
+    final widgetStore = AttemptDraftStore(storage: _RascunhoMemoria());
+    final prova = _prova([_par, _impar]);
+    await widgetStore.save(
+      prova.id,
+      const AttemptDraft(
+        answers: {0: 1, 1: 0},
+        review: {},
+        current: 1,
+        elapsedSeconds: 12,
+        examContentHash: 'hash-de-uma-revisao-anterior',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: QuizPage(
+          exam: prova,
+          draftStore: widgetStore,
+          syncService: AttemptSyncService(
+            store: AttemptQueueStore(storage: _FilaMemoria()),
+            submitter: _SemRede(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Questão 1 de 2'), findsOneWidget);
+    expect(
+      find.text('O conteúdo desta prova mudou. Comece uma nova tentativa.'),
+      findsOneWidget,
+    );
+    // As respostas antigas continuam no aparelho, mas fora desta tentativa.
+    expect((await widgetStore.load(prova.id))!.answers, {0: 1, 1: 0});
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    widgetStore.dispose();
+  });
 }
 
 class _RascunhoMemoria implements DraftStorage {
@@ -207,4 +253,13 @@ class _FilaMemoria implements AttemptQueueStorage {
 
   @override
   Future<void> write(String value) async => this.value = value;
+}
+
+class _SemRede implements AttemptSubmitter {
+  @override
+  Future<ExamResult> submit(AttemptSubmission submission) =>
+      throw const AttemptSubmissionException(
+        message: 'sem rede',
+        transient: true,
+      );
 }
