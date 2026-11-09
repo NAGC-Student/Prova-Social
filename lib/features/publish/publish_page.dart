@@ -19,6 +19,7 @@ import '../../core/import/imported_document.dart';
 import '../../core/import/question_parser.dart';
 import '../../core/import/exam_layout_profile.dart';
 import '../../core/import/exam_metadata_suggester.dart';
+import '../../core/publish/exam_publication_contract.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/emerald_backdrop.dart';
 import '../quiz/quiz_page.dart';
@@ -846,7 +847,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                         if (title.text.trim().isEmpty ||
                             category.text.trim().isEmpty ||
                             source.text.trim().isEmpty ||
-                            !ExamPublicationService.isValidSourceUrl(
+                            !ExamPublicationContract.isValidSourceUrl(
                               sourceUrl.text,
                             ) ||
                             (int.tryParse(duration.text) ?? 0) < 1) {
@@ -1314,34 +1315,25 @@ class _ImportReviewPageState extends State<ImportReviewPage>
     }
   }
 
-  bool _valid() =>
-      title.text.trim().length >= 3 &&
-      title.text.trim().length <= 180 &&
-      category.text.trim().length >= 2 &&
-      category.text.trim().length <= 80 &&
-      source.text.trim().length >= 2 &&
-      source.text.trim().length <= 160 &&
-      ExamPublicationService.isValidSourceUrl(sourceUrl.text) &&
-      (int.tryParse(duration.text) ?? 0) > 0 &&
-      (int.tryParse(duration.text) ?? 0) <= 1440 &&
-      (year.text.isEmpty ||
-          (int.tryParse(year.text) != null &&
-              int.parse(year.text) >= 1900 &&
-              int.parse(year.text) <= 2200)) &&
-      questions.isNotEmpty &&
-      questions.length <= 300 &&
-      questions.every(
-        (q) =>
-            q.statement.trim().length >= 2 &&
-            q.statement.length <= 20000 &&
-            q.options.length >= 2 &&
-            q.options.length <= 8 &&
-            q.options.every((o) => o.trim().isNotEmpty) &&
-            q.reviewState == QuestionReviewState.reviewed &&
-            q.correctIndex != null &&
-            q.correctIndex! >= 0 &&
-            q.correctIndex! < q.options.length,
-      );
+  String? get _publicationError {
+    final rawYear = year.text.trim();
+    final parsedYear = rawYear.isEmpty ? null : int.tryParse(rawYear);
+    if (rawYear.isNotEmpty && parsedYear == null) {
+      return 'O ano precisa estar entre 1900 e 2200.';
+    }
+    return ExamPublicationContract.metadataError(
+          title: title.text,
+          category: category.text,
+          source: source.text,
+          durationMinutes: int.tryParse(duration.text.trim()) ?? 0,
+          year: parsedYear,
+          sourceUrl: sourceUrl.text,
+        ) ??
+        ExamPublicationContract.questionsError(
+          questions,
+          allowOpenEnded: false,
+        );
+  }
 
   List<ImportedQuestion> get _playableQuestions => questions
       .where(
@@ -1450,11 +1442,12 @@ class _ImportReviewPageState extends State<ImportReviewPage>
 
   Future<void> _publish() async {
     if (busy) return;
-    if (!_valid()) {
+    final publicationError = _publicationError;
+    if (publicationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Para publicar, preencha os dados, complete o gabarito e confirme a revisão. Para resolver agora, use “Começar prova”.',
+            '$publicationError Para resolver agora, use “Começar prova”.',
           ),
         ),
       );

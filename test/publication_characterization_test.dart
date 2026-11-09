@@ -8,9 +8,10 @@ import 'package:prova_social/core/import/question_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Caracterização do estado de 05a8fc1: estas expectativas registram o que a
-// publicação faz, inclusive o que ela descarta. Preservar ou mudar cada item é
-// decisão das ADRs 0002, 0006 e 0007, não ajuste de teste.
+// Caracterização do estado de 05a8fc1, atualizada pela ADR-0002 em 2026-11-08:
+// a revisão passou a ser obrigatória e o tópico deixou de ser descartado.
+// Preservar ou mudar cada item continua sendo decisão das ADRs 0002, 0006 e
+// 0007, não ajuste de teste.
 final requests = <http.Request>[];
 
 final _user = {
@@ -36,12 +37,14 @@ ImportedQuestion _importada({
   List<String> options = const ['A', 'B'],
   int? correctIndex = 1,
   QuestionFormat format = QuestionFormat.multipleChoice,
+  QuestionReviewState reviewState = QuestionReviewState.reviewed,
 }) => ImportedQuestion(
   statement: 'Enunciado da questão?',
   options: options,
   correctIndex: correctIndex,
   topic: topic,
   format: format,
+  reviewState: reviewState,
 );
 
 Future<String> _publicar({
@@ -100,8 +103,8 @@ void main() {
       'questão aberta aceita pelo parser é rejeitada antes de qualquer RPC',
       () async {
         // O parser conhece QuestionFormat.openEnded
-        // (question_parser.dart:28) e a publicaão não tem como expressá-la:
-        // exige 2..8 alternativas e gabarito (exam_publication_service.dart:45-58).
+        // (question_parser.dart:252) e a publicação atual não tem como
+        // expressá-la: o contrato recusa com mensagem explícita.
         final aberta = _importada(
           options: const [],
           correctIndex: null,
@@ -113,14 +116,30 @@ void main() {
           throwsA(
             isA<FormatException>().having(
               (error) => error.message,
-              'mensagem atual',
-              'Revise todas as questões e o gabarito.',
+              'mensagem',
+              'A questão 1 é discursiva. A publicação de discursivas ainda não está disponível.',
             ),
           ),
         );
         expect(requests.where((r) => r.url.path.contains('/rpc/')), isEmpty);
       },
     );
+
+    test('questão não revisada reprova antes de qualquer RPC', () async {
+      await expectLater(
+        _publicar(
+          questions: [_importada(reviewState: QuestionReviewState.unreviewed)],
+        ),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'mensagem',
+            'A questão 1 ainda não foi revisada.',
+          ),
+        ),
+      );
+      expect(requests.where((r) => r.url.path.contains('/rpc/')), isEmpty);
+    });
 
     test('questão sem gabarito reprova a prova inteira', () async {
       await expectLater(
@@ -151,16 +170,16 @@ void main() {
   });
 
   group('o que o corpo publicado preserva e descarta', () {
-    test('o tópico importado é substituído por Geral', () async {
+    test('o tópico importado é preservado e normalizado', () async {
       await _publicar(
         questions: [
-          _importada(topic: 'História'),
-          _importada(topic: 'Álgebra'),
+          _importada(topic: ' História '),
+          _importada(topic: ''),
         ],
       );
       final payload = (_ultimaRpc('publish_exam')['p_questions'] as List)
           .cast<Map>();
-      expect(payload.map((q) => q['topic']), ['Geral', 'Geral']);
+      expect(payload.map((q) => q['topic']), ['História', 'Geral']);
     });
 
     test('o tipo de origem publicado é sempre community', () async {

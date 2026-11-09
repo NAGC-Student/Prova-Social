@@ -1,11 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'digital_exam_service.dart';
 import 'exam_media_repository.dart';
 import '../import/question_parser.dart';
+import '../publish/exam_publication_contract.dart';
 
 class ExamPublicationService {
   ExamPublicationService({SupabaseClient? client})
@@ -28,51 +27,31 @@ class ExamPublicationService {
       throw const AuthException('Entre na conta para publicar.');
     }
 
-    final normalizedSourceUrl = normalizeSourceUrl(sourceUrl);
-    if (title.trim().length < 3 ||
-        title.trim().length > 180 ||
-        category.trim().length < 2 ||
-        category.trim().length > 80 ||
-        source.trim().length < 2 ||
-        source.trim().length > 160 ||
-        durationMinutes < 1 ||
-        durationMinutes > 1440 ||
-        (year != null && (year < 1900 || year > 2200))) {
-      throw const FormatException('Revise os dados e a origem da prova.');
+    final normalizedSourceUrl = ExamPublicationContract.normalizeSourceUrl(
+      sourceUrl,
+    );
+    final metadataError = ExamPublicationContract.metadataError(
+      title: title,
+      category: category,
+      source: source,
+      durationMinutes: durationMinutes,
+      year: year,
+      sourceUrl: normalizedSourceUrl,
+    );
+    if (metadataError != null) {
+      throw FormatException(metadataError);
     }
-    if (questions.isEmpty ||
-        questions.length > 300 ||
-        questions.any(
-          (question) =>
-              question.statement.trim().length < 2 ||
-              question.statement.trim().length > 20000 ||
-              question.options.length < 2 ||
-              question.options.length > 8 ||
-              question.options.any(
-                (option) =>
-                    option.trim().isEmpty || option.trim().length > 4000,
-              ) ||
-              question.correctIndex == null ||
-              question.correctIndex! < 0 ||
-              question.correctIndex! >= question.options.length,
-        )) {
-      throw const FormatException('Revise todas as questões e o gabarito.');
+    final questionsError = ExamPublicationContract.questionsError(
+      questions,
+      allowOpenEnded: false,
+    );
+    if (questionsError != null) {
+      throw FormatException(questionsError);
     }
-    final questionPayload = questions
-        .map(
-          (question) => {
-            'topic': 'Geral',
-            'statement': question.statement.trim(),
-            'options': question.options
-                .map((text) => text.trim())
-                .toList(growable: false),
-            'correct_index': question.correctIndex,
-          },
-        )
-        .toList(growable: false);
-    if (utf8.encode(jsonEncode(questionPayload)).length > 8 * 1024 * 1024) {
-      throw const FormatException('O conteúdo excede o limite de 8 MB.');
-    }
+    final questionPayload = ExamPublicationContract.questionPayload(
+      questions,
+      includeOpenEnded: false,
+    );
     final params = <String, dynamic>{
       'p_title': title.trim(),
       'p_category': category.trim(),
@@ -196,31 +175,6 @@ class ExamPublicationService {
       debugPrint('[PUBLICATION_PACKAGE] falhou: ${error.runtimeType}');
     }
     return examId;
-  }
-
-  static bool isValidSourceUrl(String? value) {
-    try {
-      normalizeSourceUrl(value);
-      return true;
-    } on FormatException {
-      return false;
-    }
-  }
-
-  static String? normalizeSourceUrl(String? value) {
-    final normalized = value?.trim();
-    if (normalized == null || normalized.isEmpty) return null;
-    final uri = Uri.tryParse(normalized);
-    if (normalized.length > 500 ||
-        uri == null ||
-        uri.scheme != 'https' ||
-        uri.host.isEmpty ||
-        uri.userInfo.isNotEmpty) {
-      throw const FormatException(
-        'O link da fonte precisa ser uma URL HTTPS válida.',
-      );
-    }
-    return normalized;
   }
 }
 
