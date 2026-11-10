@@ -483,6 +483,9 @@ Map<String, dynamic> _examToJson(Exam exam) => {
   'durationMinutes': exam.durationMinutes,
   'attempts': exam.attempts,
   'year': exam.year,
+  'board': exam.board,
+  'institution': exam.institution,
+  'instance': exam.instance,
   'sourceType': exam.sourceType.name,
   'sourceUrl': exam.sourceUrl,
   'questions': exam.questions
@@ -520,6 +523,9 @@ Exam _examFromJson(Map<String, dynamic> json) => Exam(
   durationMinutes: json['durationMinutes'] as int,
   attempts: json['attempts'] as int,
   year: json['year'] as int?,
+  board: json['board'] as String?,
+  institution: json['institution'] as String?,
+  instance: json['instance'] as String?,
   sourceType: ExamSourceType.fromDatabase(json['sourceType']),
   sourceUrl: json['sourceUrl'] as String?,
   questions: List<dynamic>.from(json['questions'] as List)

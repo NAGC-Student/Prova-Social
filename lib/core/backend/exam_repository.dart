@@ -29,6 +29,7 @@ class ExamRepository {
 
   static const _examSelect =
       'id,title,description,category,source_name,source_type,source_url,year,'
+      'board,institution,instance,'
       'duration_minutes,attempts_count,created_at,'
       'profiles!exams_author_id_fkey(display_name),'
       'questions(id,exam_id,position,topic,statement,options,created_at),'
@@ -125,7 +126,15 @@ class ExamRepository {
     final pattern =
         '%${value.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_')}%';
     final groups = await Future.wait([
-      for (final field in ['title', 'description', 'category', 'source_name'])
+      for (final field in [
+        'title',
+        'description',
+        'category',
+        'source_name',
+        'board',
+        'institution',
+        'instance',
+      ])
         _client
             .from('exams')
             .select()
@@ -207,6 +216,9 @@ class ExamRepository {
     durationMinutes: row['duration_minutes'] as int,
     attempts: row['attempts_count'] as int,
     year: (row['year'] as num?)?.toInt(),
+    board: row['board'] as String?,
+    institution: row['institution'] as String?,
+    instance: row['instance'] as String?,
     sourceType: ExamSourceType.fromDatabase(row['source_type']),
     sourceUrl: row['source_url'] is String ? row['source_url'] as String : null,
     questions: questionRows.map((question) {

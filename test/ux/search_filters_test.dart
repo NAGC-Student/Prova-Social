@@ -13,6 +13,9 @@ Exam sampleExam({
   required String source,
   required String author,
   required String topic,
+  String? board,
+  String? institution,
+  String? instance,
 }) => Exam(
   id: id,
   title: 'Prova $id',
@@ -21,6 +24,9 @@ Exam sampleExam({
   author: source,
   uploaderName: author,
   year: year,
+  board: board,
+  institution: institution,
+  instance: instance,
   durationMinutes: 60,
   attempts: 0,
   questions: [
@@ -37,6 +43,9 @@ void main() {
       source: 'VUNESP',
       author: 'Ana',
       topic: 'Direito Constitucional',
+      board: 'VUNESP',
+      institution: 'Polícia Militar de São Paulo',
+      instance: 'Prova objetiva — Parte I',
     ),
     sampleExam(
       id: 'two',
@@ -45,6 +54,9 @@ void main() {
       source: 'Cebraspe',
       author: 'Bruno',
       topic: 'Contabilidade',
+      board: 'CEBRASPE',
+      institution: 'Agência Nacional de Mineração',
+      instance: 'Prova discursiva',
     ),
   ];
 
@@ -52,6 +64,15 @@ void main() {
     expect(ExamSearchFilters(year: 2024).apply(exams), [exams.first]);
     expect(ExamSearchFilters(category: 'Fiscal').apply(exams), [exams.last]);
     expect(ExamSearchFilters(source: 'VUNESP').apply(exams), [exams.first]);
+    expect(ExamSearchFilters(board: 'CEBRASPE').apply(exams), [exams.last]);
+    expect(
+      ExamSearchFilters(institution: 'Polícia Militar de São Paulo')
+          .apply(exams),
+      [exams.first],
+    );
+    expect(ExamSearchFilters(instance: 'Prova discursiva').apply(exams), [
+      exams.last,
+    ]);
     expect(ExamSearchFilters(topic: 'Contabilidade').apply(exams), [
       exams.last,
     ]);
@@ -253,6 +274,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Fiscal').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Aplicar filtros'));
     await tester.tap(find.text('Aplicar filtros'));
     await tester.pumpAndSettle();
     expect(
@@ -295,6 +317,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('2024').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Aplicar filtros'));
     await tester.tap(find.text('Aplicar filtros'));
     await tester.pumpAndSettle();
 

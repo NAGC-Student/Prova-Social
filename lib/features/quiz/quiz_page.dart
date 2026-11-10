@@ -1057,7 +1057,12 @@ class _QuestionContent extends StatelessWidget {
           child: Semantics(
             button: true,
             selected: active,
-            label: 'Alternativa $letter, ${question.options[index]}',
+            label:
+                question.media.any(
+                  (item) => item.altText.trim() == 'Alternativa $letter',
+                )
+                ? 'Alternativa $letter, imagem'
+                : 'Alternativa $letter, ${question.options[index]}',
             child: InkWell(
               onTap: () => onSelected(index),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1104,13 +1109,9 @@ class _QuestionContent extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
-                      child: Text(
-                        question.options[index],
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: AppTypography.body,
-                          height: 1.4,
-                        ),
+                      child: QuestionOptionContent(
+                        question: question,
+                        optionIndex: index,
                       ),
                     ),
                     if (active)

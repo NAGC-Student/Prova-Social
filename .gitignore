@@ -59,6 +59,7 @@ qa/integration/node_modules/
 artifacts/
 build/qa/
 qa/reports/
+qa/corpus/
 qa/browser/test-results/
 qa/browser/playwright-report/
 2025_PV_impresso_D1_CD1.pdf

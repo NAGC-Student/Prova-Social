@@ -54,4 +54,14 @@ void main() {
 
     expect(profile.banca, 'Consulplan');
   });
+
+  test('não infere a banca pelo nome do arquivo em capa escaneada', () {
+    final profile = profiler.profile([
+      'VESTIBULAR 2026',
+      'Questão 1\n(A) uma. (B) duas. (C) três.',
+    ], sourceName: 'ita-2026-fase-1.pdf');
+
+    expect(profile.banca, isNull);
+    expect(profile.layout, QuestionLayout.letteredAlternatives);
+  });
 }

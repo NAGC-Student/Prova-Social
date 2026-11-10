@@ -12,6 +12,9 @@ class Exam {
     required this.questions,
     this.uploaderName,
     this.year,
+    this.board,
+    this.institution,
+    this.instance,
     this.sourceType = ExamSourceType.unverified,
     this.sourceUrl,
     this.isLocal = false,
@@ -27,6 +30,9 @@ class Exam {
   final int durationMinutes;
   final int attempts;
   final int? year;
+  final String? board;
+  final String? institution;
+  final String? instance;
   final List<Question> questions;
   final ExamSourceType sourceType;
   final String? sourceUrl;
@@ -36,7 +42,13 @@ class Exam {
     return uri?.scheme == 'https' && uri!.host.isNotEmpty ? uri : null;
   }
 
-  Exam copyWith({List<Question>? questions, int? year}) => Exam(
+  Exam copyWith({
+    List<Question>? questions,
+    int? year,
+    String? board,
+    String? institution,
+    String? instance,
+  }) => Exam(
     id: id,
     isLocal: isLocal,
     category: category,
@@ -47,6 +59,9 @@ class Exam {
     durationMinutes: durationMinutes,
     attempts: attempts,
     year: year ?? this.year,
+    board: board ?? this.board,
+    institution: institution ?? this.institution,
+    instance: instance ?? this.instance,
     questions: questions ?? this.questions,
     sourceType: sourceType,
     sourceUrl: sourceUrl,
@@ -173,6 +188,9 @@ class ExamResult {
       attempts: 0,
       year: exam.year,
       uploaderName: exam.uploaderName,
+      board: exam.board,
+      institution: exam.institution,
+      instance: exam.instance,
       sourceType: exam.sourceType,
       sourceUrl: exam.sourceUrl,
       questions: [
@@ -215,6 +233,11 @@ class ExamResult {
   Map<String, Object?> toJson() => {
     'examId': exam.id,
     'examTitle': exam.title,
+    'examCategory': exam.category,
+    'examYear': exam.year,
+    'examBoard': exam.board,
+    'examInstitution': exam.institution,
+    'examInstance': exam.instance,
     'finishedAt': finishedAt.toIso8601String(),
     'durationSeconds': durationSeconds,
     'total': exam.questions.length,

@@ -68,6 +68,10 @@ void main() {
       for (final question in questions) question.number: question,
     };
     expect(byNumber[49]!.options, ['-19.', '-7.', '1.', '8.', '20.']);
+    expect(byNumber[52]!.statement, contains('Considere as funções'));
+    expect(byNumber[53]!.statement, contains('triângulo retângulo'));
+    expect(byNumber[53]!.statement, contains('O valor de sen'));
+    expect(byNumber[53]!.options, ['', '', '', '', '']);
     expect(byNumber[49]!.warning, isNull);
     expect([
       for (var number = 39; number <= 44; number++)
@@ -77,11 +81,13 @@ void main() {
 
     for (final number in [53, 54, 79, 80]) {
       expect(byNumber[number]!.options, ['', '', '', '', '']);
+      expect(byNumber[number]!.hasVisualOptions, isTrue);
       expect(
         byNumber[number]!.warning,
         contains('conteúdo visual não foi extraído'),
       );
     }
+    expect(quality.incompleteQuestionCount, 0);
     final questionVisualSources = associateQuestionVisualSources(questions);
     expect(questionVisualSources, hasLength(4));
     for (final number in [53, 54, 79, 80]) {
@@ -94,6 +100,10 @@ void main() {
       expect(media.id, startsWith('question-visual-${question.id}'));
     }
     expect(byNumber[80]!.statement, isNot(contains('Texto 1')));
+    expect(byNumber[80]!.statement, contains('No Google Drive'));
+    expect(byNumber[80]!.statement, contains('Para copiar os links'));
+    expect(byNumber[80]!.statement, isNot(contains('disposição das formas')));
+    expect(byNumber[80]!.options, everyElement(isEmpty));
     expect(byNumber[80]!.statement, isNot(contains('RASCUNHO')));
     expect(byNumber[80]!.statement, isNot(contains('CLASSIFICAÇÃO PERIÓDICA')));
     expect(byNumber[53]!.sourcePages, [19]);

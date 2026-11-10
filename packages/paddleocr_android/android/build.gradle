@@ -30,6 +30,9 @@ dependencyLocking {
 
 dependencies {
     implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.31.1'
-    implementation 'com.quickbirdstudios:opencv:4.5.3'
+    // 4.5.3 ships an arm64 binary that references the removed
+    // __sfp_handle_exceptions symbol on Android 16. Use the maintained
+    // OpenCV Android artifact so PaddleOCR can initialize on current phones.
+    implementation 'org.opencv:opencv:4.10.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
 }

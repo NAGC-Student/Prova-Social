@@ -40,6 +40,17 @@ void main() {
     test('converte CRLF e tabulação', () {
       expect(normalize('Um texto.\r\nOutro\ttexto'), 'Um texto.\nOutro texto');
     });
+
+    test('reconstrói o marcador de questão separado por quebra de linha', () {
+      expect(normalize('Quest\não 34'), 'Questão 34');
+    });
+
+    test('mantém marcadores Quest isolados antes do enunciado seguinte', () {
+      expect(
+        normalize('texto anterior\nQuest\não 34\nQuest\não 35'),
+        'texto anterior\nQuestão 34\nQuestão 35',
+      );
+    });
   });
 
   group('reconstrução das colunas quebradas', () {
@@ -105,6 +116,21 @@ void main() {
 
       expect(text.split('\n'), ['1', 'Quantos habitantes há na cidade?']);
     });
+
+    test(
+      'preserva número seguido por alternativa de uma letra e enunciado',
+      () {
+        final text = normalize(
+          '14 - Questões - valor total\n'
+          '01 A robótica tem se tornado cada vez mais presente.',
+        );
+
+        expect(text.split('\n'), [
+          '14 - Questões - valor total',
+          '01 A robótica tem se tornado cada vez mais presente.',
+        ]);
+      },
+    );
 
     test('mantém o título em caixa alta como bloco próprio', () {
       final text = normalize(

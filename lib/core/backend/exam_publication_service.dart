@@ -20,6 +20,9 @@ class ExamPublicationService {
     required List<ImportedQuestion> questions,
     int? year,
     String? sourceUrl,
+    String? board,
+    String? institution,
+    String? instance,
     List<ExamMediaInput> media = const [],
   }) async {
     final user = _client.auth.currentUser;
@@ -37,6 +40,9 @@ class ExamPublicationService {
       durationMinutes: durationMinutes,
       year: year,
       sourceUrl: normalizedSourceUrl,
+      board: board,
+      institution: institution,
+      instance: instance,
     );
     if (metadataError != null) {
       throw FormatException(metadataError);
@@ -61,6 +67,13 @@ class ExamPublicationService {
       'p_duration_minutes': durationMinutes,
       'p_questions': questionPayload,
     };
+    final normalizedBoard = _normalizeMetadata(board);
+    final normalizedInstitution = _normalizeMetadata(institution);
+    final normalizedInstance = _normalizeMetadata(instance);
+    final hasIdentityMetadata =
+        normalizedBoard != null ||
+        normalizedInstitution != null ||
+        normalizedInstance != null;
     if (media.length > 900 ||
         media.fold<int>(0, (size, entry) => size + entry.bytes.length) >
             12 * 1024 * 1024 ||
@@ -76,12 +89,26 @@ class ExamPublicationService {
     String examId;
     try {
       if (media.isEmpty) {
-        examId = normalizedSourceUrl == null
-            ? await _client.rpc<String>('publish_exam', params: params)
-            : await _client.rpc<String>(
-                'publish_exam_with_source_url',
-                params: {...params, 'p_source_url': normalizedSourceUrl},
-              );
+        if (hasIdentityMetadata) {
+          examId = await _client.rpc<String>(
+            'publish_exam_with_metadata',
+            params: _metadataParams(
+              params,
+              sourceUrl: normalizedSourceUrl,
+              board: normalizedBoard,
+              institution: normalizedInstitution,
+              instance: normalizedInstance,
+              media: const [],
+            ),
+          );
+        } else {
+          examId = normalizedSourceUrl == null
+              ? await _client.rpc<String>('publish_exam', params: params)
+              : await _client.rpc<String>(
+                  'publish_exam_with_source_url',
+                  params: {...params, 'p_source_url': normalizedSourceUrl},
+                );
+        }
       } else {
         final manifest = <Map<String, Object?>>[];
         for (final entry in media) {
@@ -94,32 +121,46 @@ class ExamPublicationService {
             'alt_text': entry.altText,
           });
         }
-        try {
+        if (hasIdentityMetadata) {
           examId = await _client.rpc<String>(
-            'publish_exam_with_media',
-            params: {
-              ...params,
-              'p_source_url': normalizedSourceUrl,
-              'p_media': manifest,
-            },
+            'publish_exam_with_metadata',
+            params: _metadataParams(
+              params,
+              sourceUrl: normalizedSourceUrl,
+              board: normalizedBoard,
+              institution: normalizedInstitution,
+              instance: normalizedInstance,
+              media: manifest,
+            ),
           );
-        } on PostgrestException catch (error) {
-          if (error.code != 'PGRST202') rethrow;
-          // Older projects have the safe text publication RPC but not the
-          // media transaction yet. Preserve their ability to publish while
-          // the additive migration is pending.
-          examId = normalizedSourceUrl == null
-              ? await _client.rpc<String>('publish_exam', params: params)
-              : await _client.rpc<String>(
-                  'publish_exam_with_source_url',
-                  params: {...params, 'p_source_url': normalizedSourceUrl},
-                );
+        } else {
           try {
-            for (final entry in media) {
-              await mediaRepository.attach(examId: examId, media: entry);
+            examId = await _client.rpc<String>(
+              'publish_exam_with_media',
+              params: {
+                ...params,
+                'p_source_url': normalizedSourceUrl,
+                'p_media': manifest,
+              },
+            );
+          } on PostgrestException catch (error) {
+            if (error.code != 'PGRST202') rethrow;
+            // Older projects have the safe text publication RPC but not the
+            // media transaction yet. Preserve their ability to publish while
+            // the additive migration is pending.
+            examId = normalizedSourceUrl == null
+                ? await _client.rpc<String>('publish_exam', params: params)
+                : await _client.rpc<String>(
+                    'publish_exam_with_source_url',
+                    params: {...params, 'p_source_url': normalizedSourceUrl},
+                  );
+            try {
+              for (final entry in media) {
+                await mediaRepository.attach(examId: examId, media: entry);
+              }
+            } catch (_) {
+              throw PublishedMediaAttachmentException(examId);
             }
-          } catch (_) {
-            throw PublishedMediaAttachmentException(examId);
           }
         }
       }
@@ -166,6 +207,9 @@ class ExamPublicationService {
           'sourceType': 'community',
           'sourceUrl': normalizedSourceUrl,
           'year': year,
+          'board': normalizedBoard,
+          'institution': normalizedInstitution,
+          'instance': normalizedInstance,
           'durationMinutes': durationMinutes,
         },
         questions: packageQuestions,
@@ -176,6 +220,27 @@ class ExamPublicationService {
     }
     return examId;
   }
+
+  static String? _normalizeMetadata(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
+
+  static Map<String, Object?> _metadataParams(
+    Map<String, dynamic> params, {
+    required String? sourceUrl,
+    required String? board,
+    required String? institution,
+    required String? instance,
+    required List<Map<String, Object?>> media,
+  }) => {
+    ...params,
+    'p_source_url': sourceUrl,
+    'p_board': board,
+    'p_institution': institution,
+    'p_instance': instance,
+    'p_media': media,
+  };
 }
 
 /// The legacy publication RPC cannot atomically create media links. This is

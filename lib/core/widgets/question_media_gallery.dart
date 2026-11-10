@@ -14,10 +14,14 @@ class QuestionMediaGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (media.isEmpty) return const SizedBox.shrink();
+    final questionImages = media
+        .where((item) => !_isOptionImage(item))
+        .toList(growable: false);
+    if (questionImages.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final item in media)
+        for (final item in questionImages)
           _QuestionMediaItem(
             key: ValueKey('${item.id}:${item.sha256}'),
             media: item,
@@ -26,6 +30,60 @@ class QuestionMediaGallery extends StatelessWidget {
     );
   }
 }
+
+class QuestionOptionContent extends StatelessWidget {
+  const QuestionOptionContent({
+    required this.question,
+    required this.optionIndex,
+    super.key,
+  });
+
+  final Question question;
+  final int optionIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    if (optionIndex < 0 || optionIndex >= question.options.length) {
+      return const SizedBox.shrink();
+    }
+    final letter = String.fromCharCode(65 + optionIndex);
+    final optionImage = question.media
+        .where((item) => item.altText.trim() == 'Alternativa $letter')
+        .firstOrNull;
+    final text = question.options[optionIndex].trim();
+    final isImagePlaceholder =
+        text == 'Alternativa $letter (imagem)' ||
+        text == 'Alternativa $letter (imagem na página original)';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (text.isNotEmpty && !isImagePlaceholder)
+          Text(
+            text,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: AppTypography.body,
+              height: 1.4,
+            ),
+          ),
+        if (optionImage != null) ...[
+          if (text.isNotEmpty && !isImagePlaceholder)
+            const SizedBox(height: AppSpacing.sm),
+          _QuestionMediaItem(media: optionImage),
+        ] else if (isImagePlaceholder)
+          Text(
+            'Confira a imagem desta alternativa na página original da prova.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+      ],
+    );
+  }
+}
+
+bool _isOptionImage(QuestionMedia media) => RegExp(
+  r'^Alternativa [A-H]$',
+  caseSensitive: false,
+).hasMatch(media.altText.trim());
 
 class _QuestionMediaItem extends StatefulWidget {
   const _QuestionMediaItem({required this.media, super.key});

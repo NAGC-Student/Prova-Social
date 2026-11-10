@@ -328,8 +328,14 @@ class ResultPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   SourceBadge(sourceType: result.exam.sourceType),
                   Text(
-                    '${result.exam.author}'
-                    '${result.exam.year == null ? '' : ' · ${result.exam.year}'}',
+                    [
+                      if (result.exam.board case final board?) 'Banca: $board',
+                      if (result.exam.institution case final institution?)
+                        'Instituição: $institution',
+                      ?result.exam.instance,
+                      if (result.exam.year case final year?) '$year',
+                      result.exam.author,
+                    ].join(' · '),
                   ),
                   if (result.exam.safeSourceUrl case final sourceUrl?)
                     TextButton.icon(

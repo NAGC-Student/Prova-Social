@@ -80,6 +80,10 @@ const exam = Exam(
   author: 'Fonte',
   durationMinutes: 30,
   attempts: 0,
+  year: 2024,
+  board: 'VUNESP',
+  institution: 'Polícia Militar de São Paulo',
+  instance: 'Prova objetiva — Parte I',
   questions: [
     Question(id: 'q1', topic: 'Geral', statement: 'Q?', options: ['A', 'B']),
   ],
@@ -149,6 +153,10 @@ void main() {
       expect(restored.single.questions.single.options, ['A', 'B']);
       expect(restored.single.questions.single.correctIndex, isNull);
       expect(restored.single.sourceType, exam.sourceType);
+      expect(restored.single.year, 2024);
+      expect(restored.single.board, 'VUNESP');
+      expect(restored.single.institution, 'Polícia Militar de São Paulo');
+      expect(restored.single.instance, 'Prova objetiva — Parte I');
     },
   );
 

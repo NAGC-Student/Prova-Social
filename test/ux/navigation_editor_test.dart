@@ -117,10 +117,18 @@ ImportReviewPage editor({
   String? localId,
   List<ImportedQuestion>? questions,
   int reviewIndex = 0,
+  String? board,
+  String? institution,
+  String? instance,
+  int? year,
 }) => ImportReviewPage(
   title: 'Prova privada',
   category: 'Matemática',
   source: 'Criação própria',
+  board: board,
+  institution: institution,
+  instance: instance,
+  year: year,
   durationMinutes: 30,
   localId: localId,
   reviewIndex: reviewIndex,
@@ -576,6 +584,75 @@ void main() {
       await tester.tap(find.text('Biblioteca').last);
       await tester.pumpAndSettle();
       expect(find.text('Prova privada'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'metadata corrections persist and appear in the publication confirmation',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: editor(
+            board: 'VUNESP',
+            institution: 'Polícia Militar de São Paulo',
+            instance: 'Parte I',
+            year: 2024,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dados da prova'));
+      await tester.pumpAndSettle();
+
+      Finder field(String label) => find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == label,
+        description: 'TextField labeled $label',
+      );
+
+      expect(field('Título'), findsOneWidget);
+      expect(field('Concurso / matéria'), findsOneWidget);
+      expect(field('Banca'), findsOneWidget);
+      expect(field('Instituição responsável'), findsOneWidget);
+      expect(field('Etapa / caderno (opcional)'), findsOneWidget);
+      expect(field('Ano (opcional)'), findsOneWidget);
+
+      await tester.enterText(field('Banca'), 'VUNESP confirmada');
+      await tester.enterText(field('Ano (opcional)'), '2025');
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      final saved = (await LocalExamStore().load()).single;
+      expect(saved.board, 'VUNESP confirmada');
+      expect(saved.institution, 'Polícia Militar de São Paulo');
+      expect(saved.instance, 'Parte I');
+      expect(saved.year, 2025);
+
+      final publishButton = find.text('Publicar para todos');
+      await tester.scrollUntilVisible(
+        publishButton,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(publishButton);
+      await tester.pumpAndSettle();
+      expect(find.byType(AuthPage), findsOneWidget);
+      await tester.runAsync(() async {
+        await login();
+      });
+      await tester.pumpAndSettle();
+
+      expect(find.text('Publicar para todos?'), findsOneWidget);
+      expect(find.text('Banca: VUNESP confirmada'), findsOneWidget);
+      expect(
+        find.text('Instituição responsável: Polícia Militar de São Paulo'),
+        findsOneWidget,
+      );
+      expect(find.text('Etapa / caderno: Parte I'), findsOneWidget);
+      expect(find.text('Ano da prova: 2025'), findsOneWidget);
+      await tester.tap(find.text('Manter privada'));
+      await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox());
     },
   );

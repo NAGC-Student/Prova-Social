@@ -1,3 +1,5 @@
+import 'exam_metadata_suggester.dart';
+
 /// Recognises which board printed a caderno and how it marks its questions.
 ///
 /// The name is read from the document itself, never guessed from the file
@@ -44,33 +46,6 @@ class ExamLayoutProfile {
 class ExamLayoutProfiler {
   const ExamLayoutProfiler();
 
-  /// Boards that sign the first pages of their cadernos. Written as they are
-  /// printed, so a match is a quote from the document and not a guess.
-  static const _boards = <String, List<String>>{
-    'CEBRASPE': ['cebraspe', 'cespe', 'instituto american'],
-    'VUNESP': ['vunesp', 'fundação para o vestibular'],
-    'FGV': [
-      'fundação getulio vargas',
-      'fundação getúlio vargas',
-      'fgv projetos',
-    ],
-    'FCC': ['carlos chagas', 'fcc — fundação', 'fundação carlos'],
-    'IBFC': ['ibfc', 'instituto brasileiro de formação e carreira'],
-    'FUNDATEC': ['fundatec'],
-    'Quadrix': ['quadrix'],
-    'Instituto AOCP': ['aocp'],
-    'Consulplan': ['consulplan', 'instituto consulplan'],
-    'NUPECE': ['nucleo de tecnologia e competencias', 'nupece'],
-    'COMPERVE': ['comperve'],
-    'IBADE': ['ibade'],
-    'FUVEST': ['fuvest'],
-    'UERJ': ['uerj'],
-    'UFPR': ['ufpr', 'nuvem'],
-    'Instituto Mais': ['instituto mais'],
-    'ISEA': ['instituto superior de educacao', 'isea'],
-    'ENEM': ['exame nacional do ensino medio', 'enem'],
-  };
-
   static final RegExp _blankBox = RegExp(
     r'\(\s*\)|\(\s*[cCeE]\s*\)\s*\(\s*[eE]\s*\)',
   );
@@ -82,22 +57,15 @@ class ExamLayoutProfiler {
     r'(?:^|\s)\(a\)\s|(?:^|\s)a[.)\-–:]\s',
   );
 
-  ExamLayoutProfile profile(List<String> pages) {
+  ExamLayoutProfile profile(List<String> pages, {String? sourceName}) {
     final joined = _flatten(pages);
-    String? banca;
-    var bancaPage = 0;
-    // A board is named on the cover, so the signature printed first wins. A
-    // text passage in question 38 that mentions Getúlio Vargas must not
-    // outvote the institute that signed page one.
-    for (final entry in _boards.entries) {
-      for (final signal in entry.value) {
-        final found = _pageIndexOf(pages, signal);
-        if (found != null && (banca == null || found < bancaPage)) {
-          banca = entry.key;
-          bancaPage = found;
-        }
-      }
-    }
+    final metadata = suggestExamMetadata(
+      fileName: sourceName ?? '',
+      firstPageText: pages.firstOrNull ?? '',
+      pages: pages.take(5).toList(growable: false),
+    );
+    final banca = metadata.board;
+    final bancaPage = metadata.evidencePages['board'] ?? 0;
 
     final boxes = _blankBox.allMatches(joined).length;
     final letters = _firstOptionLabel.allMatches(joined).length;
@@ -115,12 +83,4 @@ class ExamLayoutProfiler {
   }
 
   static String _flatten(List<String> pages) => pages.join('\n').toLowerCase();
-
-  /// First page (1-based) whose text carries the signal.
-  static int? _pageIndexOf(List<String> pages, String signal) {
-    for (var index = 0; index < pages.length; index++) {
-      if (pages[index].toLowerCase().contains(signal)) return index + 1;
-    }
-    return null;
-  }
 }

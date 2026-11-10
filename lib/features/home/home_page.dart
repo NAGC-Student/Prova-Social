@@ -172,6 +172,9 @@ class _HomePageState extends State<HomePage> {
               title: pending.title,
               category: pending.category,
               source: pending.source,
+              board: pending.board,
+              institution: pending.institution,
+              instance: pending.instance,
               sourceUrl: pending.sourceUrl,
               durationMinutes: pending.durationMinutes,
               year: pending.year,
@@ -1357,6 +1360,7 @@ class ExamCard extends StatelessWidget {
                         [
                           if (exam.year != null) exam.year.toString(),
                           exam.category,
+                          ?exam.instance,
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1369,7 +1373,10 @@ class ExamCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${exam.questions.length} questões · ${exam.durationMinutes} min · ${exam.author}',
+                    '${exam.questions.length} questões · ${exam.durationMinutes} min'
+                    '${exam.board == null ? '' : ' · ${exam.board}'}'
+                    '${exam.institution == null ? '' : ' · ${exam.institution}'}'
+                    ' · ${exam.author}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: AppTypography.caption),
@@ -1632,6 +1639,9 @@ class _LibraryPage extends StatelessWidget {
                           title: item.title,
                           category: item.category,
                           source: item.source,
+                          board: item.board,
+                          institution: item.institution,
+                          instance: item.instance,
                           sourceUrl: item.sourceUrl,
                           durationMinutes: item.durationMinutes,
                           year: item.year,
@@ -2094,6 +2104,23 @@ class _ExamDetails extends StatelessWidget {
             exam.author,
             style: TextStyle(color: _HomeColors.muted(context)),
           ),
+          if (exam.board != null ||
+              exam.institution != null ||
+              exam.instance != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                if (exam.board case final board?)
+                  _Meta(Icons.account_balance_outlined, board),
+                if (exam.institution case final institution?)
+                  _Meta(Icons.school_outlined, institution),
+                if (exam.instance case final instance?)
+                  _Meta(Icons.description_outlined, instance),
+              ],
+            ),
+          ],
           const SizedBox(height: 26),
           Wrap(
             spacing: 24,

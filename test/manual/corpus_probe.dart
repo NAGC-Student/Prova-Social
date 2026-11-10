@@ -76,7 +76,8 @@ void main() {
           if (number != null) counts[number] = (counts[number] ?? 0) + 1;
         }
         final duplicated =
-            counts.entries.where((entry) => entry.value > 1).toList()..sort();
+            counts.entries.where((entry) => entry.value > 1).toList()
+              ..sort((a, b) => a.key.compareTo(b.key));
         final empty = questions
             .where((question) => question.options.isEmpty)
             .toList();

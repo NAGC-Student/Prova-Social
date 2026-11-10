@@ -294,6 +294,9 @@ class DigitalExamService {
       title: title,
       category: category,
       source: source,
+      board: manifest?['board'] as String? ?? fallback.board,
+      institution: manifest?['institution'] as String? ?? fallback.institution,
+      instance: manifest?['instance'] as String? ?? fallback.instance,
       sourceUrl: manifest?['sourceUrl'] as String? ?? fallback.sourceUrl,
       durationMinutes:
           (manifest?['durationMinutes'] as num?)?.toInt() ??

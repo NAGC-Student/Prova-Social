@@ -163,9 +163,19 @@ class _ReviewPageState extends State<ReviewPage> {
                                 QuestionMediaGallery(media: question.media),
                               ],
                               const SizedBox(height: 10),
-                              _Answer(label: 'Sua resposta', value: answer),
+                              _Answer(
+                                label: 'Sua resposta',
+                                value: answer,
+                                question: question,
+                                optionIndex: selected,
+                              ),
                               if (!isCorrect)
-                                _Answer(label: 'Gabarito', value: key),
+                                _Answer(
+                                  label: 'Gabarito',
+                                  value: key,
+                                  question: question,
+                                  optionIndex: question.correctIndex,
+                                ),
                             ],
                           ),
                         ),
@@ -205,13 +215,27 @@ class _Count extends StatelessWidget {
 }
 
 class _Answer extends StatelessWidget {
-  const _Answer({required this.label, required this.value});
+  const _Answer({
+    required this.label,
+    required this.value,
+    this.question,
+    this.optionIndex,
+  });
   final String label;
   final String value;
+  final Question? question;
+  final int? optionIndex;
 
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 4),
-    child: Text('$label: $value'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$label: $value'),
+        if (question != null && optionIndex != null)
+          QuestionOptionContent(question: question!, optionIndex: optionIndex!),
+      ],
+    ),
   );
 }

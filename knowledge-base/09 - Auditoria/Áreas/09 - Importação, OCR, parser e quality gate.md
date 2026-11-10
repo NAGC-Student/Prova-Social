@@ -54,7 +54,7 @@ aproveitável, mas ainda há capacidade de produto e evidência de campo pendent
 | Parser de questões | Marcadores explícitos, sequência, alternativas, múltipla escolha, certo/errado, asserção, discursiva e desconhecido | Parcial | `question_parser.dart` |
 | Gabarito | Lê gabarito impresso e aplica somente onde há vínculo confiável; não sobrescreve correção manual | Funcional | `answer_key_parser.dart:71-278` |
 | Quality gate | `good`/`review`/`retry`; duplicatas, numeração, estrutura incompleta, páginas ilegíveis e contagem esperada | Funcional | `import_quality_gate.dart:6, 191-194` |
-| Diagnóstico | Eventos estruturais locais com versão `pacer-v3` e fingerprint SHA-256; não devem ser transmitidos | Funcional (local) | `import_diagnostic_event.dart:44-56` |
+| Diagnóstico | Eventos estruturais locais com versão `pacer-v4` e fingerprint SHA-256; não devem ser transmitidos | Funcional (local) | `import_diagnostic_event.dart:44-56` |
 | Revisão humana | Lista de questões, confiança, aviso, editor, página original/preview | Parcial | `publish_page.dart:2041-2146` |
 | Publicação | Exige alternativas e gabarito em todas as questões | Divergente do produto | `publish_page.dart:1333-1343` |
 | Fila de feedback | Contrato JSON especificado, sem fila, envio ou retorno | Ausente | `docs` e produto; código não encontrado |

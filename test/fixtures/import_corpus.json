@@ -16,7 +16,7 @@
       },
       "parserSnapshot": {
         "path": "lib/core/import/question_parser.dart",
-        "sha256": "942dd7947c9b2437dd25490734107909f66077b21530aec9347e628eb2c30ceb",
+        "sha256": "af9874057fed7a356ab0e21a40ae15afb483db12c53ceff93817fc058caf39fb",
         "expectedPages": 8,
         "expectedQuestions": 80,
         "expectedUnreadablePages": 0,
@@ -38,7 +38,7 @@
       },
       "parserSnapshot": {
         "path": "lib/core/import/question_parser.dart",
-        "sha256": "942dd7947c9b2437dd25490734107909f66077b21530aec9347e628eb2c30ceb",
+        "sha256": "af9874057fed7a356ab0e21a40ae15afb483db12c53ceff93817fc058caf39fb",
         "expectedPages": 32,
         "expectedQuestions": 80,
         "expectedUnreadablePages": 0,

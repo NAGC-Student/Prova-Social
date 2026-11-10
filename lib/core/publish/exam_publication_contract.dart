@@ -22,6 +22,9 @@ abstract final class ExamPublicationContract {
     required int durationMinutes,
     int? year,
     String? sourceUrl,
+    String? board,
+    String? institution,
+    String? instance,
   }) {
     final normalizedTitle = title.trim();
     if (normalizedTitle.length < 3 || normalizedTitle.length > 180) {
@@ -40,6 +43,15 @@ abstract final class ExamPublicationContract {
     }
     if (year != null && (year < 1900 || year > 2200)) {
       return 'O ano precisa estar entre 1900 e 2200.';
+    }
+    if ((board?.trim().length ?? 0) > 120) {
+      return 'A banca pode ter no máximo 120 caracteres.';
+    }
+    if ((institution?.trim().length ?? 0) > 180) {
+      return 'A instituição pode ter no máximo 180 caracteres.';
+    }
+    if ((instance?.trim().length ?? 0) > 120) {
+      return 'A etapa ou caderno pode ter no máximo 120 caracteres.';
     }
     try {
       normalizeSourceUrl(sourceUrl);
@@ -77,9 +89,17 @@ abstract final class ExamPublicationContract {
         if (question.options.length < 2 || question.options.length > 8) {
           return 'A questão $position precisa ter entre 2 e 8 alternativas.';
         }
-        for (final option in question.options) {
+        for (
+          var optionIndex = 0;
+          optionIndex < question.options.length;
+          optionIndex++
+        ) {
+          final option = question.options[optionIndex];
           final normalized = option.trim();
-          if (normalized.isEmpty || normalized.length > 4000) {
+          final hasImage =
+              question.optionImageBase64.containsKey(optionIndex) ||
+              question.hasVisualOptions;
+          if ((normalized.isEmpty && !hasImage) || normalized.length > 4000) {
             return 'A questão $position tem alternativa vazia ou acima de 4.000 caracteres.';
           }
         }
@@ -116,7 +136,13 @@ abstract final class ExamPublicationContract {
             'topic': normalizeTopic(question.topic),
             'statement': question.statement.trim(),
             'options': question.options
-                .map((option) => option.trim())
+                .asMap()
+                .entries
+                .map(
+                  (entry) => entry.value.trim().isNotEmpty
+                      ? entry.value.trim()
+                      : 'Alternativa ${String.fromCharCode(65 + entry.key)} (imagem)',
+                )
                 .toList(growable: false),
             'correct_index': question.correctIndex,
           },

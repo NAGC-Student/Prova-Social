@@ -82,12 +82,14 @@ class ExamTextNormalizer {
     RegExp(r'^\s*[A-Ha-h][)\].:]'),
     RegExp(r'^\s*\d{1,4}\s*[.)\-–—:º°]'),
     RegExp(r'^\s*\d{1,4}\s*$'),
+    RegExp(r'^\s*\d{1,4}\s+[A-ZÀ-Ú](?:\s|[.)\-–—:])'),
     RegExp(r'^\s*\d{1,4}\s+(?:[A-ZÀ-Ú][A-ZÀ-Úa-zà-ÿ]|\()'),
     // “39 a 41.” is the heading of a language track, not the tail of the
     // sentence printed above it.
     RegExp(r'^\s*\d{1,4}\s+(?:a|até|to|through|y|e)\s+\d{1,4}\s*[.:)]?$'),
     RegExp(r'^\s*[•\-*]'),
     RegExp(r'^\u0000'),
+    RegExp(r'^\s*quest\s*$', caseSensitive: false),
     RegExp(
       r'^\s*(?:quest[ãa]o|item|proposta|reda[çc][ãa]o|resposta|colunas?)\b',
       caseSensitive: false,
@@ -111,7 +113,15 @@ class ExamTextNormalizer {
   /// what every rule downstream greps for, so it is rebuilt here. Prose keeps
   /// its spaces: only the stem “quest” followed by a floating syllable joins.
   static final RegExp _splitMarkerWord = RegExp(
-    r'\b([Qq]uest)\s+([ÃãAa][Oo]|[ÕõOo][Ee][Ss]|[Oo][Ee][Ss]|[Aa][Oo])\b',
+    r'\b([Qq]uest)[ \t]+([ÃãAa][Oo]|[ÕõOo][Ee][Ss]|[Oo][Ee][Ss]|[Aa][Oo])\b',
+  );
+
+  /// Two-column extraction can reverse the tail of “Questão 180” at the
+  /// column boundary, yielding “ão 180 Quest”. Rebuild that marker before
+  /// block joining so the final question is not swallowed by the answer sheet.
+  static final RegExp _reversedQuestionMarker = RegExp(
+    r'\b[ãa]o\s+(\d{1,3})\s+Quest\b',
+    caseSensitive: false,
   );
 
   static String normalize(String source) {
@@ -129,14 +139,21 @@ class ExamTextNormalizer {
         .split('\n')
         .map((line) => line.replaceAll(RegExp(r'[ \t]+'), ' ').trimRight())
         .join('\n');
-    text = text.replaceAllMapped(_splitMarkerWord, (match) {
-      final head = match.group(1)!;
-      var joined = match.group(2)!.toLowerCase().endsWith('o') ? 'ão' : 'ões';
-      if (head == head.toUpperCase()) joined = joined.toUpperCase();
-      return '$head$joined';
-    });
-    text = _unwrapLines(text);
+    text = text.replaceAllMapped(_splitMarkerWord, _joinSplitMarkerWord);
+    text = text.replaceAllMapped(
+      _reversedQuestionMarker,
+      (match) => 'Questão ${match.group(1)}',
+    );
+    text = _unwrapLines(text)
+        .replaceAllMapped(_splitMarkerWord, _joinSplitMarkerWord);
     return text.replaceAll(_multipleBlankLines, '\n\n');
+  }
+
+  static String _joinSplitMarkerWord(Match match) {
+    final head = match.group(1)!;
+    var joined = match.group(2)!.toLowerCase().endsWith('o') ? 'ão' : 'ões';
+    if (head == head.toUpperCase()) joined = joined.toUpperCase();
+    return '$head$joined';
   }
 
   /// Reassembles the blocks a narrow column broke.

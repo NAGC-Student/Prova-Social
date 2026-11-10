@@ -126,6 +126,16 @@ void main() {
     expect(report.removedLines, isEmpty);
   });
 
+  test('preserva o fragmento “Quest” de um marcador quebrado', () {
+    final report = filter.apply([
+      for (var page = 0; page < 6; page++)
+        examPage(page, first: 'Quest', extra: ['ão ${page + 1}']),
+    ]);
+
+    expect(report.pages.every((page) => page.startsWith('Quest')), isTrue);
+    expect(report.removedLines, isEmpty);
+  });
+
   test('preserva a grade de resposta certa errada que se repete na página', () {
     final report = filter.apply([
       for (var page = 0; page < 6; page++)

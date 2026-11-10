@@ -8,24 +8,33 @@ import 'package:prova_social/core/backend/local_exam_payload_store.dart';
 import 'package:prova_social/core/import/imported_document.dart';
 import 'package:prova_social/core/import/question_parser.dart';
 
-LocalExam draft(String title, {bool pending = false, String? sourceUrl}) =>
-    LocalExam(
-      id: 'local-test',
-      title: title,
-      category: 'Matéria',
-      source: 'Origem',
-      sourceUrl: sourceUrl,
-      durationMinutes: 30,
-      pendingPublication: pending,
-      questions: [
-        ImportedQuestion(
-          statement: 'Questão de teste',
-          options: ['A', 'B'],
-          correctIndex: 1,
-          sourcePage: 4,
-        ),
-      ],
-    );
+LocalExam draft(
+  String title, {
+  bool pending = false,
+  String? sourceUrl,
+  String? board,
+  String? institution,
+  String? instance,
+}) => LocalExam(
+  id: 'local-test',
+  title: title,
+  category: 'Matéria',
+  source: 'Origem',
+  board: board,
+  institution: institution,
+  instance: instance,
+  sourceUrl: sourceUrl,
+  durationMinutes: 30,
+  pendingPublication: pending,
+  questions: [
+    ImportedQuestion(
+      statement: 'Questão de teste',
+      options: ['A', 'B'],
+      correctIndex: 1,
+      sourcePage: 4,
+    ),
+  ],
+);
 
 class MemoryPayloadStore implements ExamPayloadStorage {
   String? current;
@@ -77,6 +86,9 @@ void main() {
         'Minha prova',
         pending: true,
         sourceUrl: 'https://example.org/prova',
+        board: 'VUNESP',
+        institution: 'Polícia Militar de São Paulo',
+        instance: 'Prova objetiva — Parte I',
       );
       imported.questions.single
         ..number = 7
@@ -88,6 +100,10 @@ void main() {
       expect(restored.title, 'Minha prova');
       expect(restored.pendingPublication, isTrue);
       expect(restored.sourceUrl, 'https://example.org/prova');
+      expect(restored.board, 'VUNESP');
+      expect(restored.institution, 'Polícia Militar de São Paulo');
+      expect(restored.instance, 'Prova objetiva — Parte I');
+      expect(restored.exam.board, 'VUNESP');
       expect(restored.exam.isLocal, isTrue);
       expect(restored.questions.single.correctIndex, 1);
       expect(restored.questions.single.number, 7);
@@ -98,6 +114,20 @@ void main() {
       expect(restored.toJson().containsKey('is_public'), isFalse);
     },
   );
+  test('legacy local drafts load with identity metadata left pending', () {
+    final oldExam = LocalExam.fromJson({
+      'id': 'legacy',
+      'title': 'Prova antiga',
+      'category': 'Matéria',
+      'source': 'Origem antiga',
+      'durationMinutes': 30,
+      'questions': [],
+    });
+
+    expect(oldExam.board, isNull);
+    expect(oldExam.institution, isNull);
+    expect(oldExam.instance, isNull);
+  });
   test('removes only downloaded exams and protects active attempts', () async {
     final store = LocalExamStore();
     await store.save(draft('Prova criada localmente'));

@@ -5,6 +5,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:prova_social/core/import/answer_key_parser.dart';
+import 'package:prova_social/core/import/exam_metadata_suggester.dart';
 import 'package:prova_social/core/import/import_quality_gate.dart';
 import 'package:prova_social/core/import/pdf_text_extractor.dart';
 import 'package:prova_social/core/import/question_parser.dart';
@@ -149,6 +151,15 @@ void main() {
         final questions = const QuestionParser().parsePages(
           extraction.pages.map((page) => page.text).toList(growable: false),
         );
+        final metadataPages = extraction.pages
+            .take(5)
+            .map((page) => '${page.text}\n${page.nativeText}')
+            .toList(growable: false);
+        final metadata = suggestExamMetadata(
+          fileName: relativePath,
+          firstPageText: metadataPages.firstOrNull ?? '',
+          pages: metadataPages,
+        );
         const qualityGate = ImportQualityGate();
         qualityGate.markNumberingIssues(questions);
         final quality = qualityGate.assess(extraction, questions);
@@ -156,9 +167,19 @@ void main() {
 
         final expectedCount = record['expected_question_count'];
         final previous = previousByHash[documentHash];
+        final optionDistribution = <String, int>{};
+        for (final question in questions) {
+          final count = question.options.length.toString();
+          optionDistribution.update(
+            count,
+            (value) => value + 1,
+            ifAbsent: () => 1,
+          );
+        }
         documents.add({
           'documentId': record['document_id'],
-          'institution': record['banca'],
+          'board': record['board'] ?? record['banca'],
+          'institution': record['institution'],
           'title': record['title'],
           'sourceUrl': record['url'],
           'year': record['year'],
@@ -166,8 +187,36 @@ void main() {
           'licenseStatus': record['license_status'] ?? 'unknown',
           'redistribution': record['redistribution'] ?? 'unknown',
           'expectedQuestions': expectedCount is int ? expectedCount : null,
+          'minimumQuestions': record['minimum_question_count'] is int
+              ? record['minimum_question_count']
+              : null,
           'expectedCountSource': record['expected_count_source'],
+          'questionCountAgreement': expectedCount is int
+              ? questions.length == expectedCount
+              : null,
+          'minimumQuestionCountMet': record['minimum_question_count'] is int
+              ? questions.length >= (record['minimum_question_count'] as int)
+              : null,
           'detectedQuestions': questions.length,
+          'questionSequence': [
+            for (final question in questions)
+              {
+                'number': question.number,
+                'sourcePage': question.sourcePage,
+                'optionCount': question.options.length,
+                'format': question.format.name,
+              },
+          ],
+          'questionsWithAlternatives': questions
+              .where((question) => question.options.length >= 2)
+              .length,
+          'questionsWithoutAlternatives': questions
+              .where((question) => question.options.length < 2)
+              .length,
+          'optionCountDistribution': optionDistribution,
+          'questionsContinuingAcrossPages': questions
+              .where((question) => question.sourcePages.length > 1)
+              .length,
           'duplicateQuestions': quality.duplicateQuestionCount,
           'incompleteQuestions': quality.incompleteQuestionCount,
           'numberingIssues': quality.numberingIssues,
@@ -189,6 +238,20 @@ void main() {
           'ocrAvailableInRunner': extraction.ocrAvailable,
           'ocrPages': extraction.ocrPages,
           'unreadablePages': quality.unreadablePages,
+          'metadataGroundTruth': record['metadata_ground_truth'],
+          'metadata': {
+            'suggested': {
+              'title': metadata.title,
+              'board': metadata.board,
+              'institution': metadata.institution,
+              'year': metadata.year,
+              'category': metadata.category,
+              'instance': metadata.instance,
+            },
+            'evidencePages': metadata.evidencePages,
+            'evidenceSources': metadata.evidenceSources,
+            'fieldsNeedingAttention': metadata.fieldsNeedingAttention,
+          },
           'processingMilliseconds': stopwatch.elapsedMilliseconds,
           'qualityStatus': quality.status.name,
           'comparison': previous == null
@@ -209,6 +272,71 @@ void main() {
         });
       }
 
+      final answerKeys = <Map<String, Object?>>[];
+      for (final record in records.where(
+        (record) =>
+            record['status'] == 'downloaded' &&
+            record['document_type'] == 'gabarito',
+      )) {
+        final relativePath = record['local_path'];
+        if (relativePath is! String ||
+            relativePath.isEmpty ||
+            File(relativePath).isAbsolute ||
+            relativePath.split(RegExp(r'[/\\]')).contains('..')) {
+          throw FormatException(
+            'Invalid answer-key path for ${record['document_id']}.',
+          );
+        }
+        final file = File(
+          '${root.path}${Platform.pathSeparator}'
+          '${relativePath.replaceAll('/', Platform.pathSeparator)}',
+        );
+        if (!await file.exists()) {
+          throw FileSystemException(
+            'Manifest answer key is missing.',
+            file.path,
+          );
+        }
+        final actualHash = sha256.convert(await file.readAsBytes()).toString();
+        if (actualHash != record['sha256']) {
+          throw FormatException(
+            'Answer-key SHA-256 mismatch for ${record['document_id']}.',
+          );
+        }
+        final extraction = await const PdfTextExtractor().extract(
+          await file.readAsBytes(),
+          sourceName: relativePath,
+        );
+        final key = const AnswerKeyParser().parsePages(
+          extraction.pages.map((page) => page.text).toList(growable: false),
+        );
+        if (key.isEmpty) {
+          final pageSummary = extraction.pages
+              .map(
+                (page) =>
+                    'page ${page.pageNumber} (${page.source.name}, '
+                    '${page.text.length} chars, '
+                    '${page.text.split('\n').length} lines)',
+              )
+              .join('; ');
+          throw FormatException(
+            'Official answer key contains no parseable entries: '
+            '${record['document_id']}. $pageSummary',
+          );
+        }
+        answerKeys.add({
+          'documentId': record['document_id'],
+          'relatedDocumentId': record['related_document_id'],
+          'documentSha256': actualHash,
+          'parsedAnswers': key.length,
+          'parsedAnswerNumbers': key.byNumber.keys.toList()..sort(),
+          'expectedAnswers': record['expected_answer_count'],
+          'expectedAnswerNumbers': record['expected_answer_question_numbers'],
+          'heading': key.heading,
+          'pages': key.pages,
+        });
+      }
+
       final expectedRecords = documents
           .where((document) => document['expectedQuestions'] is int)
           .toList(growable: false);
@@ -220,6 +348,9 @@ void main() {
         0,
         (sum, document) => sum + (document['expectedQuestions']! as int),
       );
+      final expectedAnswerRecords = answerKeys
+          .where((answerKey) => answerKey['expectedAnswers'] is int)
+          .toList(growable: false);
       final report = <String, Object?>{
         'schemaVersion': 1,
         'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -232,6 +363,30 @@ void main() {
           'manifestRecords': records.length,
           'manifestDuplicateRecords': manifestDuplicates,
           'examDocumentsProcessed': documents.length,
+          'answerKeyDocumentsProcessed': answerKeys.length,
+          'answerKeyDocumentsWithExpectedCount': expectedAnswerRecords.length,
+          'expectedAnswerTotal': expectedAnswerRecords.isEmpty
+              ? null
+              : expectedAnswerRecords.fold<int>(
+                  0,
+                  (sum, answerKey) =>
+                      sum + (answerKey['expectedAnswers']! as int),
+                ),
+          'parsedAnswerTotal': expectedAnswerRecords.isEmpty
+              ? null
+              : expectedAnswerRecords.fold<int>(
+                  0,
+                  (sum, answerKey) =>
+                      sum + (answerKey['parsedAnswers']! as int),
+                ),
+          'answerKeysMatchingExpectedNumbers': expectedAnswerRecords
+              .where(
+                (answerKey) => listEquals(
+                  answerKey['expectedAnswerNumbers'] as List?,
+                  answerKey['parsedAnswerNumbers'] as List?,
+                ),
+              )
+              .length,
           'documentsWithNoDetectedQuestions': documents
               .where((document) => document['detectedQuestions'] == 0)
               .length,
@@ -239,6 +394,12 @@ void main() {
           'expectedQuestionTotal': expectedRecords.isEmpty
               ? null
               : expectedTotal,
+          'documentsMatchingExpectedQuestionCount': documents
+              .where((document) => document['questionCountAgreement'] == true)
+              .length,
+          'documentsMeetingMinimumQuestionCount': documents
+              .where((document) => document['minimumQuestionCountMet'] == true)
+              .length,
           'detectedQuestionTotal': detectedTotal,
           'questionsNeedingReview': documents.fold<int>(
             0,
@@ -262,19 +423,25 @@ void main() {
             0,
             (sum, document) => sum + (document['unreadablePages']! as int),
           ),
-          'questionCountRecall':
+          'questionCountRatio':
               expectedRecords.length == documents.length && expectedTotal > 0
-              ? documents.fold<int>(
-                      0,
-                      (sum, document) =>
-                          sum + (document['detectedQuestions']! as int),
-                    ) /
-                    expectedTotal
+              ? detectedTotal / expectedTotal
               : null,
+          'questionCountMetricNote': 'Count agreement does not verify question identity, alternatives, images, or continuity.',
+          'questionCountAgreementRate': expectedRecords.isEmpty
+              ? null
+              : documents
+                        .where(
+                          (document) =>
+                              document['questionCountAgreement'] == true,
+                        )
+                        .length /
+                    expectedRecords.length,
           'visualPreservationRate': null,
           'visualPreservationNote': 'No annotated visual-content reference is available; warning counts are not a preservation score.',
           'ocrEvaluated': false,
           'ocrEvaluationNote': 'This host benchmark runs the native-text path only; native OCR engines are not loaded by the Linux test runner.',
+          'metadataMetrics': _metadataMetrics(documents),
           'processingMilliseconds': documents.fold<int>(
             0,
             (sum, document) =>
@@ -282,6 +449,7 @@ void main() {
           ),
         },
         'documents': documents,
+        'answerKeys': answerKeys,
       };
       await reportFile.parent.create(recursive: true);
       await reportFile.writeAsString(
@@ -299,7 +467,316 @@ void main() {
       );
     },
   );
+
+  final esaRoot = Directory('build/qa/military-exams');
+  final esaYears = [2024, 2025, 2026];
+  final esaFiles = [
+    for (final year in esaYears)
+      File(
+        '${esaRoot.path}${Platform.pathSeparator}exercito'
+        '${Platform.pathSeparator}esa-$year-prova-geral.pdf',
+      ),
+  ];
+  test(
+    'validates numbered questions and metadata in official ESA cadernos',
+    skip: esaFiles.every((file) => file.existsSync())
+        ? false
+        : 'Download the official ESA PDFs with qa/update_corpus.py.',
+    () async {
+      final corpusManifest = jsonDecode(
+        File('qa/corpus_manifest.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final manifestDocuments = (corpusManifest['documents'] as List)
+          .cast<Map<String, dynamic>>();
+      final documentReports = <Map<String, Object?>>[];
+      final metadataCounts = <String, Map<String, int>>{
+        for (final field in const [
+          'title',
+          'board',
+          'institution',
+          'year',
+          'category',
+          'instance',
+        ])
+          field: {'correct': 0, 'incorrect': 0, 'abstained': 0},
+      };
+
+      for (final year in esaYears) {
+        final id = 'esa-$year-geral';
+        final manifestDocument = manifestDocuments.firstWhere(
+          (document) => document['id'] == id,
+        );
+        final file = esaFiles[esaYears.indexOf(year)];
+        final bytes = await file.readAsBytes();
+        final documentSha256 = sha256.convert(bytes).toString();
+        expect(documentSha256, manifestDocument['sha256']);
+
+        final extraction = await const PdfTextExtractor().extract(
+          bytes,
+          sourceName: file.path,
+        );
+        final questions = const QuestionParser().parsePages(
+          extraction.pages.map((page) => page.text).toList(growable: false),
+        );
+        final numberedQuestions = questions
+            .where((question) => question.number != null)
+            .toList(growable: false);
+        expect(
+          numberedQuestions.map((question) => question.number),
+          List<int>.generate(50, (index) => index + 1),
+          reason: '$id must preserve the official objective numbering 1–50.',
+        );
+        final unnumberedPrompts = questions
+            .where((question) => question.number == null)
+            .toList(growable: false);
+        expect(unnumberedPrompts, hasLength(1), reason: id);
+        expect(
+          unnumberedPrompts.single.format,
+          QuestionFormat.openEnded,
+          reason: '$id must keep its unnumbered essay prompt separate.',
+        );
+
+        if (year == 2024) {
+          final question23 = numberedQuestions[22];
+          expect(question23.statement, contains('Caramuru'));
+          expect(question23.options, [
+            'Arcadismo.',
+            'Simbolismo.',
+            'Barroco.',
+            'Realismo.',
+            'Parnasianismo.',
+          ]);
+        }
+        if (year == 2026) {
+          expect(numberedQuestions[19].options, hasLength(5));
+          expect(
+            numberedQuestions[20].statement,
+            contains('Com base no Texto VI'),
+          );
+        }
+
+        final pages = extraction.pages
+            .take(5)
+            .map((page) => '${page.text}\n${page.nativeText}')
+            .toList(growable: false);
+        final suggestion = suggestExamMetadata(
+          fileName: manifestDocument['path'] as String,
+          firstPageText: pages.first,
+          pages: pages,
+        );
+        final groundTruth =
+            manifestDocument['metadataGroundTruth'] as Map<String, dynamic>;
+        final actualMetadata = {
+          'title': suggestion.title,
+          'board': suggestion.board,
+          'institution': suggestion.institution,
+          'year': suggestion.year,
+          'category': suggestion.category,
+          'instance': suggestion.instance,
+        };
+        for (final field in metadataCounts.keys) {
+          final expected = field == 'title'
+              ? groundTruth['titleContains']
+              : groundTruth[field];
+          final actual = actualMetadata[field];
+          final matches = field == 'title'
+              ? actual is String &&
+                    expected is String &&
+                    actual.contains(expected)
+              : actual == expected;
+          if (matches && expected != null) {
+            metadataCounts[field]!['correct'] =
+                metadataCounts[field]!['correct']! + 1;
+          } else if (actual == null) {
+            metadataCounts[field]!['abstained'] =
+                metadataCounts[field]!['abstained']! + 1;
+          } else {
+            metadataCounts[field]!['incorrect'] =
+                metadataCounts[field]!['incorrect']! + 1;
+          }
+        }
+
+        documentReports.add({
+          'id': id,
+          'sourceUrl': manifestDocument['downloadUrl'],
+          'sha256': documentSha256,
+          'pages': extraction.pageCount,
+          'numberedObjectiveQuestions': numberedQuestions.length,
+          'objectiveSequenceExact': true,
+          'unnumberedOpenEndedPrompts': unnumberedPrompts.length,
+          'questionsWithFiveAlternatives': numberedQuestions
+              .where((question) => question.options.length == 5)
+              .length,
+          'questionsNeedingReview': questions
+              .where(
+                (question) =>
+                    question.warning != null || question.confidence < .8,
+              )
+              .length,
+          'metadata': {
+            'suggested': actualMetadata,
+            'groundTruth': groundTruth,
+            'fieldsNeedingAttention': suggestion.fieldsNeedingAttention,
+          },
+        });
+      }
+
+      final metadataMetrics = {
+        for (final entry in metadataCounts.entries)
+          entry.key: {
+            ...entry.value,
+            'precision':
+                entry.value['correct']! + entry.value['incorrect']! == 0
+                ? null
+                : entry.value['correct']! /
+                      (entry.value['correct']! + entry.value['incorrect']!),
+          },
+      };
+      final questionsWithFiveAlternatives = documentReports.fold<int>(
+        0,
+        (sum, document) =>
+            sum + (document['questionsWithFiveAlternatives']! as int),
+      );
+      final report = {
+        'generatedAt': DateTime.now().toUtc().toIso8601String(),
+        'method': 'Native-text PDF extraction; numbered sequence checked against official caderno labels.',
+        'summary': {
+          'officialDocumentsProcessed': documentReports.length,
+          'numberedObjectiveQuestionsExpected': 150,
+          'numberedObjectiveQuestionsRecovered': 150,
+          'numberingSequenceExact': true,
+          'questionsWithFiveAlternatives': questionsWithFiveAlternatives,
+          'alternativeCountRate': questionsWithFiveAlternatives / 150,
+          'unnumberedEssayPrompts': 3,
+          'metadataMetrics': metadataMetrics,
+          'visualPreservationRate': null,
+          'visualPreservationNote': 'Image and formula fidelity requires manual page comparison; this report does not score it.',
+          'ocrEvaluated': false,
+        },
+        'documents': documentReports,
+      };
+      final reportFile = File('build/qa/esa-corpus-benchmark.json');
+      await reportFile.parent.create(recursive: true);
+      await reportFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(report),
+      );
+    },
+  );
 }
+
+Map<String, Object?> _metadataMetrics(List<Map<String, Object?>> documents) {
+  final byBoard = <String, List<Map<String, Object?>>>{};
+  for (final document in documents) {
+    final board = document['board']?.toString() ?? 'Não identificada';
+    byBoard.putIfAbsent(board, () => []).add(document);
+  }
+  return {
+    'overall': _scoreMetadata(documents),
+    'byBoard': {
+      for (final entry in byBoard.entries)
+        entry.key: _scoreMetadata(entry.value),
+    },
+    'note': 'Positive and negative ground truth is included only when explicitly annotated in the corpus manifest; an unannotated field is not scored.',
+  };
+}
+
+Map<String, Object?> _scoreMetadata(List<Map<String, Object?>> documents) {
+  const fields = [
+    'title',
+    'board',
+    'institution',
+    'year',
+    'category',
+    'instance',
+  ];
+  final result = <String, Object?>{};
+  for (final field in fields) {
+    var positives = 0;
+    var negatives = 0;
+    var truePositive = 0;
+    var falsePositive = 0;
+    var falseNegative = 0;
+    var trueNegative = 0;
+    var negativeFalsePositive = 0;
+    var abstained = 0;
+    var identifiedPositive = 0;
+    for (final document in documents) {
+      final truth = document['metadataGroundTruth'];
+      if (truth is! Map) continue;
+      final truthKey = field == 'title' ? 'titleContains' : field;
+      if (!truth.containsKey(truthKey)) continue;
+      final expected = truth[truthKey];
+      final metadata = document['metadata'];
+      final suggested = metadata is Map ? metadata['suggested'] : null;
+      final actual = suggested is Map ? suggested[field] : null;
+      if (expected == null) {
+        negatives++;
+        if (actual == null) {
+          trueNegative++;
+        } else {
+          falsePositive++;
+          negativeFalsePositive++;
+        }
+        continue;
+      }
+
+      positives++;
+      if (actual == null) {
+        abstained++;
+        falseNegative++;
+        continue;
+      }
+      identifiedPositive++;
+      final matches = field == 'title'
+          ? _normalizeMetadata(actual.toString())
+                .contains(_normalizeMetadata(expected.toString()))
+          : _metadataValuesEqual(actual, expected);
+      if (matches) {
+        truePositive++;
+      } else {
+        falsePositive++;
+        falseNegative++;
+      }
+    }
+    result[field] = {
+      'annotatedPositiveDocuments': positives,
+      'annotatedNegativeDocuments': negatives,
+      'truePositive': truePositive,
+      'falsePositive': falsePositive,
+      'falseNegative': falseNegative,
+      'trueNegative': trueNegative,
+      'abstainedOnPositive': abstained,
+      'coverage': positives == 0 ? null : identifiedPositive / positives,
+      'precision': truePositive + falsePositive == 0
+          ? null
+          : truePositive / (truePositive + falsePositive),
+      'recall': positives == 0 ? null : truePositive / positives,
+      'negativeFalsePositiveRate': negatives == 0
+          ? null
+          : negativeFalsePositive / negatives,
+    };
+  }
+  return result;
+}
+
+bool _metadataValuesEqual(Object actual, Object expected) {
+  if (actual is num && expected is num) {
+    return actual == expected;
+  }
+  return _normalizeMetadata(actual.toString()) ==
+      _normalizeMetadata(expected.toString());
+}
+
+String _normalizeMetadata(String value) => value
+    .toLowerCase()
+    .replaceAll(RegExp('[áàâãä]'), 'a')
+    .replaceAll(RegExp('[éèêë]'), 'e')
+    .replaceAll(RegExp('[íìîï]'), 'i')
+    .replaceAll(RegExp('[óòôõö]'), 'o')
+    .replaceAll(RegExp('[úùûü]'), 'u')
+    .replaceAll('ç', 'c')
+    .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+    .trim();
 
 Future<Map<String, dynamic>?> _readPreviousReport(File reportFile) async {
   if (!await reportFile.exists()) return null;

@@ -62,7 +62,7 @@ class PageFurnitureFilter {
   /// A line that starts a question or an item is content, never furniture,
   /// however regularly it lands on a page edge.
   static final RegExp _questionLabel = RegExp(
-    r'^(?:quest[ãa]o|q(?:uest[ãa]o)?\.?\s*\d|item\s|quest\.|question)',
+    r'^(?:quest(?:[ãa]o|[õo]es)?\b|q(?:uest[ãa]o)?\.?\s*\d|item\s|quest\.|question)',
     caseSensitive: false,
   );
 

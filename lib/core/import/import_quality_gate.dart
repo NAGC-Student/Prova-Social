@@ -290,7 +290,8 @@ class ImportQualityGate {
       final hasInvalidOptions =
           requiresOptions &&
           (question.options.length < 2 ||
-              question.options.any((option) => option.trim().isEmpty));
+              (!question.hasVisualOptions &&
+                  question.options.any((option) => option.trim().isEmpty)));
       final hasUnknownFormat = question.format == QuestionFormat.unknown;
       if (!hasInvalidAnswer &&
           !hasInvalidStatement &&

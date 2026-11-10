@@ -32,6 +32,9 @@ class ExamSearchFilters {
     this.year,
     this.category,
     this.source,
+    this.board,
+    this.institution,
+    this.instance,
     this.topic,
     this.author,
   });
@@ -39,6 +42,9 @@ class ExamSearchFilters {
   final int? year;
   final String? category;
   final String? source;
+  final String? board;
+  final String? institution;
+  final String? instance;
   final String? topic;
   final String? author;
 
@@ -47,6 +53,11 @@ class ExamSearchFilters {
         if (year != null && exam.year != year) return false;
         if (category != null && exam.category != category) return false;
         if (source != null && exam.author != source) return false;
+        if (board != null && exam.board != board) return false;
+        if (institution != null && exam.institution != institution) {
+          return false;
+        }
+        if (instance != null && exam.instance != instance) return false;
         if (author != null && exam.uploaderName != author) return false;
         if (topic != null &&
             !exam.questions.any((question) => question.topic == topic)) {
@@ -60,6 +71,9 @@ class ExamSearchFilters {
     year,
     category,
     source,
+    board,
+    institution,
+    instance,
     topic,
     author,
   ].where((value) => value != null).length;
@@ -84,6 +98,30 @@ Future<ExamSearchFilters?> showExamSearchFilters({
         ..sort();
   final sources = candidates.map((exam) => exam.author).toSet().toList()
     ..sort();
+  final boards =
+      candidates
+          .map((exam) => exam.board)
+          .whereType<String>()
+          .where((value) => value.trim().isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+  final institutions =
+      candidates
+          .map((exam) => exam.institution)
+          .whereType<String>()
+          .where((value) => value.trim().isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+  final instances =
+      candidates
+          .map((exam) => exam.instance)
+          .whereType<String>()
+          .where((value) => value.trim().isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
   final authors =
       candidates
           .map((exam) => exam.uploaderName)
@@ -102,6 +140,9 @@ Future<ExamSearchFilters?> showExamSearchFilters({
   var yearFilter = initial.year;
   var categoryFilter = initial.category;
   var sourceFilter = initial.source;
+  var boardFilter = initial.board;
+  var institutionFilter = initial.institution;
+  var instanceFilter = initial.instance;
   var topicFilter = initial.topic;
   var authorFilter = initial.author;
 
@@ -139,8 +180,32 @@ Future<ExamSearchFilters?> showExamSearchFilters({
                   onChanged: (value) =>
                       updateSheet(() => categoryFilter = value),
                 ),
+                if (boards.isNotEmpty)
+                  _FilterDropdown(
+                    label: 'Banca',
+                    value: boardFilter,
+                    options: boards,
+                    onChanged: (value) =>
+                        updateSheet(() => boardFilter = value),
+                  ),
+                if (institutions.isNotEmpty)
+                  _FilterDropdown(
+                    label: 'Instituição',
+                    value: institutionFilter,
+                    options: institutions,
+                    onChanged: (value) =>
+                        updateSheet(() => institutionFilter = value),
+                  ),
+                if (instances.isNotEmpty)
+                  _FilterDropdown(
+                    label: 'Etapa / caderno',
+                    value: instanceFilter,
+                    options: instances,
+                    onChanged: (value) =>
+                        updateSheet(() => instanceFilter = value),
+                  ),
                 _FilterDropdown(
-                  label: 'Banca / fonte',
+                  label: 'Fonte',
                   value: sourceFilter,
                   options: sources,
                   onChanged: (value) => updateSheet(() => sourceFilter = value),
@@ -167,6 +232,9 @@ Future<ExamSearchFilters?> showExamSearchFilters({
                       year: yearFilter,
                       category: categoryFilter,
                       source: sourceFilter,
+                      board: boardFilter,
+                      institution: institutionFilter,
+                      instance: instanceFilter,
                       topic: topicFilter,
                       author: authorFilter,
                     ),
@@ -208,6 +276,9 @@ class _SearchPageState extends State<SearchPage> {
   int? _yearFilter;
   String? _categoryFilter;
   String? _sourceFilter;
+  String? _boardFilter;
+  String? _institutionFilter;
+  String? _instanceFilter;
   String? _topicFilter;
   String? _authorFilter;
 
@@ -221,6 +292,9 @@ class _SearchPageState extends State<SearchPage> {
     year: _yearFilter,
     category: _categoryFilter,
     source: _sourceFilter,
+    board: _boardFilter,
+    institution: _institutionFilter,
+    instance: _instanceFilter,
     topic: _topicFilter,
     author: _authorFilter,
   ).apply(_results);
@@ -229,6 +303,9 @@ class _SearchPageState extends State<SearchPage> {
     _yearFilter,
     _categoryFilter,
     _sourceFilter,
+    _boardFilter,
+    _institutionFilter,
+    _instanceFilter,
     _topicFilter,
     _authorFilter,
   ].where((value) => value != null).length;
@@ -288,6 +365,9 @@ class _SearchPageState extends State<SearchPage> {
       _yearFilter = null;
       _categoryFilter = null;
       _sourceFilter = null;
+      _boardFilter = null;
+      _institutionFilter = null;
+      _instanceFilter = null;
       _topicFilter = null;
       _authorFilter = null;
     });
@@ -345,6 +425,9 @@ class _SearchPageState extends State<SearchPage> {
         year: _yearFilter,
         category: _categoryFilter,
         source: _sourceFilter,
+        board: _boardFilter,
+        institution: _institutionFilter,
+        instance: _instanceFilter,
         topic: _topicFilter,
         author: _authorFilter,
       ),
@@ -354,6 +437,9 @@ class _SearchPageState extends State<SearchPage> {
       _yearFilter = filters.year;
       _categoryFilter = filters.category;
       _sourceFilter = filters.source;
+      _boardFilter = filters.board;
+      _institutionFilter = filters.institution;
+      _instanceFilter = filters.instance;
       _topicFilter = filters.topic;
       _authorFilter = filters.author;
     });
@@ -668,6 +754,9 @@ class _SearchPageState extends State<SearchPage> {
                               _yearFilter = null;
                               _categoryFilter = null;
                               _sourceFilter = null;
+                              _boardFilter = null;
+                              _institutionFilter = null;
+                              _instanceFilter = null;
                               _topicFilter = null;
                               _authorFilter = null;
                             }),
@@ -712,6 +801,12 @@ class _SearchPageState extends State<SearchPage> {
                               final year = exam.year == null
                                   ? ''
                                   : ' · ${exam.year}';
+                              final identity = [exam.board, exam.institution]
+                                  .whereType<String>()
+                                  .where((value) {
+                                    return value.trim().isNotEmpty;
+                                  })
+                                  .join(' · ');
                               return ListTile(
                                 leading: const Icon(Icons.menu_book_outlined),
                                 title: Text(
@@ -733,10 +828,12 @@ class _SearchPageState extends State<SearchPage> {
                                           compact: true,
                                         ),
                                         Text('${exam.category}$year'),
+                                        if (exam.instance case final instance?)
+                                          Text(instance),
                                       ],
                                     ),
                                     Text(
-                                      '${exam.author} · '
+                                      '${identity.isEmpty ? '' : '$identity · '}${exam.author} · '
                                       '${exam.questions.length} questões'
                                       '${exam.uploaderName == null ? '' : ' · por ${exam.uploaderName}'}',
                                       maxLines: 2,

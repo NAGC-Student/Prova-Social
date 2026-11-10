@@ -147,6 +147,9 @@ class PublishPage extends StatelessWidget {
             title: exam.title,
             category: exam.category,
             source: exam.source,
+            board: exam.board,
+            institution: exam.institution,
+            instance: exam.instance,
             sourceUrl: exam.sourceUrl,
             durationMinutes: exam.durationMinutes,
             year: exam.year,
@@ -524,9 +527,14 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
       bytes,
       requestedPreviewPages,
     );
+    final metadataPages = extraction.pages
+        .take(5)
+        .map((page) => '${page.text}\n${page.nativeText}')
+        .toList(growable: false);
     final suggestion = suggestExamMetadata(
       fileName: widget.file.name,
-      firstPageText: extraction.pages.firstOrNull?.text ?? '',
+      firstPageText: metadataPages.firstOrNull ?? '',
+      pages: metadataPages,
     );
     final questionVisualSources = associateQuestionVisualSources(questions);
     final referenceMaterials = <SupportingMaterial>[];
@@ -573,6 +581,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
           'answerKeyApplied': answerKeyApplication?.applied ?? 0,
           'banca': layoutProfile.banca,
           'questionLayout': layoutProfile.layout.name,
+          'metadataIdentification': suggestion.toJson(),
           'languages': questions
               .map((q) => q.language)
               .whereType<String>()
@@ -699,7 +708,8 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
             ? 'Informe um número inteiro maior que zero ou deixe vazio.'
             : null;
         if (!suggestionsApplied) {
-          title.text = result.suggestion.title;
+          title.text = result.suggestion.title ?? '';
+          category.text = result.suggestion.category ?? '';
           year.text = result.suggestion.year?.toString() ?? '';
           suggestionsApplied = true;
         }
@@ -783,6 +793,46 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                         ],
                       ),
                     ],
+                    if (result.suggestion.board != null ||
+                        result.suggestion.institution != null ||
+                        result.suggestion.instance != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        [
+                          if (result.suggestion.board case final boardValue?)
+                            'Banca: $boardValue',
+                          if (result.suggestion.institution
+                              case final institutionValue?)
+                            'Instituição: $institutionValue',
+                          if (result.suggestion.instance
+                              case final instanceValue?)
+                            'Etapa: $instanceValue',
+                          if (result.suggestion.year case final yearValue?)
+                            'Ano: $yearValue',
+                        ].join(' · '),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                    if (result
+                        .suggestion
+                        .fieldsNeedingAttention
+                        .isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Revise antes de publicar: ${result.suggestion.fieldsNeedingAttention.map((field) => switch (field) {
+                          'title' => 'título',
+                          'board' => 'banca',
+                          'institution' => 'instituição',
+                          'category' => 'categoria',
+                          'year' => 'ano da prova',
+                          'instance' => 'etapa',
+                          _ => field,
+                        }).join(', ')}.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.lg),
                     Text(
                       'Confirme os dados identificados',
@@ -799,7 +849,9 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                     TextField(
                       controller: source,
                       decoration: const InputDecoration(
-                        labelText: 'Banca ou origem',
+                        labelText: 'Origem ou responsável pelo arquivo',
+                        helperText:
+                            'Este campo não substitui banca nem instituição.',
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -854,7 +906,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                'Confirme título, banca, categoria e duração.',
+                                'Confirme título, origem, categoria e duração.',
                               ),
                             ),
                           );
@@ -881,6 +933,9 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                               title: title.text.trim(),
                               category: category.text.trim(),
                               source: source.text.trim(),
+                              board: result.suggestion.board,
+                              institution: result.suggestion.institution,
+                              instance: result.suggestion.instance,
                               sourceUrl: sourceUrl.text.trim(),
                               year: int.tryParse(year.text),
                               durationMinutes:
@@ -1000,6 +1055,9 @@ class ImportReviewPage extends StatefulWidget {
     required this.title,
     required this.category,
     required this.source,
+    this.board,
+    this.institution,
+    this.instance,
     this.sourceUrl,
     required this.durationMinutes,
     required this.questions,
@@ -1011,6 +1069,7 @@ class ImportReviewPage extends StatefulWidget {
     super.key,
   });
   final String title, category, source;
+  final String? board, institution, instance;
   final String? sourceUrl;
   final int durationMinutes;
   final int? year;
@@ -1028,6 +1087,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
   late final TextEditingController title,
       category,
       source,
+      board,
+      institution,
+      instance,
       sourceUrl,
       duration,
       year;
@@ -1052,6 +1114,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
     title = TextEditingController(text: widget.title);
     category = TextEditingController(text: widget.category);
     source = TextEditingController(text: widget.source);
+    board = TextEditingController(text: widget.board ?? '');
+    institution = TextEditingController(text: widget.institution ?? '');
+    instance = TextEditingController(text: widget.instance ?? '');
     sourceUrl = TextEditingController(text: widget.sourceUrl ?? '');
     duration = TextEditingController(
       text: widget.durationMinutes > 0 ? '${widget.durationMinutes}' : '',
@@ -1114,6 +1179,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
       title,
       category,
       source,
+      board,
+      institution,
+      instance,
       sourceUrl,
       duration,
       year,
@@ -1135,6 +1203,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
     title: title.text,
     category: category.text,
     source: source.text,
+    board: _nullableMetadata(board.text),
+    institution: _nullableMetadata(institution.text),
+    instance: _nullableMetadata(instance.text),
     sourceUrl: sourceUrl.text.trim().isEmpty ? null : sourceUrl.text.trim(),
     durationMinutes: int.tryParse(duration.text) ?? 0,
     year: int.tryParse(year.text),
@@ -1262,6 +1333,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
       title,
       category,
       source,
+      board,
+      institution,
+      instance,
       sourceUrl,
       duration,
       year,
@@ -1328,11 +1402,39 @@ class _ImportReviewPageState extends State<ImportReviewPage>
           durationMinutes: int.tryParse(duration.text.trim()) ?? 0,
           year: parsedYear,
           sourceUrl: sourceUrl.text,
+          board: board.text,
+          institution: institution.text,
+          instance: instance.text,
         ) ??
         ExamPublicationContract.questionsError(
           questions,
           allowOpenEnded: false,
         );
+  }
+
+  String? _nullableMetadata(String value) {
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  String _metadataEvidence(String field) {
+    final identification =
+        widget.importedDocument?.metadata['metadataIdentification'];
+    if (identification is Map) {
+      final evidence = identification['evidence'];
+      if (evidence is Map && evidence[field] is Map) {
+        final item = evidence[field] as Map;
+        final page = item['page'];
+        if (page is int) {
+          return 'Identificado na página $page. Revise antes de publicar.';
+        }
+      }
+      final pending = identification['fieldsNeedingAttention'];
+      if (pending is List && pending.contains(field)) {
+        return 'Sem evidência suficiente no documento. Confirme ou deixe vazio.';
+      }
+    }
+    return 'Opcional. Preencha somente se houver evidência confiável.';
   }
 
   List<ImportedQuestion> get _playableQuestions => questions
@@ -1423,6 +1525,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
         title: normalizedTitle.isEmpty ? 'Prova sem título' : normalizedTitle,
         category: normalizedCategory.isEmpty ? 'Geral' : normalizedCategory,
         source: source.text.trim(),
+        board: _nullableMetadata(board.text),
+        institution: _nullableMetadata(institution.text),
+        instance: _nullableMetadata(instance.text),
         sourceUrl: sourceUrl.text.trim().isEmpty ? null : sourceUrl.text.trim(),
         durationMinutes: int.tryParse(duration.text) ?? 0,
         year: int.tryParse(year.text),
@@ -1470,8 +1575,37 @@ class _ImportReviewPageState extends State<ImportReviewPage>
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Publicar para todos?'),
-          content: Text(
-            '“${title.text}” ficará visível no catálogo público. Confirme que pode compartilhar este conteúdo.',
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Confira os dados que acompanharão esta prova no catálogo público. Campos vazios permanecerão sem identificação.',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                for (final field in [
+                  ('Título', title.text),
+                  ('Categoria / matéria', category.text),
+                  ('Banca', board.text),
+                  ('Instituição responsável', institution.text),
+                  ('Etapa / caderno', instance.text),
+                  ('Ano da prova', year.text),
+                  ('Origem do arquivo', source.text),
+                  ('Link da fonte', sourceUrl.text),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                    child: Text(
+                      '${field.$1}: ${field.$2.trim().isEmpty ? 'Não informado' : field.$2.trim()}',
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.sm),
+                const Text(
+                  'Confirme também que você tem autorização para compartilhar o conteúdo.',
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1528,6 +1662,9 @@ class _ImportReviewPageState extends State<ImportReviewPage>
         sourceUrl: sourceUrl.text,
         durationMinutes: int.parse(duration.text),
         year: int.tryParse(year.text),
+        board: _nullableMetadata(board.text),
+        institution: _nullableMetadata(institution.text),
+        instance: _nullableMetadata(instance.text),
         questions: questions,
         media: media,
       );
@@ -1567,8 +1704,10 @@ class _ImportReviewPageState extends State<ImportReviewPage>
   Widget _header() {
     final metadataSummary = [
       title.text.trim(),
-      source.text.trim(),
+      board.text.trim(),
+      institution.text.trim(),
       category.text.trim(),
+      year.text.trim(),
     ].where((value) => value.isNotEmpty).join(' · ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1595,7 +1734,7 @@ class _ImportReviewPageState extends State<ImportReviewPage>
           subtitle: Text(
             metadataSummary.isEmpty
                 ? 'Título, banca e matéria'
-                : metadataSummary,
+                : '$metadataSummary${board.text.trim().isEmpty || institution.text.trim().isEmpty ? ' · Revise os dados pendentes' : ''}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1609,18 +1748,26 @@ class _ImportReviewPageState extends State<ImportReviewPage>
             ),
             const SizedBox(height: 8),
             for (final field in [
-              (title, 'Título'),
-              (category, 'Concurso / matéria'),
-              (source, 'Banca ou origem'),
-              (duration, 'Duração em minutos'),
-              (year, 'Ano (opcional)'),
+              (title, 'Título', null),
+              (category, 'Concurso / matéria', null),
+              (board, 'Banca', 'board'),
+              (institution, 'Instituição responsável', 'institution'),
+              (instance, 'Etapa / caderno (opcional)', 'instance'),
+              (source, 'Origem ou responsável pelo arquivo', null),
+              (duration, 'Duração em minutos', null),
+              (year, 'Ano (opcional)', null),
             ])
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextField(
                   controller: field.$1,
                   enabled: !busy,
-                  decoration: InputDecoration(labelText: field.$2),
+                  decoration: InputDecoration(
+                    labelText: field.$2,
+                    helperText: field.$3 == null
+                        ? null
+                        : _metadataEvidence(field.$3!),
+                  ),
                 ),
               ),
           ],

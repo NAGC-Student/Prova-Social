@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:prova_social/core/import/answer_key_parser.dart';
 import 'package:prova_social/core/import/exam_layout_profile.dart';
 import 'package:prova_social/core/import/import_quality_gate.dart';
+import 'package:prova_social/core/import/exam_metadata_suggester.dart';
 import 'package:prova_social/core/import/pdf_text_extractor.dart';
 import 'package:prova_social/core/import/question_parser.dart';
 
@@ -40,6 +41,15 @@ void main() {
       final questions = const QuestionParser().parsePages(pageTexts);
       final quality = const ImportQualityGate().assess(extraction, questions);
       final profile = const ExamLayoutProfiler().profile(pageTexts);
+      final metadataPages = extraction.pages
+          .take(5)
+          .map((page) => '${page.text}\n${page.nativeText}')
+          .toList(growable: false);
+      final metadata = suggestExamMetadata(
+        fileName: _sample.path,
+        firstPageText: metadataPages.first,
+        pages: metadataPages,
+      );
 
       expect(extraction.pageCount, 32);
       expect(extraction.unreadablePages, 0);
@@ -68,7 +78,12 @@ void main() {
         questions.map((question) => question.statement).join(' '),
         isNot(contains('PROVA_SOCIAL_PAGE_')),
       );
-      expect(profile.banca, 'ENEM');
+      expect(profile.banca, isNull);
+      expect(metadata.year, 2025);
+      expect(metadata.category, 'Exame nacional');
+      expect(metadata.instance, contains('dia'));
+      expect(metadata.instance, contains('Caderno 1'));
+      expect(metadata.title, startsWith('ENEM 2025'));
       expect(quality.questionsNeedingReview, lessThanOrEqualTo(12));
     },
     timeout: const Timeout(Duration(minutes: 5)),

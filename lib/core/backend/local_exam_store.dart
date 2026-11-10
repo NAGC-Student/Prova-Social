@@ -23,6 +23,9 @@ class LocalExam {
     required this.durationMinutes,
     required this.questions,
     this.year,
+    this.board,
+    this.institution,
+    this.instance,
     this.sourceUrl,
     this.pendingPublication = false,
     this.reviewIndex = 0,
@@ -33,6 +36,9 @@ class LocalExam {
   final String id, title, category, source;
   final int durationMinutes;
   final int? year;
+  final String? board;
+  final String? institution;
+  final String? instance;
   final String? sourceUrl;
   final List<ImportedQuestion> questions;
   final bool pendingPublication;
@@ -55,6 +61,9 @@ class LocalExam {
     'sourceUrl': sourceUrl,
     'durationMinutes': durationMinutes,
     'year': year,
+    'board': board,
+    'institution': institution,
+    'instance': instance,
     'pendingPublication': pendingPublication,
     'downloaded': downloaded,
     'sourceType': sourceType.name,
@@ -99,6 +108,9 @@ class LocalExam {
       sourceUrl: data['sourceUrl'] as String?,
       durationMinutes: data['durationMinutes'] as int,
       year: data['year'] as int?,
+      board: data['board'] as String?,
+      institution: data['institution'] as String?,
+      instance: data['instance'] as String?,
       pendingPublication: data['pendingPublication'] == true,
       downloaded: data['downloaded'] == true,
       sourceType: ExamSourceType.fromDatabase(data['sourceType']),
@@ -122,6 +134,9 @@ class LocalExam {
   Exam get exam => Exam(
     id: downloaded ? id : attemptExamId,
     sourceUrl: sourceUrl,
+    board: board,
+    institution: institution,
+    instance: instance,
     title: title,
     category: category,
     description: 'Prova privada salva neste aparelho.',
@@ -138,10 +153,15 @@ class LocalExam {
             id: downloaded ? e.value.id : '$id-${e.key}',
             topic: category,
             statement: e.value.statement,
-            options: e.value.options,
+            options: [
+              for (var option = 0; option < e.value.options.length; option++)
+                e.value.options[option].trim().isNotEmpty
+                    ? e.value.options[option]
+                    : 'Alternativa ${String.fromCharCode(65 + option)} (imagem na página original)',
+            ],
             correctIndex: e.value.correctIndex,
             media: [
-              if (downloaded && importedDocument != null)
+              if (importedDocument != null)
                 for (final number in e.value.sourcePages)
                   for (final page in importedDocument!.pages)
                     if (page.number == number && page.previewBytes != null)
@@ -153,6 +173,20 @@ class LocalExam {
                         altText: page.mediaAltText ?? '',
                         localBytes: page.previewBytes,
                       ),
+              for (final entry in e.value.optionImageBase64.entries)
+                if (entry.key >= 0 && entry.key < e.value.options.length)
+                  () {
+                    final imageBytes = base64Decode(entry.value);
+                    final letter = String.fromCharCode(65 + entry.key);
+                    return QuestionMedia(
+                      id: '$id-${e.key}-option-${entry.key + 1}',
+                      objectKey: '',
+                      mimeType: 'image/jpeg',
+                      sha256: sha256.convert(imageBytes).toString(),
+                      altText: 'Alternativa $letter',
+                      localBytes: imageBytes,
+                    );
+                  }(),
             ],
           ),
         )

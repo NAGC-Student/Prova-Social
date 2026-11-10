@@ -19,6 +19,30 @@ declare
     'content_files'
   ];
 begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'exams'
+      and column_name = 'board'
+  ) or not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'exams'
+      and column_name = 'institution'
+  ) or not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'exams'
+      and column_name = 'instance'
+  ) then
+    raise exception 'metadata identity columns are missing';
+  end if;
+
+  if has_function_privilege(
+    'anon',
+    'public.publish_exam_with_metadata(text,text,text,text,integer,integer,jsonb,text,text,text,text,jsonb)',
+    'EXECUTE'
+  ) then
+    raise exception 'anonymous users can execute metadata publication';
+  end if;
+
   foreach v_table in array v_tables loop
     if to_regclass('public.' || v_table) is null then
       raise exception 'tabela ausente: public.%', v_table;
@@ -126,6 +150,7 @@ select set_config(
 do $$
 declare
   v_exam_id uuid;
+  v_metadata_exam_id uuid;
   v_question_id uuid;
   v_collection_id uuid;
   v_comment_id uuid;
@@ -135,6 +160,35 @@ begin
     '[{"statement":"Questão social?","topic":"Geral","options":["A","B"],"correct_index":0}]'
   );
   perform set_config('test.social_exam', v_exam_id::text, false);
+
+  v_metadata_exam_id := public.publish_exam_with_metadata(
+    'Prova com metadados', 'Concurso público', 'Fonte', 'community',
+    2024, 30,
+    '[{"statement":"Questão de metadados?","topic":"Geral","options":["A","B"],"correct_index":0}]',
+    null, 'VUNESP', 'Polícia Militar do Estado de São Paulo',
+    'Prova objetiva — Parte I', '[]'::jsonb
+  );
+  if not exists (
+    select 1 from public.exams
+    where id = v_metadata_exam_id
+      and board = 'VUNESP'
+      and institution = 'Polícia Militar do Estado de São Paulo'
+      and instance = 'Prova objetiva — Parte I'
+  ) then
+    raise exception 'RPC não persistiu metadados de identidade distintos';
+  end if;
+
+  begin
+    perform public.publish_exam_with_metadata(
+      'Prova com metadados inválidos', 'Concurso público', 'Fonte', 'community',
+      2024, 30,
+      '[{"statement":"Questão?","topic":"Geral","options":["A","B"],"correct_index":0}]',
+      null, repeat('x', 121), null, null, '[]'::jsonb
+    );
+    raise exception 'RPC aceitou banca acima do limite';
+  exception when sqlstate '22023' then
+    null;
+  end;
 
   select id into v_question_id
   from public.questions

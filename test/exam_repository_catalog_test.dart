@@ -13,6 +13,10 @@ Map<String, dynamic> examRow(String id, String createdAt) => {
   'category': 'General',
   'source_name': 'Community',
   'source_type': 'community',
+  'board': 'VUNESP',
+  'institution': 'Polícia Militar de São Paulo',
+  'instance': 'Prova objetiva — Parte I',
+  'year': 2024,
   'duration_minutes': 60,
   'attempts_count': 0,
   'created_at': createdAt,
@@ -40,6 +44,10 @@ void main() {
 
     expect(exam.author, 'Community');
     expect(exam.uploaderName, 'Ana');
+    expect(exam.board, 'VUNESP');
+    expect(exam.institution, 'Polícia Militar de São Paulo');
+    expect(exam.instance, 'Prova objetiva — Parte I');
+    expect(exam.year, 2024);
   });
 
   test('maps question media to the stable question record', () {

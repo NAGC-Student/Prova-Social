@@ -52,6 +52,9 @@ void main() {
       int durationMinutes = 60,
       int? year = 2024,
       String? sourceUrl,
+      String? board,
+      String? institution,
+      String? instance,
     }) => ExamPublicationContract.metadataError(
       title: title,
       category: category,
@@ -59,6 +62,9 @@ void main() {
       durationMinutes: durationMinutes,
       year: year,
       sourceUrl: sourceUrl,
+      board: board,
+      institution: institution,
+      instance: instance,
     );
 
     test('aceita metadados válidos', () {
@@ -90,6 +96,14 @@ void main() {
         error(sourceUrl: 'https://user:senha@prova.example.org'),
         contains('HTTPS'),
       );
+    });
+
+    test('validates optional board, institution and instance lengths', () {
+      expect(error(), isNull);
+      expect(error(board: 'B' * 121), contains('banca'));
+      expect(error(institution: 'I' * 181), contains('instituição'));
+      expect(error(instance: 'E' * 121), contains('etapa'));
+      expect(error(board: '  '), isNull);
     });
   });
 

@@ -102,7 +102,7 @@ mostrar separadamente quantas ficaram fora.
 - No caminho inspecionado não há um extrator matemático dedicado que reconheça
   ou valide fórmulas como estruturas; texto OCR legível não prova que a fórmula
   foi reconstruída corretamente.
-- `ImportDiagnosticEvent` gera apenas códigos estruturais, versão `pacer-v3` e
+- `ImportDiagnosticEvent` gera apenas códigos estruturais, versão `pacer-v4` e
   uma impressão digital SHA-256 de padrões de linha, sem texto da prova. O
   próprio código declara que esses diagnósticos não devem ser transmitidos; não
   há fluxo de envio de feedback no scanner auditado.
@@ -163,7 +163,7 @@ Exemplo de formato (valores fictícios):
   "feedback_id": "550e8400-e29b-41d4-a716-446655440000",
   "created_at": "2026-11-04T12:00:00Z",
   "app_version": "0.7.5+15",
-  "parser_version": "pacer-v3",
+  "parser_version": "pacer-v4",
   "failure": {
     "type": "required_image_missing",
     "question_number": 53,
@@ -270,7 +270,7 @@ engenharia com reprodução e teste de regressão. A rotina fechada é:
    copiar a prova inteira para o repositório; guardar apenas o recorte necessário
    e autorizado.
 5. **Correção e teste.** A correção entra com teste de regressão que falha antes
-   e passa depois. O parser/OCR ganha versão (`pacer-v3` → próxima) e o caso é
+  e passa depois. O parser/OCR ganha versão (`pacer-v4` → próxima) e o caso é
    ligado à versão.
 6. **Liberação e retorno.** O aparelho de origem é avisado para tentar de novo.
    Se funcionar, `verified`; se não, volta para investigação. A retenção é de

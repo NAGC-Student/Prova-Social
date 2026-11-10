@@ -56,6 +56,18 @@ void main() {
       expect(key.length, 12);
     });
 
+    test('lê grades cujos números e letras viraram linhas separadas', () {
+      final key = parser.parsePages([
+        'GABARITO OFICIAL\n'
+            '01\nB\n02\nC\n03\nA\n04\nD\n05\nB\n06\nC\n'
+            '07\nA\n08\nD\n09\nB\n10\nC\n11\nA\n12\nD',
+      ]);
+
+      expect(key.length, 12);
+      expect(key.byNumber[1], 'B');
+      expect(key.byNumber[12], 'D');
+    });
+
     test('emenda o gabarito que não coube em uma página', () {
       final key = parser.parsePages([
         'GABARITO\n1-B\n2-C\n3-A',

@@ -26,7 +26,7 @@ class ImportDiagnosticEvent {
     this.regexRule,
   });
 
-  static const currentParserVersion = 'pacer-v3';
+  static const currentParserVersion = 'pacer-v4';
 
   final String parserVersion;
   final String sourceType;

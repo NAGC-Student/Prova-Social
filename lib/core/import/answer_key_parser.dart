@@ -101,6 +101,10 @@ class AnswerKeyParser {
   );
 
   static final RegExp _blank = RegExp(r'^\s*$');
+  static final RegExp _standaloneNumber = RegExp(r'^\s*(\d{1,3})\s*$');
+  static final RegExp _standaloneLabel = RegExp(
+    r'^\s*\(?([A-Ha-hVvFf])\)?\s*$',
+  );
 
   static final RegExp _pageMarker = RegExp(
     r'^\u0000PROVA_SOCIAL_PAGE_(\d+)\u0000$',
@@ -250,7 +254,8 @@ class AnswerKeyParser {
   /// Question number to label, over the lines of one block.
   Map<int, String> _entries(List<String> block) {
     final pairs = <int, String>{};
-    for (final line in block) {
+    for (var index = 0; index < block.length; index++) {
+      final line = block[index];
       for (final match in _wordPair.allMatches(line)) {
         final number = _number(match);
         if (number == null) continue;
@@ -265,6 +270,14 @@ class AnswerKeyParser {
         if (number == null) continue;
         pairs.putIfAbsent(number, () => match.group(2)!.toUpperCase());
       }
+      final numberMatch = _standaloneNumber.firstMatch(line);
+      if (numberMatch == null || index + 1 == block.length) continue;
+      final labelMatch = _standaloneLabel.firstMatch(block[index + 1]);
+      if (labelMatch == null) continue;
+      final number = int.tryParse(numberMatch.group(1)!);
+      if (number == null || number < 1 || number > _maximumNumber) continue;
+      pairs.putIfAbsent(number, () => labelMatch.group(1)!.toUpperCase());
+      index++;
     }
     return pairs;
   }

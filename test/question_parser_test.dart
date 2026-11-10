@@ -25,6 +25,22 @@ D) 6
     expect(questions.last.options[1], '4');
   });
 
+  test('restores a complete numbered sequence extracted out of order', () {
+    final questions = parser.parse('''
+Questão 2. Segunda pergunta?
+A) Sim.
+B) Não.
+
+Questão 1. Primeira pergunta?
+A) Sim.
+B) Não.
+''');
+
+    expect(questions.map((question) => question.number), [1, 2]);
+    expect(questions.first.statement, contains('Primeira pergunta'));
+    expect(questions.last.statement, contains('Segunda pergunta'));
+  });
+
   test('preserva 80 questões sintéticas em ordem, sem perder alternativas', () {
     final source = List.generate(80, (index) {
       final number = index + 1;
@@ -44,6 +60,56 @@ E) Quinta alternativa da questão $number.
       for (var number = 1; number <= 80; number++) number,
     ]);
     expect(questions.every((question) => question.options.length == 5), isTrue);
+  });
+
+  test(
+    'preserva a sequência em títulos de texto e lê alternativas circuladas',
+    () {
+      final questions = parser.parse('''
+20 Assinale a alternativa correta. Ⓐ Primeira. Ⓑ Segunda. Ⓒ Terceira. Ⓓ Quarta. Ⓔ Quinta.
+TEXTO III
+Texto de apoio que pertence à questão seguinte.
+TEXTO V
+21 Com base no texto, indique a resposta. Ⓐ Primeira. Ⓑ Segunda. Ⓒ Terceira. Ⓓ Quarta. Ⓔ Quinta.
+TEXTO VI
+22 Analisando o trecho, escolha a resposta. Ⓐ Primeira. Ⓑ Segunda. Ⓒ Terceira. Ⓓ Quarta. Ⓔ Quinta.
+HISTÓRIA E GEOGRAFIA DO BRASIL
+23 Considerações sobre o tema orientam a escolha. Ⓐ Primeira. Ⓑ Segunda. Ⓒ Terceira. Ⓓ Quarta. Ⓔ Quinta.
+''');
+
+      expect(questions.map((question) => question.number), [20, 21, 22, 23]);
+      expect(questions.first.options.last, 'Quinta.');
+      expect(
+        questions.every(
+          (question) =>
+              question.format == QuestionFormat.multipleChoice &&
+              question.options.length == 5,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test('recupera marcador sequencial após referência na mesma linha', () {
+    final questions = parser.parse('''
+19 Assinale uma opção correta?
+A) Primeira.
+B) Segunda.
+C) Terceira.
+D) Quarta.
+E) Quinta.
+12 - Questões - valor de 0,000 a 10,000 (dez) 20 "A afirmação abaixo está correta?"
+A) Sim.
+B) Não.
+C) Talvez.
+D) Nunca.
+E) Sempre.
+''');
+
+    expect(questions.map((question) => question.number), [19, 20]);
+    expect(questions.last.statement, contains('A afirmação abaixo'));
+    expect(questions.last.statement, isNot(contains('Fonte oficial')));
+    expect(questions.last.options, hasLength(5));
   });
 
   test(
@@ -158,6 +224,75 @@ E) Opção cinco.
     expect(questions.first.options, hasLength(5));
     expect(questions.last.statement, contains('Considere o texto'));
   });
+
+  test('sai das instruções diante de questão numerada com alternativas', () {
+    const source = '''
+INSTRUÇÕES
+Leia o caderno antes de começar.
+
+01 Considere a situação descrita e assinale a resposta correta?
+A) Primeira alternativa.
+B) Segunda alternativa.
+''';
+
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(1));
+    expect(questions.single.number, 1);
+    expect(questions.single.options, hasLength(2));
+    expect(questions.single.statement, contains('situação descrita'));
+  });
+
+  test('não confunde total de questões da seção com questão numerada', () {
+    const source = '''
+14 - Questões - valor total 10 pontos
+01 A robótica tem se tornado cada vez mais presente?
+A) Primeira alternativa.
+B) Segunda alternativa.
+''';
+
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(1));
+    expect(questions.single.number, 1);
+    expect(questions.single.statement, contains('A robótica'));
+  });
+
+  test(
+    'reconhece marcadores de questão entre chaves após instruções numeradas',
+    () {
+      final questions = parser.parsePages([
+        '''
+INSTRUÇÕES
+1. Leia este caderno.
+2. Confira o número de questões.
+''',
+        '''
+{01}
+Qual alternativa corresponde ao primeiro item?
+(A) Primeira.
+(B) Segunda.
+(C) Terceira.
+(D) Quarta.
+(E) Quinta.
+{02}
+Qual alternativa corresponde ao segundo item?
+(A) Primeira.
+(B) Segunda.
+(C) Terceira.
+(D) Quarta.
+(E) Quinta.
+''',
+      ]);
+
+      expect(questions.map((question) => question.number), [1, 2]);
+      expect(questions.first.statement, contains('primeiro item'));
+      expect(
+        questions.every((question) => question.options.length == 5),
+        isTrue,
+      );
+    },
+  );
 
   test('não trunca seis alternativas', () {
     const source = '''
@@ -304,6 +439,95 @@ Julgue os itens a seguir.
     expect(questions.every((q) => q.options.length == 2), isTrue);
   });
 
+  test(
+    'reconhece itens Cebraspe com números isolados após texto contextual',
+    () {
+      final questions = parser.parsePages([
+        '''
+Texto publicado em 2015.
+PROVAS OBJETIVAS
+CONHECIMENTOS BÁSICOS
+Julgue os itens a seguir.
+1
+A primeira assertiva deve ser julgada.
+2
+A segunda assertiva deve ser julgada.
+3
+A terceira assertiva deve ser julgada.
+''',
+      ]);
+
+      expect(questions.map((question) => question.number), [1, 2, 3]);
+      expect(
+        questions.every(
+          (question) => question.format == QuestionFormat.trueFalse,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test('reinicia a sequência após título de seção em caixa de título', () {
+    final questions = parser.parse('''
+1
+Informação numerada da capa.
+20
+Questões objetivas.
+Conhecimentos Gerais Língua Portuguesa
+1
+Qual alternativa é correta?
+(A) Primeira.
+(B) Segunda.
+(C) Terceira.
+(D) Quarta.
+(E) Quinta.
+2
+Qual alternativa também é correta?
+(A) Primeira.
+(B) Segunda.
+(C) Terceira.
+(D) Quarta.
+(E) Quinta.
+''');
+
+    expect(questions.map((question) => question.number), [1, 2]);
+    expect(questions.every((question) => question.options.length == 5), isTrue);
+  });
+
+  test(
+    'mantém questões numeradas antes de marcador explícito em outra seção',
+    () {
+      final questions = parser.parsePages([
+        '''
+Conhecimentos Gerais Língua Portuguesa
+1
+Qual alternativa corresponde à primeira questão objetiva?
+(A) Primeira.
+(B) Segunda.
+(C) Terceira.
+(D) Quarta.
+(E) Quinta.
+''',
+        '''
+Questões Discursivas (Coordenador Pedagógico)
+Questão 1
+Explique a resposta da primeira questão discursiva.
+1
+2
+20
+''',
+        '''
+FGV CONHECIMENTO
+Questão 2
+Explique a resposta da segunda questão discursiva.
+''',
+      ]);
+
+      expect(questions.map((question) => question.number), [1, 1, 2]);
+      expect(questions.last.number, 2);
+    },
+  );
+
   test('permite processar colunas separadas sem intercalá-las', () {
     final questions = parser.parseColumns([
       '''
@@ -410,6 +634,61 @@ D) Conclusão quatro.
     expect(question.warning, contains('discursiva'));
   });
 
+  test('numera questão discursiva sem rótulo após sequência objetiva', () {
+    final questions = parser.parse('''
+1. Primeira questão objetiva?
+A) Sim.
+B) Não.
+
+Questão Discursiva
+Explique a resposta.
+''');
+
+    expect(questions.map((question) => question.number), [1, 2]);
+    expect(questions.last.format, QuestionFormat.openEnded);
+    expect(questions.last.options, isEmpty);
+  });
+
+  test('não inventa numeração para proposta de redação', () {
+    final questions = parser.parse('''
+50. Última questão objetiva?
+A) Primeira.
+B) Segunda.
+Questão Discursiva de Português (Redação)
+Com base nos textos de apoio, redija um texto dissertativo.
+''');
+
+    expect(questions, hasLength(2));
+    expect(questions.last.number, isNull);
+    expect(questions.last.format, QuestionFormat.openEnded);
+  });
+
+  test('não aceita número zero como questão', () {
+    expect(
+      parser.parse('''
+0
+Texto extraído de um diagrama, sem questão numerada.
+A) Primeira.
+B) Segunda.
+C) Terceira.
+D) Quarta.
+'''),
+      isEmpty,
+    );
+  });
+
+  test('não interpreta números altos sem marcador explícito como questões', () {
+    final questions = parser.parse('''
+2024. Qual alternativa corresponde ao ano do documento?
+A) 2024.
+B) 2025.
+C) 2026.
+D) 2027.
+''');
+
+    expect(questions, isEmpty);
+  });
+
   test('preserva slots de alternativas visuais sem texto extraído', () {
     final questions = parser.parse('''
 53
@@ -425,11 +704,16 @@ Determine o valor indicado na figura.
     expect(questions.single.number, 53);
     expect(questions.single.format, QuestionFormat.multipleChoice);
     expect(questions.single.options, ['', '', '', '', '']);
+    expect(questions.single.hasVisualOptions, isTrue);
     expect(
       questions.single.warning,
       contains('conteúdo visual não foi extraído'),
     );
     expect(questions.single.confidence, .65);
+    expect(
+      ImportedQuestion.fromJson(questions.single.toJson(0)).hasVisualOptions,
+      isTrue,
+    );
   });
 
   test('termina uma questão antes da seção de redação', () {
@@ -700,5 +984,21 @@ D) trinta
     expect(questions, hasLength(1));
     expect(questions.single.format.name, 'multipleChoice');
     expect(questions.single.options, hasLength(4));
+  });
+
+  test('aceita marcador Questao com til separado antes do número', () {
+    const source = '''
+Questao ˜ 18. Um recipiente contém um gás ideal.
+A ( ) primeira expressão.
+B ( ) segunda expressão.
+C ( ) terceira expressão.
+D ( ) quarta expressão.
+E ( ) quinta expressão.
+''';
+    final questions = parser.parse(source);
+
+    expect(questions, hasLength(1));
+    expect(questions.single.number, 18);
+    expect(questions.single.options, hasLength(5));
   });
 }
