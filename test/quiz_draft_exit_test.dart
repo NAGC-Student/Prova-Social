@@ -116,7 +116,7 @@ void main() {
     storage.writes[1].complete();
     await tester.pumpAndSettle();
     expect(find.byType(QuizPage), findsNothing);
-    expect((await store.load('exam'))!.answers[0], 1);
+    expect((await store.load('exam'))!.answers['q1'], 1);
     store.dispose();
   });
 

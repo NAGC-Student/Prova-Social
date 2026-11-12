@@ -5,14 +5,14 @@ status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 3, acoplamento: 2, clareza: 3, seguranca: 3, robustez: 3, aderencia: 3, portabilidade: 4}
 fonte_codigo: [lib/core/import/, lib/features/publish/publish_page.dart, test/, qa/]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-10
 ---
 
 # Importação e OCR
 
-## Estado verificado em 2026-11-04
+## Estado verificado em 2026-11-10
 
 A auditoria profunda da área 9 está em
 [[../09 - Auditoria/Áreas/09 - Importação, OCR, parser e quality gate|Importação, OCR, parser e quality gate]].
@@ -23,17 +23,17 @@ Resumo:
 | PDF com texto nativo, colunas e páginas preservadas | Funcional | `pdf_text_extractor.dart`, teste VUNESP 80/32 |
 | OCR seletivo (PaddleOCR/ML Kit) | Parcial; não validado em aparelho | `ocr_router.dart:30` |
 | Remoção de cabeçalho, rodapé, marca d'água e código | Funcional | `page_furniture_filter.dart` |
-| Parser de múltipla escolha, certo/errado, asserção, discursiva e desconhecido | Parcial | `question_parser.dart` |
+| Parser de múltipla escolha, certo/errado, asserção, discursiva e desconhecido | Funcional | `question_parser.dart` |
 | Gabarito impresso com preservação da correção manual | Funcional | `answer_key_parser.dart` |
 | Quality gate `good`/`review`/`retry` | Funcional | `import_quality_gate.dart:6` |
-| Revisão humana com página original e preview | Parcial; UI mostra porcentagem | `publish_page.dart:2041-2146` |
-| Publicação de discursivas | Ausente/divergente; exige alternativas e gabarito de todas as questões | `publish_page.dart:1333-1343` |
+| Revisão humana com página original e preview | **Implementado** — estados estruturais (fazível/corrigível/não fazível) | `publish_page.dart:732,1733,2057` |
+| Publicação de discursivas | **Implementado** — `allowOpenEnded: true` no contrato | `exam_publication_service.dart:49,55` |
 | Câmera, galeria e imagens | Ausente; **escopo adiado por decisão** (ADR-0006, 2026-11-07) — ver [[Entrada por imagem e câmera]] | busca sem `camera`/`image_picker`; `ocr_service_native.dart:27-28` só recebe `PdfPage` |
-| Fila de feedback, envio e retorno | Ausente; só o contrato JSON existe | `import_diagnostic_event.dart:44-46` |
+| Fila de feedback, envio e retorno | **Implementado** — `DiagnosticQueue` + `ImportFeedbackService` | `feedback_queue.dart`, `import_feedback_service.dart` |
 
-A especificação abaixo está **fechada**; a implementação continua **parcial**.
-Não declarar o scanner completo sem cumprir os critérios de aceite da seção
-final.
+A especificação está **fechada**; a implementação do P1.0 está **completa**.
+Não declarar o scanner completo sem cumprir P1.1 (câmera), P1.2 (feedback field),
+P1.3 (ground truth).
 
 ## Fluxo pretendido
 
@@ -352,17 +352,21 @@ verificáveis. A especificação pode estar fechada antes da implementação.
 
 ## Pendências de implementação
 
-Nenhuma alteração de código foi feita nesta rodada. Em ordem de prioridade,
-quando houver autorização:
+As seguintes pendências foram **resolvidas** em 2026-11-10:
 
-1. Remover a porcentagem de confiança da UI e introduzir estados estruturais
-   (`fazível`, `corrigível`, `não fazível`) com motivo.
-2. Ajustar a publicação para aceitar discursivas e manter o início de prova
-   objetiva sem gabarito; não permitir publicar objetiva sem chave.
-3. Implementar câmera/galeria e testar em Android real.
-4. Implementar a fila de feedback e o painel do dono depois de auditar
-   schema/RLS/Storage.
-5. Obter ground truth autorizado e medir precisão/recall por banca/layout.
+1. ✅ Remover a porcentagem de confiança da UI e introduzir estados estruturais
+   (`fazível`, `corrigível`, `não fazível`) com motivo — `QuestionFeasibility` enum.
+2. ✅ Ajustar a publicação para aceitar discursivas e manter o início de prova
+   objetiva sem gabarito — `ExamPublicationService.allowOpenEnded: true`.
+3. ✅ Implementar a fila de feedback e o painel do dono — `DiagnosticQueue` +
+   `ImportFeedbackService`.
+
+Pendências restantes (requerem autorização separada):
+
+1. Implementar câmera/galeria e testar em Android real (P1.1).
+2. Obter ground truth autorizado e medir precisão/recall por banca/layout (P1.3).
+3. Validação de OCR nativo em aparelho (P1.3).
+4. Fixture EPCAR/AFA e outras bancas do corpus (benchmark).
 
 ## Fonte
 

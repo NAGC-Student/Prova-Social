@@ -60,8 +60,8 @@ class WrongQuestionPracticeService {
     final candidatesByQuestion = <String, _WrongQuestionCandidate>{};
 
     for (final result in results) {
-      for (var index = 0; index < result.exam.questions.length; index++) {
-        final question = result.exam.questions[index];
+      final versionedQuestions = result.versionedQuestions;
+      for (final question in versionedQuestions) {
         final answerKey = question.correctIndex;
         if (answerKey == null ||
             answerKey < 0 ||
@@ -74,11 +74,11 @@ class WrongQuestionPracticeService {
           () => _WrongQuestionCandidate(
             sourceExam: result.exam,
             question: question,
-            sourceIndex: index,
+            sourceIndex: versionedQuestions.indexOf(question),
             topic: question.topic.trim().isEmpty ? 'Geral' : question.topic,
           ),
         );
-        final selected = result.answers[index];
+        final selected = result.answers[question.id];
         if (selected == null) {
           candidate.lastOutcome = _AttemptQuestionOutcome.unanswered;
         } else if (selected == answerKey) {

@@ -94,7 +94,7 @@ AttemptSubmission submission([
 ]) => AttemptSubmission(
   clientAttemptId: id,
   exam: exam,
-  answers: const {0: 1},
+  answers: const {'q1': 1},
   markedForReview: const {},
   durationSeconds: 10,
   finishedAt: DateTime.utc(2026, 9, 21),
@@ -123,8 +123,8 @@ void main() {
     'entrega captura respostas antes de aguardar gravações anteriores',
     () async {
       final store = AttemptQueueStore(storage: MemoryQueueStorage());
-      final answers = <int, int>{0: 1};
-      final marked = <int>{0};
+      final answers = <String, int>{'q1': 1};
+      final marked = <String>{'q1'};
       final value = AttemptSubmission(
         clientAttemptId: submission().clientAttemptId,
         exam: exam,
@@ -134,12 +134,12 @@ void main() {
         finishedAt: DateTime.utc(2026, 9, 26),
       );
       final writing = store.enqueue(value);
-      answers[0] = 0;
+      answers['q1'] = 0;
       marked.clear();
       await writing;
       final persisted = (await store.pending()).single.submission;
-      expect(persisted.answers, {0: 1});
-      expect(persisted.markedForReview, {0});
+      expect(persisted.answers, {'q1': 1});
+      expect(persisted.markedForReview, {'q1'});
     },
   );
 
@@ -193,8 +193,8 @@ void main() {
       );
       final result = ExamResult(
         exam: local,
-        answers: const {0: 1},
-        markedForReview: const {0},
+        answers: const {'q1': 1},
+        markedForReview: const {'q1'},
         durationSeconds: 15,
         finishedAt: DateTime.utc(2026, 9, 26),
       );
@@ -212,7 +212,7 @@ void main() {
       expect(await restarted.pending(), isEmpty);
       final completed = (await restarted.completed())['local-attempt']!;
       expect(completed.correct, 1);
-      expect(completed.markedForReview, {0});
+      expect(completed.markedForReview, {'q1'});
       expect(completed.durationSeconds, 15);
       expect(completed.exam.isLocal, isTrue);
     },
@@ -347,7 +347,7 @@ void main() {
       final changed = AttemptSubmission(
         clientAttemptId: original.clientAttemptId,
         exam: original.exam,
-        answers: const {0: 0},
+        answers: const {'q1': 0},
         markedForReview: original.markedForReview,
         durationSeconds: original.durationSeconds,
         finishedAt: original.finishedAt,

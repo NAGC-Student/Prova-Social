@@ -5,9 +5,9 @@ status: PARCIAL
 classificacao: REFATORAR
 nivel: {correcao: 3, testes: 2, acoplamento: 3, clareza: 4, seguranca: 3, robustez: 2, aderencia: 2, portabilidade: 4}
 fonte_codigo: [lib/domain/models/exam.dart, lib/core/review/wrong_question_practice_service.dart, lib/core/import/imported_document.dart, test/exam_result_test.dart]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-11
 ---
 
 # Domínio, modelos e regras

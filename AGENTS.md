@@ -32,7 +32,8 @@ Uma função essencial é criar automaticamente uma nova prova somente com quest
 10. Toda interação deve responder imediatamente ao toque.
 11. Acessibilidade, redução de movimento e conexão ruim são requisitos, não extras.
 12. Não introduzir dependência de IA paga para o funcionamento estrutural do produto.
-13. Não publicar, fazer commit, criar tag, release ou push sem autorização explícita do responsável pelo projeto.
+13. **Não armazenar nem redistribuir provas completas**. O Prova Social é um **resolvedor e digitalizador**: o usuário importa seu próprio PDF/texto, a app extrai estrutura (questões, alternativas, gabarito) e guarda **apenas o texto estruturado** (enunciados, alternativas, gabarito, metadados) para resolução. O PDF original **não é hospedado nem redistribuído** — permanece no dispositivo do usuário. A biblioteca é carregada pelos usuários; o backend guarda só o modelo estruturado para sincronização e resolução.
+14. Não publicar, fazer commit, criar tag, release ou push sem autorização explícita do responsável pelo projeto.
 
 ## 3. Identidade visual — Study Surface
 

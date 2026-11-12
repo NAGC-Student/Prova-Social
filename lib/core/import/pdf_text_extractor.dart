@@ -496,6 +496,15 @@ class PdfTextExtractor {
     for (final line in lines) {
       line.sortFragments();
     }
+    // A table row is one printed line even when the cells are far apart. The
+    // general line grouper deliberately keeps a large horizontal gap open, so
+    // an answer-key row (“01 B 19 A 37 D 55 B”) or a row of boxed alternatives
+    // (“A ( ) 4 Ω C ( ) 12 Ω”) arrives as one line per cell. Rebuild those
+    // rows before the column splitter decides which column each cell is in.
+    final tableRows = _mergeTableRows(lines, pageWidth: pageWidth);
+    lines
+      ..clear()
+      ..addAll(tableRows);
     final columnLines = lines
         .where((line) => line.width < pageWidth * .58)
         .toList(growable: false);
@@ -606,6 +615,79 @@ class PdfTextExtractor {
       rightColumn,
       bottomContent,
     ], pageHeight: pageHeight);
+  }
+
+  /// Rebuilds rows whose cells were separated by a gap larger than the line
+  /// grouper accepts.
+  ///
+  /// Only short cells are eligible: a row of prose split across two columns is
+  /// still two columns, not one line. Within that restriction, two or more
+  /// alternative labels or three or more number/letter pairs are enough
+  /// evidence that the cells belong to the same printed table row.
+  List<_NativeTextLine> _mergeTableRows(
+    List<_NativeTextLine> lines, {
+    required double pageWidth,
+  }) {
+    if (lines.length < 2) return lines;
+    // Keep the fragment order for cells that share the same baseline. A split
+    // marker such as “Quest” + “ão 53” only reassembles when the pieces stay
+    // in the order the text layer printed them.
+    final ordered =
+        [
+          for (var index = 0; index < lines.length; index++)
+            (index: index, line: lines[index]),
+        ]..sort((a, b) {
+          final byBaseline = b.line.centerY.compareTo(a.line.centerY);
+          return byBaseline != 0 ? byBaseline : a.index.compareTo(b.index);
+        });
+    final merged = <_NativeTextLine>[];
+    var index = 0;
+    while (index < ordered.length) {
+      final first = ordered[index].line;
+      final cluster = <_NativeTextLine>[first];
+      var bottom = first.centerY - first.height * .55;
+      var top = first.centerY + first.height * .55;
+      var next = index + 1;
+      while (next < ordered.length) {
+        final line = ordered[next].line;
+        if (line.centerY < bottom || line.centerY > top) break;
+        cluster.add(line);
+        bottom = math.min(bottom, line.centerY - line.height * .55);
+        top = math.max(top, line.centerY + line.height * .55);
+        next++;
+      }
+      final cells = cluster
+          .where((line) => line.text.trim().isNotEmpty)
+          .toList(growable: false);
+      if (cells.length >= 2 && _looksLikeTableRow(cells, pageWidth)) {
+        final row = _NativeTextLine.merged(cells);
+        row.sortFragments();
+        merged.add(row);
+      } else {
+        merged.addAll(cluster);
+      }
+      index = next;
+    }
+    return merged;
+  }
+
+  bool _looksLikeTableRow(List<_NativeTextLine> cells, double pageWidth) {
+    if (cells.any((line) => line.width > pageWidth * .22)) return false;
+    final text = ([...cells]..sort((a, b) => a.left.compareTo(b.left)))
+        .map((line) => line.text.trim())
+        .join(' ');
+    // Only an explicit empty answer box (“A ( ) 4 Ω”) proves that the cells
+    // are one row of alternatives. A row of full option phrases with circled
+    // labels is a two-column list, and joining it across the gutter would mix
+    // two neighbouring questions.
+    final boxedLabels = RegExp(
+      r'(?:^|\s)[A-E]\s*\(\s*\)',
+      caseSensitive: false,
+    ).allMatches(text).length;
+    final keyPairs = RegExp(r'(?<!\d)\d{1,3}\s*[A-Ha-h](?![A-Za-zÀ-ÿ])')
+        .allMatches(text)
+        .length;
+    return boxedLabels >= 2 || keyPairs >= 3;
   }
 
   /// Flattens the column blocks into one page text and reports which lines sit
@@ -792,6 +874,9 @@ Uint8List _encodeRenderedPage(
 
 class _NativeTextLine {
   _NativeTextLine(PdfPageTextFragment fragment) : _fragments = [fragment];
+
+  _NativeTextLine.merged(List<_NativeTextLine> lines)
+    : _fragments = [for (final line in lines) ...line._fragments];
 
   final List<PdfPageTextFragment> _fragments;
 

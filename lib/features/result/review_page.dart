@@ -18,36 +18,35 @@ class ReviewPage extends StatefulWidget {
 class _ReviewPageState extends State<ReviewPage> {
   QuestionState _activeFilter = QuestionState.all;
 
-  List<int> get _visibleIndices {
+  List<String> get _visibleQuestionIds {
     final result = widget.result;
     return [
-      for (var index = 0; index < result.exam.questions.length; index++)
-        if (_matches(result, index)) index,
+      for (final question in result.versionedQuestions)
+        if (_matches(result, question)) question.id,
     ];
   }
 
-  bool _matches(ExamResult result, int index) {
-    final question = result.exam.questions[index];
-    final selected = result.answers[index];
+  bool _matches(ExamResult result, Question question) {
+    final selected = result.answers[question.id];
     return switch (_activeFilter) {
       QuestionState.all => true,
       QuestionState.wrong =>
         selected != null &&
-            question.correctIndex != null &&
+            question.hasCorrectAnswer &&
             selected != question.correctIndex,
       QuestionState.correct =>
         selected != null && selected == question.correctIndex,
       QuestionState.notAnswered => selected == null,
-      QuestionState.noKey => question.correctIndex == null,
+      QuestionState.noKey => !question.hasCorrectAnswer,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final result = widget.result;
-    final indices = _visibleIndices;
-    final noKey = result.exam.questions
-        .where((question) => question.correctIndex == null)
+    final visibleIds = _visibleQuestionIds;
+    final noKey = result.versionedQuestions
+        .where((question) => !question.hasCorrectAnswer)
         .length;
     return Scaffold(
       appBar: AppBar(title: const Text('Revisão das questões')),
@@ -79,17 +78,17 @@ class _ReviewPageState extends State<ReviewPage> {
                 _Count(label: 'Certas', value: result.correct),
                 _Count(
                   label: 'Erradas',
-                  value: result.wrongQuestionIndices.length,
+                  value: result.wrongQuestionIds.length,
                 ),
                 _Count(label: 'Em branco', value: result.unanswered),
                 if (noKey > 0) _Count(label: 'Sem gabarito', value: noKey),
-                _Count(label: 'Exibidas', value: indices.length),
+                _Count(label: 'Exibidas', value: visibleIds.length),
               ],
             ),
           ),
           const Divider(height: 1),
           Expanded(
-            child: indices.isEmpty
+            child: visibleIds.isEmpty
                 ? Center(
                     child: Text(
                       'Nenhuma questão ${_emptyFilterLabel(_activeFilter)}.',
@@ -97,11 +96,13 @@ class _ReviewPageState extends State<ReviewPage> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: indices.length,
+                    itemCount: visibleIds.length,
                     itemBuilder: (context, listIndex) {
-                      final questionIndex = indices[listIndex];
-                      final question = result.exam.questions[questionIndex];
-                      final selected = result.answers[questionIndex];
+                      final questionId = visibleIds[listIndex];
+                      final question = result.versionedQuestions
+                          .firstWhere((q) => q.id == questionId);
+                      final questionNumber = result.versionedQuestions.indexWhere((q) => q.id == questionId) + 1;
+                      final selected = result.answers[questionId];
                       final isCorrect =
                           selected != null && selected == question.correctIndex;
                       final isWrong =
@@ -141,14 +142,14 @@ class _ReviewPageState extends State<ReviewPage> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Questão ${questionIndex + 1} · $status',
+                                      'Questão $questionNumber · $status',
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium,
                                     ),
                                   ),
                                   if (result.markedForReview.contains(
-                                    questionIndex,
+                                    questionId,
                                   ))
                                     const Tooltip(
                                       message: 'Marcada para revisão',

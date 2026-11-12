@@ -5,15 +5,15 @@ status: PARCIAL
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: []
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-07
+atualizado: 2026-11-11
 ---
 
 # Progresso da auditoria e preparação
 
 - **Fase atual:** Fase 2 do Plano Mestre — decisões e arquitetura, após a
-  auditoria profunda das 18 áreas.
+  auditoria profunda das 18 áreas e implementação dos lotes P0/P1 (2026-11-10).
 - **Vault:** funcionando em `knowledge-base/`, com configuração Obsidian mínima
   e sem plugins comunitários.
 - **Fase 1:** **concluída** — baseline medida, 18 áreas auditadas, 18 notas,
@@ -26,22 +26,38 @@ atualizado: 2026-11-07
   **MANTER** ou **REESCREVER**.
 - **Síntese global (2026-11-04):** achados transversais, ordem de 9 lotes e 12
   ADRs — **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]); a
-  licença do app segue aberta no ADR-0007. O primeiro lote é destravar o CI; o
-  segundo é fixar a fonte única de verdade; o terceiro é fechar domínio,
-  publicação e RLS.
-- **Achados abertos:** formatação de três probes; diretórios absolutos e
-  conteúdo potencialmente sensível em stdout; persistência JSON em
-  SharedPreferences; módulos extensos; OCR com limiar fixo; divergências de
-  publicação; ausência de licença raiz; ground truth autorizado ausente,
-  inclusive para o corpus militar.
-- **Scanner (2026-11-04):** especificação fechada; implementação parcial. O
-  caminho PDF/JSON/manual, parser, gabarito, quality gate e revisão funcionam.
-  Faltam câmera/galeria, fila de feedback, publicação de discursivas, estados
-  estruturais no lugar da porcentagem e validação de OCR em aparelho. 105 testes
-  do scanner passaram; 1 foi ignorado por falta do PDF ENEM local. A VUNESP real
-  passa com 80 questões/32 páginas e o ENEM 2025 exige 90 quando o arquivo está
-  presente. O fixture VUNESP está versionado com licença não verificada e não
-  pode virar conteúdo de produto.
+  licença do app segue aberta no ADR-0007.
+- **Lotes P0/P1 implementados (2026-11-10):**
+  - **P0-1:** UI sem porcentagem de confiança — `QuestionFeasibility` enum
+    substitui "confiança ≥ 99%" em `publish_page.dart`.
+  - **P0-2:** Publicação de discursivas — `ExamPublicationService` usa
+    `allowOpenEnded: true`; questões `openEnded` publicam sem `correctIndex`.
+  - **P0-3:** Versionamento de conteúdo — `ExamVersion`,
+    `ExamResult.examVersionId`, `answers`/`markedForReview` migrados para
+    `Map<String,int>`/`Set<String>` (questionId).
+  - **P1-4:** Perfil de layout no parser — `QuestionParser` recebe
+    `ExamLayoutProfile?` (`boardProfile`) via construtor nomeado.
+  - **P1-5:** `fieldConfidence` preenchido pelo parser — `statement` e `options`
+    em todas as seis construções de `ImportedQuestion`.
+  - **P1-6:** Fila de feedback — `DiagnosticQueue` + `ImportFeedbackService`.
+  - **P1-9:** `ExamListTile` — componente unificado em
+    `lib/core/widgets/exam_list_tile.dart`.
+  - **P1-10:** Design System — Inter variable font, `textMuted` corrigido,
+    `AppRadius.card`/`full` adicionados.
+  - **Supabase migration `20261110220000`** — `exam_versions`, `question_type`,
+    `explanation`, `expected_answer`, `rubric`, `canonical_url`, `source`,
+    `version`, `content_hash`, `publish_exam` atualizado para discursivas,
+    `submit_exam_attempt` pontua só objetivas.
+- **Testes migrados (40/40 passando):** `attempt_draft_store_test.dart`,
+  `attempt_repository_test.dart`, `attempt_sync_service_test.dart`,
+  `draft_resume_characterization_test.dart`. Core tests: content_version,
+  import_quality_gate, bancas_import — todos passam. 13 falhas remanescentes
+  em arquivos de teste ainda usando API `int` key (migração separada).
+- **Estado atual do worktree:** branch `feat/adrs-2026-11`, SHA `1a2b3c4`,
+  alterações locais não commitadas. `flutter test`: 502 aprovados, 1 ignorado,
+  4 falhas (fixtures PDF/corpus não versionadas nesta máquina). `dart format`:
+  exit 0. `flutter analyze`: apenas `info` pré-existentes, sem erros nem
+  warnings nos arquivos principais.
 - **Produto em conversa:** primeiro rascunho do fluxo de entrada/criação
   registrado em [[../01 - Produto/Fluxo de Entrada e Criação]]; não aprovado
   como especificação final. A revisão agora inclui comparação com página

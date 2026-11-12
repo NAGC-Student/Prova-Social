@@ -24,7 +24,7 @@ void main() {
     expect(result.fieldsNeedingAttention, contains('year'));
   });
 
-  test('does not infer board from the filename when ITA is an institution', () {
+  test('identifies ITA as the exam board and as the institution', () {
     final result = suggestExamMetadata(
       fileName: 'ita-2026-fase-1.pdf',
       firstPageText:
@@ -33,7 +33,7 @@ void main() {
 
     expect(result.title, startsWith('Vestibular ITA 2026'));
     expect(result.year, 2026);
-    expect(result.board, isNull);
+    expect(result.board, 'ITA');
     expect(result.institution, 'Instituto Tecnológico de Aeronáutica (ITA)');
     expect(result.instance, '1ª fase');
   });
@@ -98,7 +98,7 @@ void main() {
     expect(result.title, 'ENEM 2025 — 1º dia · Caderno 1 — Azul');
     expect(result.category, 'Exame nacional');
     expect(result.year, 2025);
-    expect(result.board, isNull);
+    expect(result.board, 'INEP');
     expect(result.institution, isNull);
     expect(result.instance, '1º dia · Caderno 1 — Azul');
   });
@@ -346,6 +346,110 @@ void main() {
     );
 
     expect(result.title, contains('CONSULTOR LEGISLATIVO ESPECIAL'));
+  });
+
+  test('recognizes AFA from its admission course acronyms', () {
+    final result = suggestExamMetadata(
+      fileName: 'afa-2022.pdf',
+      firstPageText:
+          'COMANDO DA AERONÁUTICA\n'
+          'DIRETORIA DE ENSINO\n'
+          'EXAMES DE ADMISSÃO AOS\n'
+          'CFOAV, CFOINT e CFOINF 2022\n'
+          'CADERNO DE QUESTÕES',
+    );
+
+    expect(result.board, 'AFA');
+    expect(result.institution, 'Academia da Força Aérea (AFA)');
+    expect(result.year, 2022);
+    expect(result.category, 'Concurso de admissão');
+    expect(result.title, 'Seleção AFA 2022');
+  });
+
+  test('recognizes EPCAR from the school name and CPCAR edition', () {
+    final result = suggestExamMetadata(
+      fileName: 'epcar-2022.pdf',
+      firstPageText:
+          'COMANDO DA AERONÁUTICA\n'
+          'DIRETORIA DE ENSINO\n'
+          'ESCOLA PREPARATÓRIA DE CADETES DO AR\n'
+          'EXAME DE ADMISSÃO AO\n'
+          'CPCAR 2022',
+    );
+
+    expect(result.board, 'EPCAR');
+    expect(result.institution, 'Escola Preparatória de Cadetes do Ar (EPCAR)');
+    expect(result.year, 2022);
+    expect(result.category, 'Concurso de admissão');
+    expect(result.title, 'CPCAR 2022');
+  });
+
+  test('recognizes EEAR and its CFS edition year', () {
+    final result = suggestExamMetadata(
+      fileName: 'eear-2023.pdf',
+      firstPageText:
+          'MINISTÉRIO DA DEFESA\n'
+          'COMANDO DA AERONÁUTICA\n'
+          'ESCOLA DE ESPECIALISTAS DE AERONÁUTICA\n'
+          'EXAME DE ADMISSÃO AO CURSO DE FORMAÇÃO DE SARGENTOS DA '
+          'AERONÁUTICA\n'
+          'CFS 1/2023',
+    );
+
+    expect(result.board, 'EEAR');
+    expect(result.institution, 'Escola de Especialistas de Aeronáutica (EEAR)');
+    expect(result.year, 2023);
+    expect(result.category, 'Concurso de admissão');
+    expect(result.title, 'EEAR 2023');
+  });
+
+  test('prefers the exam year over the school founding year', () {
+    final result = suggestExamMetadata(
+      fileName: 'espcex-2025.pdf',
+      firstPageText:
+          'ESCOLA PREPARATÓRIA DE CADETES DO EXÉRCITO\n'
+          '(Escola Preparatória de Cadetes de São Paulo/1940) '
+          'Concurso de Admissão A Provas de Português, Física, Química e '
+          'Redação (primeiro dia de prova de 2025) Instruções para a '
+          'Realização das Provas',
+    );
+
+    expect(result.board, 'EsPCEx');
+    expect(
+      result.institution,
+      'Escola Preparatória de Cadetes do Exército (EsPCEx)',
+    );
+    expect(result.year, 2025);
+    expect(result.title, 'EsPCEx 2025');
+  });
+
+  test('recognizes IME from its exam committee when the acronym is absent', () {
+    final result = suggestExamMetadata(
+      fileName: 'ime-2024.pdf',
+      firstPageText:
+          '2023/2024\n'
+          'COMISSÃO DE EXAME INTELECTUAL\n'
+          'CONCURSO DE ADMISSÃO 2023-2024\n'
+          'AO CURSO DE FORMAÇÃO E GRADUAÇÃO',
+    );
+
+    expect(result.board, 'IME');
+    expect(result.institution, 'Instituto Militar de Engenharia (IME)');
+    expect(result.year, 2024);
+    expect(result.title, startsWith('IME — Concurso de Admissão 2024'));
+  });
+
+  test('ignores norm and census years on a Quadrix cover', () {
+    final result = suggestExamMetadata(
+      fileName: 'quadrix-2026.pdf',
+      firstPageText:
+          'Quadrix | 2026\n'
+          'A Política Nacional de Assistência Social (PNAS/2004)\n'
+          'Uma prova sobre a PNAS/2004 e o SUAS.',
+    );
+
+    expect(result.board, 'Quadrix');
+    expect(result.year, 2026);
   });
 
   test('recognizes FGV ALEMA identity split across cover lines', () {

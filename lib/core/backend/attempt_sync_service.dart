@@ -426,11 +426,11 @@ bool _matchesResult(AttemptSubmission submission, ExamResult result) =>
     _sameMap(submission.answers, result.answers) &&
     _sameSet(submission.markedForReview, result.markedForReview);
 
-bool _sameMap(Map<int, int> first, Map<int, int> second) =>
+bool _sameMap(Map<String, int> first, Map<String, int> second) =>
     first.length == second.length &&
     first.entries.every((entry) => second[entry.key] == entry.value);
 
-bool _sameSet(Set<int> first, Set<int> second) =>
+bool _sameSet(Set<String> first, Set<String> second) =>
     first.length == second.length && first.every(second.contains);
 
 Map<String, dynamic> _pendingToJson(PendingAttempt value) => {
@@ -466,8 +466,10 @@ AttemptSubmission _submissionFromJson(Map<String, dynamic> json) =>
       clientAttemptId: json['clientAttemptId'] as String,
       exam: _examFromJson(Map<String, dynamic>.from(json['exam'] as Map)),
       answers: Map<String, dynamic>.from(json['answers'] as Map)
-          .map((key, value) => MapEntry(int.parse(key), value as int)),
-      markedForReview: Set<int>.from(json['review'] as List? ?? const []),
+          .map((key, value) => MapEntry(key.toString(), value as int)),
+      markedForReview: Set<String>.from(
+        (json['review'] as List? ?? const []).map((e) => e.toString()),
+      ),
       durationSeconds: json['durationSeconds'] as int,
       finishedAt: DateTime.parse(json['finishedAt'] as String),
     );
@@ -571,6 +573,7 @@ ExamResult _resultFromJson(Map<String, dynamic> json) {
   final submission = _submissionFromJson(json);
   return ExamResult(
     exam: submission.exam,
+    examVersionId: submission.exam.currentVersion?.id ?? '',
     answers: submission.answers,
     markedForReview: submission.markedForReview,
     durationSeconds: submission.durationSeconds,

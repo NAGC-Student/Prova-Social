@@ -105,6 +105,27 @@ void main() {
       ]);
     });
 
+    test('mantém cada alternativa minúscula com travessão em sua linha', () {
+      // Regression: the three-line look-ahead never fired for the last two
+      // items, so “c - …” and “d - …” were glued to the line above and the
+      // parser lost the whole list.
+      final text = normalize(
+        'A afirmação está correta?\n'
+        'a - sim\n'
+        'b - não\n'
+        'c - talvez\n'
+        'd - depende',
+      );
+
+      expect(text.split('\n'), [
+        'A afirmação está correta?',
+        'a - sim',
+        'b - não',
+        'c - talvez',
+        'd - depende',
+      ]);
+    });
+
     test('não emenda um número de questão com o enunciado', () {
       final text = normalize('61\nO aumento no comprimento de uma haste');
 

@@ -12,7 +12,7 @@ abstract final class EmeraldColors {
   static const primaryGlow = Color(0xFF00E6A0);
   static const textPrimary = Color(0xFFF5F7F6);
   static const textSecondary = Color(0xFFAAB7B0);
-  static const textMuted = Color(0xFF85938C);
+  static const textMuted = Color(0xFF9FB1A6);
   static const border = Color(0xFF23382E);
   static const borderHighlight = Color(0xFF176B4A);
   static const warning = Color(0xFFE5A524);
@@ -53,6 +53,8 @@ abstract final class AppRadius {
   static const md = 12.0;
   static const lg = 16.0;
   static const xl = 20.0;
+  static const card = 12.0;
+  static const full = 9999.0;
 }
 
 abstract final class AppMotion {
@@ -87,7 +89,7 @@ abstract final class AppTheme {
       brightness: Brightness.dark,
       colorScheme: scheme,
       scaffoldBackgroundColor: Colors.transparent,
-      fontFamily: 'sans-serif',
+      fontFamily: 'Inter',
       textTheme: const TextTheme(
         displaySmall: TextStyle(
           fontSize: AppTypography.hero,

@@ -100,28 +100,23 @@ void main() {
 
   group('fronteira de validação da publicação', () {
     test(
-      'questão aberta aceita pelo parser é rejeitada antes de qualquer RPC',
+      'questão aberta aceita pelo parser é publicada como discursiva',
       () async {
         // O parser conhece QuestionFormat.openEnded
-        // (question_parser.dart:252) e a publicação atual não tem como
-        // expressá-la: o contrato recusa com mensagem explícita.
+        // (question_parser.dart:252) e, com allowOpenEnded: true, a publicação
+        // aceita questões discursivas sem exigir alternativas nem gabarito.
         final aberta = _importada(
           options: const [],
           correctIndex: null,
           format: QuestionFormat.openEnded,
         );
         expect(aberta.format, QuestionFormat.openEnded);
-        await expectLater(
-          _publicar(questions: [aberta]),
-          throwsA(
-            isA<FormatException>().having(
-              (error) => error.message,
-              'mensagem',
-              'A questão 1 é discursiva. A publicação de discursivas ainda não está disponível.',
-            ),
-          ),
-        );
-        expect(requests.where((r) => r.url.path.contains('/rpc/')), isEmpty);
+        final examId = await _publicar(questions: [aberta]);
+        expect(examId, 'exam-publicado');
+        expect(requests.where((r) => r.url.path.contains('/rpc/')), isNotEmpty);
+        final payload = (_ultimaRpc('publish_exam')['p_questions'] as List)
+            .cast<Map>();
+        expect(payload.single['question_type'], 'discursive');
       },
     );
 

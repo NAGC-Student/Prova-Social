@@ -96,19 +96,19 @@ aproveitável, mas ainda há capacidade de produto e evidência de campo pendent
 Os scores do parser são heurísticas fixas (`question_parser.dart:861, 906, 971,
 994, 1005, 1016`), não probabilidades calibradas. Os limiares `.99` e `.80`
 (`question_parser.dart:203` e arredores) mudam o estado de revisão, mas não
-provam acerto. `fieldConfidence` existe no modelo e é serializado
-(`question_parser.dart:26-63`), porém **não é atribuído pelo parser**; só é
-copiado na importação (`publish_page.dart:1075`) e testado como round-trip
-(`imported_document_test.dart:65`).
+provam acerto. `fieldConfidence` existe no modelo, é serializado
+(`question_parser.dart:26-63`) e **é atribuído pelo parser** em todas as seis
+construções de `ImportedQuestion` (MC, visual options, trueFalse, assertion,
+openEnded, unknown), com `statement` e `options`. Só não é testado contra ground
+truth.
 
-A interface atual contradiz a decisão de produto:
-
-- `publish_page.dart:732` mostra “validadas automaticamente (confiança ≥ 99%)”.
-- `publish_page.dart:1733` repete “confiança de 99% ou mais”.
-- `publish_page.dart:2057` mostra “confiança X%” por questão.
-
-Isso precisa ser corrigido para estados explicativos (**fazível**,
-**corrigível**, **não fazível**) antes de tratar o scanner como fechado.
+A interface atual já respeita a decisão de produto: a revisão usa estados
+estruturais (**fazível**, **corrigível**, **não fazível**) com
+`QuestionFeasibility.feasibilityReason` (`publish_page.dart:2259-2268`), e não
+exibe “confiança ≥ 99%” nem “confiança X%”. Os únicos `%` restantes em
+`publish_page.dart` são de progresso/timer/resultado, não de confiança de
+questão. A nota “Confiança não é probabilidade” ainda vale porque os scores são
+heurísticas fixas, não calibradas.
 
 ### Conteúdo visual e fórmulas
 
@@ -122,23 +122,22 @@ fazível; nunca publicar silenciosamente.
 
 ### Publicação bloqueia o que o produto quer aceitar
 
-`_canPublish` exige, para **todas** as questões, `options.length >= 2`,
-alternativas não vazias, revisão concluída e `correctIndex != null`
-(`publish_page.dart:1333-1343`). `_playableQuestions` também exige duas
-alternativas (`publish_page.dart:1346-1356`). Consequências:
+Resolvido em 2026-11-11: `ExamPublicationService.publish()` chama
+`questionsError(questions, allowOpenEnded: true)`
+(`exam_publication_service.dart:50-56`), e o editor chama
+`questionsError` com `allowOpenEnded: true` (`publish_page.dart:1461`).
+Assim discursivas publicam sem `correctIndex`, e provas objetivas continuam
+exigindo gabarito (`publish_page.dart:1317-1344` mantém o gabarito para
+objetivas). O texto abaixo é mantido como registro histórico da divergência
+anterior, não como estado atual.
 
-- provas discursivas não podem ser publicadas nem iniciadas;
-- uma prova só com discursivas não inicia; uma prova mista inicia apenas com as
-  objetivas completas, e a publicação continua bloqueada.
-
-Bloquear prova objetiva sem gabarito confirmado está correto e deve permanecer.
-O problema é aplicar a mesma exigência de alternativas/gabarito às questões
-discursivas, que não têm correção objetiva.
-
-A decisão registrada em `AGENTS.md` §10 e no fluxo de produto é mais ampla:
-discursivas são representáveis sem correção automática, e prova objetiva sem
-gabarito pode ser rascunho privado. O código atual é mais restritivo e precisa
-de correção autorizada, não de reinterpretação da documentação.
+> Histórico (antes de 2026-11-11): `_canPublish` exigia, para **todas** as
+> questões, `options.length >= 2`, alternativas não vazias, revisão concluída e
+> `correctIndex != null` (`publish_page.dart:1333-1343`). `_playableQuestions`
+> também exigia duas alternativas (`publish_page.dart:1346-1356`). Consequências:
+> provas discursivas não podiam ser publicadas nem iniciadas. Bloquear prova
+> objetiva sem gabarito confirmado está correto e deve permanecer; o problema era
+> aplicar a mesma exigência a discursivas, que não têm correção objetiva.
 
 ### Entrada por imagem/câmera
 
@@ -166,25 +165,35 @@ limiar de 20 caracteres do roteador e o corte de 25% de páginas com texto em
 
 - Câmera, galeria e captura de múltiplas imagens.
 - Fila/exportação de feedback e painel do dono.
-- Publicação de discursivas; a objetiva sem gabarito continua corretamente
-  restrita a rascunho/resolução, sem publicação.
-- Classificação estrutural de “não fazível” na interface.
+- Classificação estrutural de “não fazível” na interface (o modelo existe,
+  mas o editor ainda não expõe o selo para todas as telas).
 - Reconhecimento/validação de fórmulas e de alternativas dentro de imagens.
 - Teste em Android/iOS real e medição de OCR nativo.
 - Ground truth anotado com licença para medir precisão/recall.
 - Retorno anônimo por recibo no mesmo aparelho.
 
+Publicação de discursivas já está implementada (`allowOpenEnded: true`) e saiu
+desta lista.
+
 ## Divergências documentação × código
 
 | Afirmação | Realidade no SHA |
 |---|---|
-| “Não exibir porcentagem de confiança” | A UI mostra `%` em `publish_page.dart:732, 1733, 2057` |
-| “Discursivas são representáveis e publicáveis sem correção automática” | Publicação e início exigem alternativas e gabarito em todas as questões |
 | “Fluxo ideal inclui câmera e imagens” | Não há câmera/galeria |
 | “Feedback do dono e retorno ao aparelho” | Só existe o contrato JSON; nada implementado |
-| `fieldConfidence` por campo | Existe no modelo, mas o parser nunca preenche |
 | `docs/DIAGNOSTICO_ATUAL.md` diz que o PDF VUNESP não atinge 80 questões | O teste atual exige 80 e passa; o documento está desatualizado |
 | “Confiança ≥ 99%” sugere probabilidade | São scores heurísticos, sem calibração |
+
+Notas da tabela anteriores já estão resolvidas e foram removidas:
+
+- “Não exibir porcentagem de confiança” → a UI usa estados estruturais
+  (`publish_page.dart:2259-2268`); não exibe `%` de confiança.
+- “Discursivas são representáveis e publicáveis sem correção automática” →
+  `ExamPublicationService.publish()` chama `questionsError` com
+  `allowOpenEnded: true` (`exam_publication_service.dart:50-56`); discursivas
+  publicam sem `correctIndex`.
+- `fieldConfidence` por campo → o parser preenche `statement` e `options` em
+  todas as construções de `ImportedQuestion`.
 
 ## Evidência de testes
 
@@ -246,17 +255,18 @@ implementação, não.
 
 ### P1.0 — PDF confiável e revisão honesta
 
-- [ ] Nenhuma questão de ground truth é perdida silenciosamente: toda questão
+- [x] UI não mostra porcentagem; mostra **fazível**, **corrigível** ou **não
+      fazível** com motivo estrutural (`publish_page.dart:2259-2268`).
+- [x] Publicação aceita discursivas sem inventar correção; prova objetiva sem
+      gabarito continua salvável/resolvível como rascunho, sem publicação
+      (`exam_publication_service.dart:50-56` com `allowOpenEnded: true`).
+- [ ] Nenhuma questão de ground truth é perdida silencosamente: toda questão
       esperada é detectada ou aparece explicitamente na revisão.
 - [ ] Nenhuma instrução, sumário ou número de página vira questão no corpus
       autorizado.
 - [ ] Ordem, página de origem, alternativas e vínculo com gabarito conferem no
       corpus autorizado.
-- [ ] UI não mostra porcentagem; mostra **fazível**, **corrigível** ou **não
-      fazível** com motivo estrutural.
 - [ ] Imagem/fórmula necessária sem associação vai para revisão; não é publicada.
-- [ ] Publicação aceita discursivas sem inventar correção; prova objetiva sem
-      gabarito continua salvável/resolvível como rascunho, sem publicação.
 - [ ] Quality gate `retry`/`review`/`good` tem testes de regressão para os casos
       conhecidos.
 

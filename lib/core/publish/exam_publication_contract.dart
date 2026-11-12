@@ -145,6 +145,16 @@ abstract final class ExamPublicationContract {
                 )
                 .toList(growable: false),
             'correct_index': question.correctIndex,
+            'question_type': question.format == QuestionFormat.openEnded
+                ? 'discursive'
+                : 'objective',
+            'explanation': question.explanation?.trim(),
+            'expected_answer': question.expectedAnswer?.trim(),
+            'rubric': question.rubric?.trim(),
+            'canonical_url': question.canonicalUrl?.trim(),
+            'source': question.source?.trim(),
+            'version': question.version,
+            'content_hash': question.contentHash,
           },
     ];
   }

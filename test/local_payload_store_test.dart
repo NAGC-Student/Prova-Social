@@ -10,6 +10,7 @@ void main() {
   late LocalPayloadStore store;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('payload_store_test');
     store = createLocalPayloadStore(directoryPath: directory.path);
   });

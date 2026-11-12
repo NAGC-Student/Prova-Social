@@ -39,8 +39,8 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
   late final AttemptDraftStore draftStore;
   late final AttemptSyncService syncService;
   late String clientAttemptId;
-  final answers = <int, int>{};
-  final review = <int>{};
+  final answers = <String, int>{};
+  final review = <String>{};
   final elapsed = ValueNotifier<int>(0);
   final questionElapsed = ValueNotifier<int>(0);
   FocusTimerSettings timerSettings = const FocusTimerSettings();
@@ -54,6 +54,8 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
   bool leaving = false;
   bool canPop = false;
   bool finishing = false;
+
+  String get currentQuestionId => exam.questions[current].id;
 
   @override
   void initState() {
@@ -401,6 +403,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
                           answers: answers,
                           review: review,
                           onSelect: _selectQuestion,
+                          questions: exam.questions,
                         ),
                       ),
                     Expanded(
@@ -437,6 +440,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
                                           answers: answers,
                                           review: review,
                                           onSelect: _selectQuestion,
+                                          questions: exam.questions,
                                         ),
                                       ],
                                       const SizedBox(height: AppSpacing.lg),
@@ -448,11 +452,11 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
                                         child: _QuestionContent(
                                           key: ValueKey(current),
                                           question: exam.questions[current],
-                                          selected: answers[current],
+                                          selected: answers[currentQuestionId],
                                           onSelected: (answer) {
                                             if (finishing) return;
                                             setState(
-                                              () => answers[current] = answer,
+                                              () => answers[currentQuestionId] = answer,
                                             );
                                             unawaited(_persistDraft());
                                           },
@@ -465,13 +469,13 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
                             ),
                           ),
                           _FocusActions(
-                            marked: review.contains(current),
+                            marked: review.contains(currentQuestionId),
                             onToggleReview: () {
                               if (finishing) return;
                               setState(() {
-                                review.contains(current)
-                                    ? review.remove(current)
-                                    : review.add(current);
+                                review.contains(currentQuestionId)
+                                    ? review.remove(currentQuestionId)
+                                    : review.add(currentQuestionId);
                               });
                               unawaited(_persistDraft());
                             },
@@ -573,6 +577,7 @@ class _QuizPageState extends State<QuizPage> with WidgetsBindingObserver {
         total: exam.questions.length,
         answers: answers,
         review: review,
+        questions: exam.questions,
         onQuestion: (index) {
           Navigator.pop(context, false);
           _selectQuestion(index);
@@ -1226,12 +1231,14 @@ class _QuestionNavigator extends StatelessWidget {
     required this.answers,
     required this.review,
     required this.onSelect,
+    required this.questions,
   });
   final int total;
   final int current;
-  final Map<int, int> answers;
-  final Set<int> review;
+  final Map<String, int> answers;
+  final Set<String> review;
   final ValueChanged<int> onSelect;
+  final List<Question> questions;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -1263,13 +1270,16 @@ class _QuestionNavigator extends StatelessWidget {
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
           ),
-          itemBuilder: (_, index) => _NumberButton(
-            index: index,
-            current: current == index,
-            answered: answers.containsKey(index),
-            marked: review.contains(index),
-            onTap: () => onSelect(index),
-          ),
+          itemBuilder: (_, index) {
+            final questionId = questions[index].id;
+            return _NumberButton(
+              index: index,
+              current: current == index,
+              answered: answers.containsKey(questionId),
+              marked: review.contains(questionId),
+              onTap: () => onSelect(index),
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.lg),
         const _Legend(),
@@ -1285,12 +1295,14 @@ class _MobileQuestionStrip extends StatelessWidget {
     required this.answers,
     required this.review,
     required this.onSelect,
+    required this.questions,
   });
   final int total;
   final int current;
-  final Map<int, int> answers;
-  final Set<int> review;
+  final Map<String, int> answers;
+  final Set<String> review;
   final ValueChanged<int> onSelect;
+  final List<Question> questions;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -1299,16 +1311,19 @@ class _MobileQuestionStrip extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       itemCount: total,
       separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-      itemBuilder: (_, index) => SizedBox(
-        width: 44,
-        child: _NumberButton(
-          index: index,
-          current: current == index,
-          answered: answers.containsKey(index),
-          marked: review.contains(index),
-          onTap: () => onSelect(index),
-        ),
-      ),
+      itemBuilder: (_, index) {
+        final questionId = questions[index].id;
+        return SizedBox(
+          width: 44,
+          child: _NumberButton(
+            index: index,
+            current: current == index,
+            answered: answers.containsKey(questionId),
+            marked: review.contains(questionId),
+            onTap: () => onSelect(index),
+          ),
+        );
+      },
     ),
   );
 }
@@ -1433,18 +1448,20 @@ class _DeliveryReview extends StatelessWidget {
     required this.answers,
     required this.review,
     required this.onQuestion,
+    required this.questions,
   });
   final int total;
-  final Map<int, int> answers;
-  final Set<int> review;
+  final Map<String, int> answers;
+  final Set<String> review;
   final ValueChanged<int> onQuestion;
+  final List<Question> questions;
 
   @override
   Widget build(BuildContext context) {
     final blank = List.generate(
       total,
       (index) => index,
-    ).where((index) => !answers.containsKey(index)).toList();
+    ).where((index) => !answers.containsKey(questions[index].id)).toList();
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -1489,14 +1506,18 @@ class _DeliveryReview extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 children: review
                     .map(
-                      (index) => ActionChip(
-                        avatar: const Icon(
-                          Icons.bookmark_outline_rounded,
-                          size: 16,
-                        ),
-                        label: Text('${index + 1}'),
-                        onPressed: () => onQuestion(index),
-                      ),
+                      (questionId) {
+                        final index = questions.indexWhere((q) => q.id == questionId);
+                        if (index < 0) return const SizedBox.shrink();
+                        return ActionChip(
+                          avatar: const Icon(
+                            Icons.bookmark_outline_rounded,
+                            size: 16,
+                          ),
+                          label: Text('${index + 1}'),
+                          onPressed: () => onQuestion(index),
+                        );
+                      },
                     )
                     .toList(),
               ),

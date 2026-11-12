@@ -42,11 +42,13 @@ class _ItaOcrFixtureService extends OcrService {
 }
 
 void main() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        (call) async => Directory.systemTemp.path,
-      );
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (call) async => Directory.systemTemp.path,
+        );
+  });
 
   test('passa PDF escaneado pelo OCR até o parser', () async {
     final pdf = await File('build/qa/military-exams/ita/2026-fase-1.pdf')

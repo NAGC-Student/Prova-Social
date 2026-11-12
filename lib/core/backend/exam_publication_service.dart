@@ -49,14 +49,14 @@ class ExamPublicationService {
     }
     final questionsError = ExamPublicationContract.questionsError(
       questions,
-      allowOpenEnded: false,
+      allowOpenEnded: true,
     );
     if (questionsError != null) {
       throw FormatException(questionsError);
     }
     final questionPayload = ExamPublicationContract.questionPayload(
       questions,
-      includeOpenEnded: false,
+      includeOpenEnded: true,
     );
     final params = <String, dynamic>{
       'p_title': title.trim(),

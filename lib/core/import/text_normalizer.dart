@@ -236,10 +236,17 @@ class ExamTextNormalizer {
   /// other boards print the alternative letter with no punctuation at all, so
   /// the line looks like the continuation of the stem above it. Two further
   /// letters in order prove it is a list, and the list keeps its lines apart.
+  ///
+  /// The scan also looks backwards. A tail such as “c - talvez” followed by
+  /// “d - depende” has only two lines ahead of it, so the three-line proof
+  /// never fires and the last alternatives of a lower-case list used to be
+  /// glued into one line. The previous line being the immediately preceding
+  /// letter is the same evidence, seen from the other side.
   static bool _startsOptionRun(List<String> source, int index) {
     final first = _bareOption.firstMatch(source[index].trim());
     if (first == null) return false;
-    var letter = first.group(1)!.toUpperCase().codeUnitAt(0);
+    final firstLetter = first.group(1)!.toUpperCase().codeUnitAt(0);
+    var letter = firstLetter;
     var run = 1;
     for (var i = index + 1; i < source.length && run < 3; i++) {
       final line = source[i].trim();
@@ -251,7 +258,15 @@ class ExamTextNormalizer {
       letter = next;
       run++;
     }
-    return run >= 3;
+    if (run >= 3) return true;
+    if (firstLetter == 'A'.codeUnitAt(0)) return false;
+    // A short tail without a preceding line is still a list when it has at
+    // least two consecutive labels (“C …”, “D …”).
+    if (run >= 2) return true;
+    if (index == 0) return false;
+    final previous = _bareOption.firstMatch(source[index - 1].trim());
+    if (previous == null) return false;
+    return previous.group(1)!.toUpperCase().codeUnitAt(0) == firstLetter - 1;
   }
 
   static bool _isBlockStart(String line) =>

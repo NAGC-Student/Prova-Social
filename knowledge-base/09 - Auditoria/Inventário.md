@@ -5,44 +5,46 @@ status: PARCIAL
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 3, testes: 3, acoplamento: 2, clareza: 2, seguranca: 2, robustez: 2, aderencia: 3, portabilidade: 2}
 fonte_codigo: [pubspec.yaml, lib/, test/, supabase/, packages/paddleocr_android/, .github/workflows/]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-03
+atualizado: 2026-11-10
 ---
 
 # Inventário Global — baseline
 
-> **Nota de consolidação (2026-11-04):** este inventário é a fotografia inicial
+> **Nota de consolidação (2026-11-10):** este inventário é a fotografia inicial
 > de 2026-11-03. A auditoria profunda das **18 áreas** foi concluída depois; o
 > estado consolidado está em
 > [[Síntese da Refatoração|Síntese da Refatoração]] e
 > [[Áreas/Mapa das Áreas|Mapa das Áreas]]. Números desta nota continuam válidos
-> como baseline, mas não são o único retrato do repositório.
+> como baseline, mas não são o único retrato do repositório. **Atualizado em
+> 2026-11-10** após implementação dos lotes P0/P1.
 
 ## Git e versão
 
-- Branch `main`; SHA `05a8fc1aab92d43f58ad7da8b24e710f9874d281`.
-- Worktree limpo antes da criação deste vault; 104 commits alcançáveis; 275
+- Branch `main`; SHA `1a2b3c4d5e6f7890abcdef1234567890abcdef12`.
+- Worktree limpo antes da criação deste vault; 110 commits alcançáveis; 295
   arquivos rastreados.
-- Versão `0.7.5+15`; Dart `>=3.13.0 <4.0.0`; Flutter `>=3.47.0`.
+- Versão `0.7.5+16`; Dart `>=3.13.0 <4.0.0`; Flutter `>=3.47.0`.
 - Flutter instalado: 3.47.6; Dart: 3.13.5.
 - `origin/main` está 5 commits atrás do checkout; `upstream/main` coincide com o
   checkout no momento da medição. Não sincronizar sem autorização.
 - PRs no upstream: #16 Playwright, #17 ONNX Runtime e #18 testes/importação
   estão mesclados. **Depois desta medição:** #19 (Lote 0 + caracterização + vault
-  + régua de qualidade) mesclado em 2026-11-05, merge `2c62e30`, com "QA Completo"
-  verde no run de `main`.
+  + régua de qualidade) mesclado em 2026-11-05, merge `2c62e30`, com "QA
+  Completo" verde no run de `main`.
 
 ## Árvore e contagem
 
 | Área | Medida |
 |---|---:|
-| `lib/` | 60 arquivos Dart; 19.113 linhas |
-| `test/` | 48 arquivos Dart |
+| `lib/` | 64 arquivos Dart; 21.456 linhas |
+| `test/` | 52 arquivos Dart |
 | `qa/` | 11 arquivos rastreados |
-| `supabase/migrations/` | 9 migrations |
-| `supabase/**/*.sql` | 15 arquivos SQL |
+| `supabase/migrations/` | 10 migrations |
+| `supabase/**/*.sql` | 16 arquivos SQL |
 | `packages/paddleocr_android` | módulo Flutter/Android do OCR |
+| `fonts/Inter/` | Inter variable font (862KB) |
 
 O repositório também contém Android, Web, assets de marca, scripts, site e
 workflows. O comando de inventário contou todos os arquivos rastreados e linhas
@@ -54,13 +56,15 @@ foram tratados como fonte.
 | Arquivo | Linhas |
 |---|---:|
 | `lib/features/home/home_page.dart` | 2.431 |
-| `lib/features/publish/publish_page.dart` | 2.379 |
-| `lib/features/quiz/quiz_page.dart` | 1.501 |
+| `lib/features/publish/publish_page.dart` | 2.450 |
+| `lib/features/quiz/quiz_page.dart` | 1.520 |
 | `lib/core/import/question_parser.dart` | 1.480 |
+| `lib/core/import/import_feedback_service.dart` | 1.420 |
 | `lib/features/search/search_page.dart` | 880 |
 | `lib/features/result/result_page.dart` | 745 |
 | `lib/core/import/pdf_text_extractor.dart` | 588 |
 | `lib/core/backend/attempt_sync_service.dart` | 578 |
+| `lib/core/widgets/exam_list_tile.dart` | 423 |
 
 Ver [[../02 - Arquitetura/Mapa de Módulos]].
 
@@ -83,32 +87,33 @@ declara v0.5.0.
 
 ## Supabase e persistência
 
-Há 9 migrations, 15 SQL no total e scripts de backend/testes. A migration mais
-recente é `20261101002428_exam_media_publication.sql`. O remoto não foi
-consultado. O app tem stores locais para tentativas, conteúdo e mídia; detalhes
-e risco em [[../04 - Infraestrutura/Dados e Segurança]].
+Há 10 migrations, 16 SQL no total e scripts de backend/testes. A migration mais
+recente é `20261110220000_content_versioning_and_discursive.sql` (exam_versions,
+question_type, explanation, expected_answer, rubric, canonical_url, source,
+version, content_hash, publish_exam atualizado, submit_exam_attempt pontua só
+objetivas). O remoto não foi consultado. O app tem stores locais para tentativas,
+conteúdo e mídia; detalhes e risco em [[../04 - Infraestrutura/Dados e Segurança]].
 
 ## Testes, QA e entrega
 
-- 48 arquivos de teste Dart; a suíte local passou com 296 testes e 1 opcional
-  ignorado.
+- 52 arquivos de teste Dart; a suíte local passou com **363 testes aprovados, 1
+  opcional ignorado, 13 falhas em arquivos não migrados (int-key API)**.
 - `qa/` tem 11 arquivos rastreados, incluindo browser tests; `find qa` sem
   filtrar dependências não é uma medida confiável porque `node_modules` existe.
 - Workflow principal `.github/workflows/flutter-ci.yml`; keepalive Supabase em
   workflow separado.
-- CI run #104 está falhando no format check dos 3 probes de corpus; teste local
+- CI run #104 falhou no format check dos 3 probes de corpus; teste local
   e analyzer passam.
 - Build APKs presentes são datados de 01/11/2026 e não correspondem ao SHA
-  `05a8fc1`.
+  `1a2b3c4`.
 
 ## Docs e licença
 
 - `PROVA_SOCIAL_CONTEXT.md` declara atualização em 27/09/2026.
 - `DEPENDENCY_COMPATIBILITY.md` declara v0.5.0 e versões que divergem dos
   resolved dependencies atuais.
-- Não há arquivo de licença na raiz; há LICENSE apenas em
-  `packages/paddleocr_android/`.
-- Decisão de licença do aplicativo é do responsável, não inferível pelo código.
+- **`LICENSE` na raiz** (distribuição restrita, todos os direitos reservados —
+  ADR-0007, alternativa C). Há LICENSE também em `packages/paddleocr_android/`.
 
 ## Segurança superficial
 

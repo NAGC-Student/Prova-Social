@@ -13,12 +13,13 @@ import 'package:flutter/material.dart';
 import '../../core/backend/exam_publication_service.dart';
 import '../../core/backend/exam_media_repository.dart';
 import '../../core/import/answer_key_parser.dart';
+import '../../core/import/exam_layout_profile.dart';
+import '../../core/import/exam_metadata_suggester.dart';
 import '../../core/import/pdf_text_extractor.dart';
 import '../../core/import/import_quality_gate.dart';
 import '../../core/import/imported_document.dart';
 import '../../core/import/question_parser.dart';
-import '../../core/import/exam_layout_profile.dart';
-import '../../core/import/exam_metadata_suggester.dart';
+import '../../core/import/visual_option_image_extractor.dart';
 import '../../core/publish/exam_publication_contract.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/emerald_backdrop.dart';
@@ -482,6 +483,55 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
         .map((page) => page.text)
         .toList(growable: false);
     final questions = const QuestionParser().parsePages(pageTexts);
+
+    // Extract visual options (images for alternatives that are only in the PDF graphics layer)
+    processingStatus.value = 'Extraindo alternativas visuais da prova';
+    final visualCrops = await const VisualOptionImageExtractor().extract(
+      bytes,
+      questions,
+    );
+    final visualMaterials = <SupportingMaterial>[];
+    for (final entry in visualCrops.entries) {
+      final parts = entry.key.split(':');
+      if (parts.length != 2) continue;
+      final questionId = parts[0];
+      final optionIndex = int.tryParse(parts[1]);
+      if (optionIndex == null) continue;
+      final question = questions.where((q) => q.id == questionId).firstOrNull;
+      if (question == null) continue;
+      final mediaId = 'question-visual-${question.id}-opt$optionIndex';
+      if (!question.supportingMaterialIds.contains(mediaId)) {
+        question.supportingMaterialIds.add(mediaId);
+      }
+      visualMaterials.add(
+        SupportingMaterial(
+          id: mediaId,
+          type: 'questionVisualOption',
+          questionId: question.id,
+          page: question.sourcePage,
+          imageBytes: entry.value,
+          caption: 'Alternativa ${String.fromCharCode(65 + optionIndex)} da questão ${question.number ?? ''}'.trim(),
+          raw: {'optionIndex': optionIndex},
+        ),
+      );
+      question.hasVisualOptions = true;
+    }
+    // Clear "conteúdo visual não foi extraído" warning for questions where all empty options now have images
+    for (final question in questions.where(
+      (q) => q.warning?.contains('conteúdo visual não foi extraído') == true,
+    )) {
+      final emptyOptions = question.options
+          .where((opt) => opt.trim().isEmpty)
+          .length;
+      final extractedCount = visualMaterials
+          .where((m) => m.questionId == question.id)
+          .length;
+      if (emptyOptions > 0 && extractedCount >= emptyOptions) {
+        question.warning = null;
+        question.reviewState = QuestionReviewState.reviewed;
+      }
+    }
+
     processingStatus.value = 'Lendo o gabarito impresso na prova';
     const answerKeyParser = AnswerKeyParser();
     final answerKey = answerKeyParser.parsePages(pageTexts);
@@ -616,7 +666,7 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
               ),
             )
             .toList(),
-        supportingMaterials: [...questionVisualSources, ...referenceMaterials],
+        supportingMaterials: [...questionVisualSources, ...visualMaterials, ...referenceMaterials],
         questions: questions,
         qualityNotices: [
           ...quality.reasons,
@@ -713,8 +763,6 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
           year.text = result.suggestion.year?.toString() ?? '';
           suggestionsApplied = true;
         }
-        final accepted =
-            result.questions.length - quality.questionsNeedingReview;
         final keyApplication = result.answerKeyApplication;
         final answeredFromKey =
             keyApplication != null && keyApplication.foundAnything;
@@ -740,7 +788,11 @@ class _PdfProcessingPageState extends State<PdfProcessingPage> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      '${extraction.pageCount} páginas · ${result.questions.length} questões identificadas · $accepted validadas automaticamente (confiança ≥ 99%) · ${quality.questionsNeedingReview} para revisar. Você pode iniciar uma tentativa privada sem revisar tudo.',
+                      '${extraction.pageCount} páginas · ${result.questions.length} questões identificadas · '
+                      '${result.questions.where((q) => q.feasibility == QuestionFeasibility.feasible).length} fazíveis · '
+                      '${result.questions.where((q) => q.feasibility == QuestionFeasibility.fixable).length} corrigíveis · '
+                      '${result.questions.where((q) => q.feasibility == QuestionFeasibility.notFeasible).length} não fazíveis · '
+                      '${quality.questionsNeedingReview} para revisar. Você pode iniciar uma tentativa privada sem revisar tudo.',
                     ),
                     if (quality.reasons.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -1408,7 +1460,7 @@ class _ImportReviewPageState extends State<ImportReviewPage>
         ) ??
         ExamPublicationContract.questionsError(
           questions,
-          allowOpenEnded: false,
+          allowOpenEnded: true,
         );
   }
 
@@ -1441,11 +1493,12 @@ class _ImportReviewPageState extends State<ImportReviewPage>
       .where(
         (question) =>
             question.statement.trim().length >= 2 &&
-            question.options.length >= 2 &&
-            question.options.every((option) => option.trim().isNotEmpty) &&
-            (question.correctIndex == null ||
-                (question.correctIndex! >= 0 &&
-                    question.correctIndex! < question.options.length)),
+            (question.format == QuestionFormat.openEnded ||
+                (question.options.length >= 2 &&
+                    question.options.every((option) => option.trim().isNotEmpty) &&
+                    (question.correctIndex == null ||
+                        (question.correctIndex! >= 0 &&
+                            question.correctIndex! < question.options.length)))),
       )
       .toList(growable: false);
 
@@ -1851,6 +1904,15 @@ class _ImportReviewPageState extends State<ImportReviewPage>
           (question) => question.reviewState != QuestionReviewState.reviewed,
         )
         .length;
+    final feasibleCount = questions
+        .where((q) => q.feasibility == QuestionFeasibility.feasible)
+        .length;
+    final fixableCount = questions
+        .where((q) => q.feasibility == QuestionFeasibility.fixable)
+        .length;
+    final notFeasibleCount = questions
+        .where((q) => q.feasibility == QuestionFeasibility.notFeasible)
+        .length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -1870,7 +1932,7 @@ class _ImportReviewPageState extends State<ImportReviewPage>
           LinearProgressIndicator(value: total == 0 ? 0 : reviewed / total),
           const SizedBox(height: 8),
           Text(
-            '$needingReview para conferir · questões com confiança de 99% ou mais já foram validadas automaticamente. A revisão pendente não impede começar uma tentativa privada.',
+            '$needingReview para conferir · $feasibleCount fazíveis · $fixableCount corrigíveis · $notFeasibleCount não fazíveis. A revisão pendente não impede começar uma tentativa privada.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -2195,9 +2257,10 @@ class _ImportReviewPageState extends State<ImportReviewPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      question.confidence < autoValidatedQuestionConfidence ||
-                              question.warning != null
-                          ? 'Conferir extração · confiança ${(question.confidence * 100).round()}%'
+                      question.feasibility == QuestionFeasibility.notFeasible
+                          ? 'Não fazível · ${question.feasibilityReason}'
+                          : question.feasibility == QuestionFeasibility.fixable
+                          ? 'Corrigível · ${question.feasibilityReason}'
                           : question.reviewState == QuestionReviewState.inReview
                           ? 'Alteração pendente de confirmação manual'
                           : 'Confirmação manual necessária',

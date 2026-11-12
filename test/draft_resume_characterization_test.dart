@@ -49,12 +49,12 @@ void main() {
   });
   tearDown(() => store.dispose());
 
-  test('o rascunho não identifica questões, só posições', () async {
+  test('o rascunho identifica questões por ID, não por posição', () async {
     final v1 = _prova([_par, _impar]);
     await store.save(
       v1.id,
       const AttemptDraft(
-        answers: {0: 1, 1: 0},
+        answers: {'q-par': 1, 'q-impar': 0},
         review: {},
         current: 0,
         elapsedSeconds: 12,
@@ -80,17 +80,17 @@ void main() {
     );
 
     expect(resultadoV1.correct, 2);
-    expect(resultadoV2.correct, 0);
-    expect(resultadoV2.wrongQuestionIndices, [0, 1]);
+    expect(resultadoV2.correct, 2);
+    expect(resultadoV2.wrongQuestionIds, isEmpty);
   });
 
-  test('resposta além da nova versão some sem avisar', () async {
+  test('resposta de questão removida some sem avisar', () async {
     final grande = _prova([_par, _impar, _par]);
     await store.save(
       grande.id,
       const AttemptDraft(
-        answers: {0: 1, 1: 0, 2: 1},
-        review: {2},
+        answers: {'q-par': 1, 'q-impar': 0, 'q-par-2': 1},
+        review: {'q-par-2'},
         current: 2,
         elapsedSeconds: 40,
       ),
@@ -110,7 +110,7 @@ void main() {
     expect(retomado.current, 2);
     expect(resultado.correct, 1);
     expect(resultado.unanswered, 0);
-    expect(resultado.markedForReview, {2});
+    expect(resultado.markedForReview, {'q-par-2'});
     expect(resultado.toJson()['total'], 1);
   });
 
@@ -119,7 +119,7 @@ void main() {
     await store.save(
       prova.id,
       const AttemptDraft(
-        answers: {0: 1},
+        answers: {'q-par': 1},
         review: {},
         current: 1,
         elapsedSeconds: 5,
@@ -147,8 +147,8 @@ void main() {
       await before.save(
         'exam',
         const AttemptDraft(
-          answers: {0: 1, 1: 0},
-          review: {1},
+          answers: {'q-par': 1, 'q-impar': 0},
+          review: {'q-impar'},
           current: 1,
           elapsedSeconds: 42,
           clientAttemptId: '77777777-7777-4777-8777-777777777777',
@@ -164,8 +164,8 @@ void main() {
         ),
       );
       final retomado = await after.load('exam');
-      expect(retomado!.answers, {0: 1, 1: 0});
-      expect(retomado.review, {1});
+      expect(retomado!.answers, {'q-par': 1, 'q-impar': 0});
+      expect(retomado.review, {'q-impar'});
       expect(retomado.current, 1);
       expect(retomado.elapsedSeconds, 42);
       expect(retomado.clientAttemptId, '77777777-7777-4777-8777-777777777777');
@@ -183,7 +183,7 @@ void main() {
         AttemptSubmission(
           clientAttemptId: '55555555-5555-5555-8555-555555555555',
           exam: prova,
-          answers: const {0: 1, 1: 0},
+          answers: const {'q-par': 1, 'q-impar': 0},
           markedForReview: const {},
           durationSeconds: 60,
           finishedAt: DateTime.utc(2026, 11, 5),
@@ -197,7 +197,7 @@ void main() {
           AttemptSubmission(
             clientAttemptId: '55555555-5555-5555-8555-555555555555',
             exam: prova,
-            answers: const {0: 0, 1: 0},
+            answers: const {'q-par': 0, 'q-impar': 0},
             markedForReview: const {},
             durationSeconds: 61,
             finishedAt: DateTime.utc(2026, 11, 5),
@@ -210,29 +210,29 @@ void main() {
 
   test('prova local não entra na fila de sincronização', () async {
     final fila = AttemptQueueStore(storage: _FilaMemoria());
-    await expectLater(
-      AttemptSyncService(store: fila).saveForSync(
-        AttemptSubmission(
-          clientAttemptId: '66666666-6666-6666-8666-666666666666',
-          exam: Exam(
-            id: 'local',
-            category: 'Geral',
-            title: 'Prova local',
-            description: '',
-            author: 'Fonte',
-            durationMinutes: 30,
-            attempts: 0,
-            isLocal: true,
-            questions: const [_par],
+await expectLater(
+        AttemptSyncService(store: fila).saveForSync(
+          AttemptSubmission(
+            clientAttemptId: '66666666-6666-6666-8666-666666666666',
+            exam: Exam(
+              id: 'local',
+              category: 'Geral',
+              title: 'Prova local',
+              description: '',
+              author: 'Fonte',
+              durationMinutes: 30,
+              attempts: 0,
+              isLocal: true,
+              questions: const [_par],
+            ),
+            answers: const {'q-par': 1},
+            markedForReview: const {},
+            durationSeconds: 10,
+            finishedAt: DateTime.utc(2026, 11, 5),
           ),
-          answers: const {0: 1},
-          markedForReview: const {},
-          durationSeconds: 10,
-          finishedAt: DateTime.utc(2026, 11, 5),
         ),
-      ),
-      throwsStateError,
-    );
+        throwsStateError,
+      );
   });
 
   testWidgets('rascunho de outro conteúdo não é restaurado', (tester) async {
@@ -243,7 +243,7 @@ void main() {
     await widgetStore.save(
       prova.id,
       const AttemptDraft(
-        answers: {0: 1, 1: 0},
+        answers: {'q-par': 1, 'q-impar': 0},
         review: {},
         current: 1,
         elapsedSeconds: 12,
@@ -272,7 +272,7 @@ void main() {
       findsOneWidget,
     );
     // As respostas antigas continuam no aparelho, mas fora desta tentativa.
-    expect((await widgetStore.load(prova.id))!.answers, {0: 1, 1: 0});
+    expect((await widgetStore.load(prova.id))!.answers, {'q-par': 1, 'q-impar': 0});
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

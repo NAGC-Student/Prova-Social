@@ -1,7 +1,7 @@
 ---
 tipo: indice
 status: VALIDADO
-atualizado: 2026-11-05
+atualizado: 2026-11-10
 ---
 
 # Prova Social — índice do vault

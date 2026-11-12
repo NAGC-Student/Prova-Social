@@ -220,26 +220,21 @@ distinção entre “imagem inválida”, “modelo ausente” e “memória ins
 
 A decisão registrada na auditoria da área 9 e na nota de produto é não exibir
 porcentagem de confiança; usar estados **fazível**, **corrigível** e **não
-fazível**. O código ainda mostra:
+fazível**. O código já foi corrigido: a revisão usa estados estruturais
+(`QuestionFeasibility.feasibilityReason`, `publish_page.dart:2259-2268`) e não
+exibe “confiança ≥ 99%” nem “confiança X%” por questão. As referências abaixo
+mantêm-se como registro histórico da divergência anterior, não como estado atual:
 
-- “validadas automaticamente (confiança ≥ 99%)” no resumo da digitalização
+- Antes: “validadas automaticamente (confiança ≥ 99%)” no resumo da digitalização
   (`publish_page.dart:732`);
-- “questões com confiança de 99% ou mais já foram validadas automaticamente”
+- Antes: “questões com confiança de 99% ou mais já foram validadas automaticamente”
   (`publish_page.dart:1733`);
-- “Conferir extração · confiança X%” por questão
+- Antes: “Conferir extração · confiança X%” por questão
   (`publish_page.dart:2057`).
 
-Além de contrariar a decisão, o número não é uma probabilidade calibrada:
-
-- no Paddle, é a média simples das confianças das linhas, sem ponderação por
-  quantidade de texto (`ocr_service_native.dart:110-116`);
-- no ML Kit, `confidence` é nula, então a média não existe
-  (`ocr_service_native.dart:155-159`);
-- a confiança da questão pode ser derivada de parser, gabarito e associação de
-  imagem, não só do OCR.
-
-Um “99%” pode esconder uma questão sem alternativas ou com figura errada. O
-usuário lê precisão onde existe apenas heurística.
+A nota “Confiança não é probabilidade” ainda vale: os scores são heurísticas fixas,
+não calibradas, e podem esconder questões sem alternativas ou com figura errada.
+O usuário lê precisão onde existe apenas heurística.
 
 ### Renderização fixa e perda de detalhe
 
@@ -432,16 +427,15 @@ passa no build e no teste, porque nenhum teste carrega o modelo de verdade.
 
 ### Lote 3 — UI sem confiança numérica
 
-- Remover “99%” e “confiança X%” da revisão.
-- Derivar **fazível**, **corrigível** e **não fazível** de sinais estruturais:
-  questão detectada, alternativas, gabarito, imagem associada, texto suficiente
-  e warnings.
+- **Feito em 2026-11-11:** a revisão usa estados estruturais (**fazível**,
+  **corrigível**, **não fazível**) com `QuestionFeasibility.feasibilityReason`
+  (`publish_page.dart:2259-2268`); nenhuma porcentagem de confiança na UI.
 - Manter `confidence` apenas como sinal interno de triagem, nunca como promessa
   ao aluno.
 - Explicar o motivo do estado (“faltam alternativas”, “gabarito não encontrado”,
   “figura não associada”).
 - Critério de aceite: nenhuma porcentagem na UI; teste de widget cobre os três
-  estados e seus motivos.
+  estados e seus motivos (pendente).
 
 ### Lote 4 — Digitalização por câmera e galeria
 

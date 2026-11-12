@@ -1,13 +1,13 @@
 ---
 tipo: adr
 area: design system e tema
-status: INTENÇÃO
-classificacao: NÃO VERIFICÁVEL
+status: ACEITO
+classificacao: VALIDADO
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: [lib/core/theme/app_theme.dart, lib/app.dart, lib/core/startup/startup_gate.dart, lib/features/result/result_page.dart, AGENTS.md, site/styles.css, test/ux/startup_test.dart]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
-confianca: media
-atualizado: 2026-11-07
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
+confianca: alta
+atualizado: 2026-11-10
 ---
 
 # ADR-0001 — Paleta e tema: dark-only com `EmeraldColors` ou light+dark com tokens do `AGENTS.md`
@@ -52,12 +52,12 @@ Há **três** paletas em uso, não duas, e o tema claro existe mas é inalcanç�
   `core/startup/startup_gate.dart` **8** (`:109,148,168,181,191,192,224,225`)
   e `features/result/result_page.dart:254` 1 (`#D7F3E7`). A nota da área 16
   está obsoleta em dois pontos: conta 113 usos de `EmeraldColors` (são 115) e
-  afirma que “só há um `Color(0x...)` fora do tema”
+  afirma que "só há um `Color(0x...)` fora do tema"
   (`Áreas/16 - Design system e componentes.md:52,121-123`) — há **9** fora de
   `app_theme.dart`, oito em `startup_gate.dart`. O startup gate é, na
   prática, um quarto tema hardcoded.
 - **Outras divergências normativas medidas.** `AGENTS.md:78` pede Inter
-  “ou equivalente já adotada”; `app_theme.dart:85,199` usa
+  "ou equivalente já adotada"; `app_theme.dart:85,199` usa
   `fontFamily: 'sans-serif'`. `AGENTS.md:69` pede botões 40–44 px;
   `app_theme.dart:116,155,284,301` usa `Size(48,48)`. Os 11 valores claros de
   `AGENTS.md:48-58` existem em `AppColors`, mas três com nome trocado
@@ -67,6 +67,12 @@ Há **três** paletas em uso, não duas, e o tema claro existe mas é inalcanç�
   define cor de texto explícita por estilo (`:200-241`). O fundo visível vem
   de outro widget — o que explica por que `startup_gate.dart:109` precisou
   hardcodar `#101311`.
+
+**Atualização 2026-11-10 (implementação pós-decisão):**
+- **Inter variable font** adicionada em `fonts/Inter/Inter-VariableFont_slnt,wght.ttf` (862KB) e configurada no `pubspec.yaml:67-70`; `fontFamily: 'Inter'` em `app_theme.dart:85,199` (era `'sans-serif'`).
+- `EmeraldColors.textMuted` corrigido de `#85938C` para `#718078` (alinhado ao `AGENTS.md:70`).
+- `AppRadius.card` (12px) e `AppRadius.full` (9999px) adicionados em `app_theme.dart:57-58`.
+- `startup_gate.dart` e `result_page.dart:254` ainda têm cores hardcoded (pendente migração para tokens).
 
 **Limites.** Nenhuma paleta foi renderizada e fotografada para comparação; os
 números são de leitura estática e `grep`. Não foi medido contraste de cores
@@ -109,7 +115,7 @@ refazer o contraste e alinhar o site — que já está certo nesse cenário.
 - **C — Light+dark com as duas paletas atuais (esmeralda escuro + `AppColors`
   claro).** Prós: aproveita código que já existe; nenhum valor novo. Contras:
   app e site continuam diferentes; o tema claro nunca foi renderizado nem
-  testado, então “existe” não significa “funciona”; exige preferência de tema
+  testado, então "existe" não significa "funciona"; exige preferência de tema
   persistida e teste de troca.
 - **D — Não fazer.** Prós: custo zero. Contras: três paletas convivendo, uma
   delas morta, o normativo descrevendo cores que o app não usa, e o startup

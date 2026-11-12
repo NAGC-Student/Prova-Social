@@ -5,9 +5,9 @@ status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 2, acoplamento: 3, clareza: 3, seguranca: 3, robustez: 3, aderencia: 2, portabilidade: 3}
 fonte_codigo: [lib/core/theme/app_theme.dart, lib/core/widgets/, lib/app.dart, lib/features/home/home_page.dart, lib/features/search/search_page.dart, lib/features/quiz/quiz_page.dart, lib/features/publish/publish_page.dart, lib/features/result/result_page.dart, web/, site/]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-11
 ---
 
 # Design system e componentes
@@ -27,9 +27,12 @@ O problema é de **coerência entre o sistema e o produto**. O app é
 `ThemeMode.dark` fixo (`app.dart:23`), então os tokens claros nunca são usados;
 a paleta escura é `EmeraldColors` (`#050907`, `#101A15`, `#20D99A`), diferente
 dos tokens escuros do `AGENTS.md` (`#101311`, `#181C19`, `#F3F5F3`, `#2A302C`);
-não há `ExamListTile` — a home usa `ExamCard` e a busca usa `ListTile` cru, com
-hierarquias diferentes; a tipografia é `fontFamily: 'sans-serif'` sem Inter
-empacotado; os breakpoints estão espalhados em 960/980/900/760/600/560/520/440/420;
+`ExamListTile` **existe** em `lib/core/widgets/exam_list_tile.dart` (logo,
+metadados, progresso, badges, toggle salvar, Hero, modo compacto); a tipografia
+usa **Inter variable font** (862KB) em `fonts/Inter/`, configurada no
+`pubspec.yaml` e `app_theme.dart` (`fontFamily: 'Inter'`); `textMuted` foi
+corrigido para `#718078`; `AppRadius.card` (12px) e `AppRadius.full` foram
+adicionados. Os breakpoints ainda estão espalhados em 960/980/900/760/600/560/520/440/420;
 e `StudySurface` transforma quase toda seção em card com raio 18/24, contra a
 regra “se tudo é card, nada é card” e o raio de 12 px.
 

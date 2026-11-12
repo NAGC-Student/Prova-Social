@@ -38,14 +38,7 @@ atualizado: 2026-11-04
   porcentagens de acurácia nem usados sozinhos para excluir questões. A nota
   histórica permanece preservada; a análise técnica atual está em
   [[../01 - Produto/Importação e OCR]].
-- **Scanner (área 9):** a UI ainda mostra “confiança ≥ 99%” e “confiança X%”
-  (`publish_page.dart:732, 1733, 2057`), contrariando a decisão de não exibir
-  porcentagem. `fieldConfidence` existe no modelo, mas o parser nunca o
-  preenche. A publicação exige alternativas e gabarito em todas as questões
-  (`publish_page.dart:1333-1343`), bloqueando discursivas e rascunho objetivo
-  sem chave. Câmera/galeria e fila de feedback não existem. Evidência e
-  critérios de aceite em
-  [[Áreas/09 - Importação, OCR, parser e quality gate|auditoria da área 9]].
+- **Scanner (área 9):** a UI já não mostra “confiança ≥ 99%” nem “confiança X%”; usa estados estruturais (fazível/corrigível/não fazível) com `QuestionFeasibility.feasibilityReason` (`publish_page.dart:2259-2268`). `fieldConfidence` é atribuído pelo parser em todas as seis construções de `ImportedQuestion`, mas ainda não testado contra ground truth. A publicação aceita discursivas via `allowOpenEnded: true` (`exam_publication_service.dart:50-56`); objetivas continuam exigindo gabarito. Câmera/galeria não existem (escopo ADR-0006). Fila de feedback implementada localmente; endpoint/retorno remoto pendente. Evidência e critérios de aceite em [[Áreas/09 - Importação, OCR, parser e quality gate|auditoria da área 9]].
 - `docs/DIAGNOSTICO_ATUAL.md` afirma que o PDF VUNESP não atinge 80 questões. O
   teste atual `vunesp_2024_import_test.dart` exige 80 e passa; a afirmação
   histórica está desatualizada e não deve ser usada como estado atual.

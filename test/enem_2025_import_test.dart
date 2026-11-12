@@ -9,10 +9,10 @@ import 'package:prova_social/core/import/exam_metadata_suggester.dart';
 import 'package:prova_social/core/import/pdf_text_extractor.dart';
 import 'package:prova_social/core/import/question_parser.dart';
 
-/// The 2025 ENEM “Prova Verificada” (caderno 1, dia 1, versão azul) kept as a
+/// The 2025 ENEM "Prova Verificada" (caderno 1, dia 1, versão azul) kept as a
 /// local benchmark: it is the hardest model the importer has to take, because
 /// the PDF prints two columns per page, splits the question marker into
-/// “Quest ão 04”, tiles a watermark across every sheet, and puts the command of
+/// "Quest ão 04", tiles a watermark across every sheet, and puts the command of
 /// a question in the neighbouring column.
 ///
 /// The file is not committed, so the benchmark runs only on the machine that
@@ -21,11 +21,13 @@ import 'package:prova_social/core/import/question_parser.dart';
 final _sample = File('2025_PV_impresso_D1_CD1.pdf');
 
 void main() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        (call) async => Directory.systemTemp.path,
-      );
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (call) async => Directory.systemTemp.path,
+        );
+  });
 
   test(
     'imports all 90 questions of the 2025 ENEM verified exam',

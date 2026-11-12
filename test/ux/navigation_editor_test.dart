@@ -870,7 +870,7 @@ void main() {
         AttemptSubmission(
           clientAttemptId: 'id',
           exam: local.exam,
-          answers: {0: 0},
+          answers: {'q0': 0},
           markedForReview: {},
           durationSeconds: 3,
           finishedAt: DateTime.now(),

@@ -15,8 +15,8 @@ class AttemptDraft {
     this.examContentHash,
   });
 
-  final Map<int, int> answers;
-  final Set<int> review;
+  final Map<String, int> answers;
+  final Set<String> review;
   final int current;
   final int elapsedSeconds;
   final String? clientAttemptId;
@@ -135,12 +135,19 @@ class AttemptDraftStore {
     final raw = await _storage.read(_key(examId));
     if (raw == null) return null;
     final json = Map<String, dynamic>.from(jsonDecode(raw) as Map);
-    final answers = Map<String, dynamic>.from(json['answers'] as Map);
+    final answersJson = json['answers'] as Map? ?? const {};
+    final answers = <String, int>{};
+    answersJson.forEach((key, value) {
+      answers[key.toString()] = value as int;
+    });
+    final reviewJson = json['review'] as List? ?? const [];
+    final review = <String>{};
+    for (final item in reviewJson) {
+      review.add(item.toString());
+    }
     return AttemptDraft(
-      answers: answers.map(
-        (key, value) => MapEntry(int.parse(key), value as int),
-      ),
-      review: Set<int>.from(json['review'] as List),
+      answers: answers,
+      review: review,
       current: json['current'] as int,
       elapsedSeconds: json['elapsedSeconds'] as int,
       clientAttemptId: json['clientAttemptId'] as String?,

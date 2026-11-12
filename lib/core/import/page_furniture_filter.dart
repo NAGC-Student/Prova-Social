@@ -88,6 +88,22 @@ class PageFurnitureFilter {
   /// no space in it, so the letter count of a normal header would never see it.
   static final RegExp _codeToken = RegExp(r'^[A-Za-z0-9À-ÿ._\-*/]{8,24}$');
 
+  /// Known exam watermark tokens that boards tile across pages (ENEM, year, board name).
+  /// These appear as short repeated lines and should be stripped wherever they appear.
+  static final Set<String> _knownWatermarkTokens = {
+    'ENEM',
+    'INEP',
+    'ENCCEJA',
+    'ENEM2022',
+    'ENEM2023',
+    'ENEM2024',
+    'ENEM2025',
+    '2022',
+    '2023',
+    '2024',
+    '2025',
+  };
+
   /// [footers] carries, per page, the line indexes the PDF placed in the bottom
   /// band of the sheet. Where those coordinates exist, they decide what can be
   /// a page number; without them the filter falls back to the last lines of the
@@ -186,6 +202,14 @@ class PageFurnitureFilter {
         if (_isAlwaysDecoration(text)) {
           lines[index] = '';
           if (removedSeen.add(text)) removed.add(original.trim());
+          continue;
+        }
+        // Remove known watermark tokens (ENEM, year, board name) that are
+        // tiled across the page as short lines.
+        final trimmed = original.trim();
+        if (_knownWatermarkTokens.contains(trimmed.toUpperCase())) {
+          lines[index] = '';
+          if (removedSeen.add(text)) removed.add(trimmed);
           continue;
         }
         // Only the number itself is furniture: a corroborated slot does not

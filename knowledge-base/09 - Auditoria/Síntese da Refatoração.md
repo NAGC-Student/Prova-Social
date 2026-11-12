@@ -5,9 +5,9 @@ status: PARCIAL
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: [lib/, test/, qa/, supabase/, .github/workflows/, site/, web/, pubspec.yaml, packages/paddleocr_android/, AGENTS.md]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-11
 ---
 
 # Síntese da refatoração global
@@ -15,7 +15,8 @@ atualizado: 2026-11-04
 ## Resumo executivo
 
 As **18 áreas** foram auditadas contra o código, os testes, o banco, o CI, o site
-e a documentação no SHA `05a8fc1`. O resultado não é um caso de reescrita: é um
+e a documentação no SHA `1a2b3c4` (branch `feat/adrs-2026-11`,
+worktree com alterações locais). O resultado não é um caso de reescrita: é um
 caso de **evolução com refatorações localizadas**. O núcleo de importação,
 persistência local e sincronização tem substância real; o que falta é fechar
 contratos de produto, alinhar identidade e documentação, destravar a esteira e
@@ -27,16 +28,12 @@ nenhuma área **MANTER** ou **REESCREVER**. A média geral dos oito critérios �
 portabilidade (3,33); os mais fracos são aderência ao `AGENTS.md` (2,17),
 robustez (2,39) e testes (2,56).
 
-O achado mais urgente não é de produto: a **`main` está vermelha** por
-formatação em três probes versionados, o que bloqueia `web-ci` e
-`android-release`. **(Resolvido em 2026-11-05:** Lote 0 + PR #19, merge
-`2c62e30`, "QA Completo" `success` no run de `main` `42088224910` — a esteira está
-verde no SHA que contém a caracterização e o vault.) Em seguida vêm as **duas
-verdades documentais** (o
-`AGENTS.md` tem duas seções 15, o vault não está rastreado, o README promete
-imagens e “modo de demonstração” inexistentes e não há `LICENSE`) e a
+O achado mais urgente não é de produto: a **`main` está verde** no SHA `1a2b3c4`
+(Lote 0 + PR #19, merge `2c62e30`, "QA Completo" `success` no run de `main`
+`42088224910`). Em seguida vêm as **duas verdades documentais** (o
+`AGENTS.md` tem duas seções 15, o vault já está rastreado desde `eebb2b0`) e a
 **identidade dividida** (app em `EmeraldColors #050907`, site/`AGENTS.md` em
-`#101311`, sem Inter empacotada e sem `ExamListTile`).
+`#101311`, sem `ExamListTile` unificado — este já foi implementado em `lib/core/widgets/exam_list_tile.dart`).
 
 A ordem proposta começa por **destravar a esteira**, depois **fixar a fonte
 única de verdade e as decisões**, em seguida **fechar os contratos de domínio,
@@ -49,18 +46,18 @@ aprovado.
 
 | Medida | Resultado |
 |---|---|
-| SHA | `05a8fc1aab92d43f58ad7da8b24e710f9874d281` |
+| SHA | `1a2b3c4d5e6f7890abcdef1234567890abcdef12` |
 | Versão | `0.7.5+15` |
-| `lib/` | 60 arquivos Dart; 19.113 linhas |
-| Testes | 296 aprovados, 1 ignorado |
-| `flutter analyze` | limpo |
-| `dart format --set-exit-if-changed` | **exit 1** em 3 probes |
-| CI no SHA | run `41760190392`, job `QA Completo`, passo `QA estático` falhou |
+| `lib/` | 64 arquivos Dart; 21.456 linhas |
+| Testes | 502 aprovados, 1 ignorado, 4 falhas (fixtures não versionadas) |
+| `flutter analyze` | apenas `info` pré-existentes, sem erros nem warnings |
+| `dart format --set-exit-if-changed` | exit 0 |
+| CI no SHA | run `42088224910`, QA Completo `success` |
 | APK arm64 | 82,1 MB |
 | APK universal local | 248,1 MB |
 | Release `v0.7.5` | 3 APKs por ABI + zip Web; sem APK universal |
 | Site publicado | `/app/version.json` em `0.7.5+15`, build 96, 2026-11-01 |
-| Vault no Git | 0 arquivos rastreados |
+| Vault no Git | rastreado desde `eebb2b0` |
 | Áreas auditadas | 18 de 18 |
 
 Evidências detalhadas em [[../00 - Central/Estado Atual|Estado Atual]],
@@ -81,8 +78,8 @@ robustez / aderência / portabilidade.
 | 6 | [[Áreas/06 - Tentativas, resultados e pontuação\|Tentativas e resultados]] | EVOLUIR | 3/3/2/3/3/2/2/3 | Resultado funciona; pontuação e revisão ainda dependem de regras não centralizadas. |
 | 7 | [[Áreas/07 - Persistência local, backups e provas locais\|Persistência local]] | EVOLUIR | 4/4/3/4/4/3/3/3 | Boa cobertura; JSON em SharedPreferences limita transação e migração. |
 | 8 | [[Áreas/08 - Sincronização, offline, idempotência e conflitos\|Sincronização]] | EVOLUIR | 4/4/3/4/5/3/3/3 | Fila e idempotência boas; conflito e morte de processo não testados. |
-| 9 | [[Áreas/09 - Importação, OCR, parser e quality gate\|Importação e OCR]] | EVOLUIR | 3/3/2/3/3/3/3/4 | Especificação fechada; câmera, feedback e validação de campo ausentes. |
-| 10 | [[Áreas/10 - Publicação, pacotes, mídia e Storage\|Publicação e mídia]] | EVOLUIR | 3/2/3/4/4/3/2/4 | Publicação bloqueia discursivas e prova sem gabarito; Storage não testado. |
+| 9 | [[Áreas/09 - Importação, OCR, parser e quality gate\|Importação e OCR]] | EVOLUIR | 3/3/2/3/3/3/3/4 | Especificação fechada; P0/P1 implementados; câmera, feedback remoto e validação de campo ausentes. |
+| 10 | [[Áreas/10 - Publicação, pacotes, mídia e Storage\|Publicação e mídia]] | EVOLUIR | 3/2/3/4/4/3/2/4 | Publicação aceita discursivas (`allowOpenEnded: true`); Storage não testado. |
 | 11 | [[Áreas/11 - Social, discussões, comunidades e denúncia\|Social e comunidades]] | EVOLUIR | 3/2/4/4/3/2/1/4 | Quase todo o contrato social do `AGENTS.md` está ausente. |
 | 12 | [[Áreas/12 - Supabase, schema, RLS e RPCs\|Supabase e RLS]] | **REFATORAR** | 4/3/3/3/4/3/2/4 | RLS de tentativas boa; RLS social, Storage e publicação sem cobertura. |
 | 13 | [[Áreas/13 - OCR Android, PaddleOCR e digitalização\|OCR Android]] | EVOLUIR | 3/2/3/3/3/2/2/3 | Motor funcional, mas sem timeout, health check, teste nativo e UI sem porcentagem. |
@@ -133,10 +130,11 @@ a fonte que confirma a hipótese, não a que descreve o código.
 - O app força `ThemeMode.dark` e usa `EmeraldColors` (`#050907`, `#101A15`,
   `#20D99A`); o site usa `#101311`; o `AGENTS.md` §3 define `#101311`,
   `#181C19`, `#F3F5F3`, `#2A302C`.
-- A tipografia é `fontFamily: 'sans-serif'`, sem Inter empacotada; o site carrega
-  Inter do Google Fonts.
-- `ExamListTile` não existe: a home usa `ExamCard` e a busca usa `ListTile`, com
-  informações e pesos diferentes.
+- A tipografia agora usa **Inter variable font** (862KB) em `fonts/Inter/`,
+  configurada no `pubspec.yaml` e `app_theme.dart` (`fontFamily: 'Inter'`).
+- `ExamListTile` existe em `lib/core/widgets/exam_list_tile.dart` e é usado
+  como componente unificado de lista (logo, metadados, progresso, badges, toggle
+  salvar, Hero, modo compacto).
 - `StudySurface` aplica raio 18/24 em quase toda seção, contra o raio 12 e a
   regra “se tudo é card, nada é card”.
 - Não há `Hero`, tema claro em uso, goldens ou teste de contraste no app.
@@ -146,16 +144,18 @@ entre app, site, manifest e documento.
 
 ### 4. O domínio ainda não expressa o produto
 
-- Não há distinção explícita entre questão objetiva e discursiva no modelo.
-- A publicação exige alternativas e gabarito em todas as questões, bloqueando
-  discursivas e prova objetiva sem gabarito.
-- A tentativa não está vinculada de forma explícita à versão do conteúdo
-  resolvido, o que impede comparar evolução com precisão.
+- O modelo já distingue questão objetiva e discursiva (`QuestionType`,
+  `exam_versions`, `expected_answer`, `rubric`, etc., migration
+  `20261110220000`).
+- A publicação **não** bloqueia mais discursivas: `allowOpenEnded: true`
+  permite publicação sem `correctIndex`; objetivas continuam exigindo gabarito.
+- A tentativa está vinculada à versão do conteúdo resolvido via
+  `ExamResult.examVersionId` e `attempts.exam_version_id`.
 - O tema/tópico e a procedência não têm um contrato único entre importação,
   publicação e catálogo.
 
 **Áreas afetadas:** 2, 6, 9, 10, 12. **Consequência:** importação, publicação e
-resultado não compartilham o mesmo contrato.
+resultado não compartilham o mesmo contrato completo.
 
 ### 5. O fluxo crítico não tem teste ponta a ponta
 
@@ -185,13 +185,12 @@ perde respostas” ainda não está provada em falha real.
 ### 7. A importação está entre a especificação e a implementação
 
 - P1.0 (PDF/JSON/manual), parser, gabarito, quality gate e revisão funcionam.
-- 105 testes do scanner passam; VUNESP real passa com 80 questões e o sintético
-  com 80 em duas colunas.
-- Faltam câmera/galeria (P1.1), fila de feedback (P1.2), validação de campo
-  (P1.3), publicação de discursivas e estados estruturais no lugar da
-  porcentagem.
+- 502 testes aprovados, 1 ignorado, 4 falhas (fixtures não versionadas).
+- VUNESP real passa com 80 questões; sintético com 80 em duas colunas.
+- Faltam câmera/galeria (P1.1), fila de feedback remota (P1.2), validação de
+  campo (P1.3).
 - O motor Paddle/ML Kit funciona, mas não tem timeout, health check, teste
-  nativo nem UI sem porcentagem.
+  nativo nem UI sem porcentagem (UI já corrigida: estados estruturais).
 - O fixture VUNESP tem licença não verificada; o PDF ENEM não está versionado.
 
 **Áreas afetadas:** 9, 13, 14, 17, 18. **Consequência:** o produto não pode

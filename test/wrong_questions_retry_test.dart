@@ -62,7 +62,7 @@ void main() {
     );
     final result = ExamResult(
       exam: exam,
-      answers: const {0: 0, 1: 1},
+      answers: const {'q0': 0, 'q1': 1},
       markedForReview: const {},
       durationSeconds: 45,
       finishedAt: DateTime.utc(2026, 11, 1),

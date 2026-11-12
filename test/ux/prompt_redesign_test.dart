@@ -136,7 +136,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final result = ExamResult(
       exam: _exam(),
-      answers: const {0: 0},
+      answers: const {'question-1': 0},
       markedForReview: const {},
       durationSeconds: 120,
       finishedAt: DateTime.utc(2026, 11, 1),

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prova Social — Dashboard de Acompanhamento</title>
+<style>
+  :root {
+    --bg: #050907;
+    --bg-secondary: #080F0C;
+    --surface: #101A15;
+    --surface-elevated: #14231B;
+    --surface-highlight: #193329;
+    --border: #23382E;
+    --border-highlight: #176B4A;
+    --text-primary: #F5F7F6;
+    --text-secondary: #AAB7B0;
+    --text-muted: #718078;
+    --primary: #20D99A;
+    --primary-dark: #087C52;
+    --warning: #E5A524;
+    --error: #FF6464;
+    --radius-card: 12px;
+    --radius-btn: 10px;
+    --radius-modal: 16px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  body { padding: 16px; }
+  .offline {
+    position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 50; padding: 8px 14px; border-radius: 8px;
+    background: rgba(255,100,100,0.9); color: #050907; font-weight: 600;
+    font-size: 13px; display: none;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
+  }
+  .mark {
+    width: 32px; height: 32px; border: 2px solid var(--primary);
+    border-radius: 8px; position: relative;
+  }
+  .mark::before {
+    content: ""; position: absolute; top: 6px; left: 6px; width: 10px; height: 6px; border-left: 2px solid var(--primary); border-bottom: 2px solid var(--primary); transform: rotate(-45deg);
+  }
+  .mark::after {
+    content: ""; position: absolute; top: 14px; left: 14px; width: 6px; height: 12px; border-right: 2px solid var(--primary); border-bottom: 2px solid var(--primary); transform: rotate(45deg);
+  }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px;
+    border-radius: 20px; font-size: 12px; font-weight: 700;
+    border: 1px solid var(--border); color: var(--text-secondary); margin-left: auto;
+  }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .pill-ok .dot { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+  .pill-warn .dot { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+  .pill-err .dot { background: var(--error); box-shadow: 0 0 8px var(--error); }
+  .pill-gray .dot { background: var(--text-muted); }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1100px) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-card); padding: 16px;
+  }
+  .card-title {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px 0;
+    font-size: 15px; font-weight: 700; color: var(--text-secondary);
+  }
+  .card-title .k { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  /* Overview */
+  .overview { grid-column: 1 / -1; }
+  .overview-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .overview-row { grid-template-columns: 1fr 1fr; } }
+  .stat { background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .stat .v { font-size: 24px; font-weight: 700; margin: 4px 0 2px 0; }
+  .stat .l { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .stat .v.ok { color: var(--primary); }
+  .stat .v.warn { color: var(--warning); }
+  .stat .v.err { color: var(--error); }
+  .stat .v.gray { color: var(--text-secondary); }
+
+  .meta { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); display: grid; gap: 4px; }
+
+  /* Current activity */
+  .activity { grid-column: 1 / -1; }
+  .field { display: grid; gap: 2px; margin-bottom: 10px; }
+  .field .k { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .field .v { font-size: 14px; color: var(--text-primary); word-break: break-word; }
+  .field .v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; background: var(--surface-highlight); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .unknown { color: var(--text-muted); font-style: italic; }
+  .next { color: var(--primary); }
+
+  /* Steps timeline */
+  .timeline { position: relative; padding-left: 22px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border);
+  }
+  .step { position: relative; margin-bottom: 14px; padding-left: 14px; }
+  .step::before {
+    content: ""; position: absolute; left: -14px; top: 2px; width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface);
+  }
+  .step.done::before { background: var(--primary); border-color: var(--primary-dark); box-shadow: 0 0 0 3px rgba(32,217,154,0.15); }
+  .step.active::before { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 0 3px rgba(229,165,36,0.2); }
+  .step.blocked::before { background: var(--error); border-color: var(--error); box-shadow: 0 0 0 3px rgba(255,100,100,0.2); }
+  .step.pending::before { border-style: dashed; }
+  .step-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .step-name { font-weight: 700; font-size: 14px; }
+  .step-state { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); }
+  .step.done .step-state { color: var(--primary); border-color: var(--primary-dark); }
+  .step.active .step-state { color: var(--warning); border-color: var(--warning); }
+  .step.blocked .step-state { color: var(--error); border-color: var(--error); }
+  .step.pending .step-state { color: var(--text-muted); border-color: var(--border); }
+  .step-time { font-size: 12px; color: var(--text-muted); }
+  .step-desc { font-size: 13.5px; color: var(--text-secondary); margin: 2px 0 4px 0; }
+  .step-result { font-size: 13px; color: var(--text-primary); }
+
+  /* Files */
+  .files-wrap { display: grid; gap: 10px; }
+  .file-group { margin-bottom: 8px; }
+  .file-group .t { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+  .file-list { display: grid; gap: 6px; }
+  .file-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-elevated); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  }
+  .file-item .kind { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .file-item.modified .kind { color: var(--primary); border-color: var(--primary-dark); }
+  .file-item.created .kind { color: var(--warning); border-color: var(--warning); }
+  .file-item.problems .kind { color: var(--error); border-color: var(--error); }
+  .file-item.pending_review .kind { color: var(--text-muted); border-color: var(--border); }
+  .file-path { flex: 1; font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all; }
+  .file-note { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .empty { color: var(--text-muted); font-size: 13px; font-style: italic; }
+
+  /* Tests */
+  .tests-wrap { display: grid; gap: 12px; }
+  .test-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 640px) { .test-stats { grid-template-columns: 1fr 1fr; } }
+  .tstat { background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .tstat .v { font-size: 22px; font-weight: 700; }
+  .tstat .v.ok { color: var(--primary); }
+  .tstat .v.err { color: var(--error); }
+  .tstat .v.warn { color: var(--warning); }
+  .tstat .v.gray { color: var(--text-secondary); }
+  .tstat .l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  .test-cmd { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-secondary); background: var(--surface-highlight); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-top: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .test-err { background: rgba(255,100,100,0.1); border: 1px solid var(--error); border-radius: 8px; padding: 10px; font-size: 12.5px; color: var(--text-primary); margin-top: 8px; }
+  .test-err .e { color: var(--error); font-weight: 700; }
+  .test-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .test-table th { text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .test-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .test-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .badge.aprovado { color: var(--primary); border-color: var(--primary-dark); }
+  .badge.reprovado { color: var(--error); border-color: var(--error); }
+  .badge.executando { color: var(--warning); border-color: var(--warning); }
+  .badge.nao-executado { color: var(--text-muted); border-color: var(--border); }
+  .badge.ignorado { color: var(--text-muted); border-color: var(--border); }
+
+  /* Problems */
+  .prob-list { display: grid; gap: 8px; }
+  .prob {
+    background: var(--surface-elevated); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .prob.blocked { border-color: var(--error); background: rgba(255,100,100,0.05); }
+  .prob-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .prob-title { font-weight: 700; font-size: 14px; }
+  .prob-type { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-left: auto; }
+  .prob.bug .prob-type, .prob.falha_teste .prob-type, .prob.compilacao .prob-type { color: var(--error); border-color: var(--error); }
+  .prob.arquitetura .prob-type { color: var(--warning); border-color: var(--warning); }
+  .prob.dependencia .prob-type { color: var(--warning); border-color: var(--warning); }
+  .prob.bloqueio_ambiental .prob-type { color: var(--error); border-color: var(--error); }
+  .prob-desc { font-size: 13px; color: var(--text-secondary); margin: 2px 0 6px 0; }
+  .prob-file { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .prob-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+  .prob-status.aberto { color: var(--warning); }
+  .prob-status.resolvido { color: var(--primary); }
+  .prob-status.bloqueado { color: var(--error); }
+  .prob-hist { font-size: 12px; color: var(--text-muted); }
+  .prob-hist .h { margin-top: 4px; }
+
+  /* History */
+  .hist-list { display: grid; gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--border) var(--surface); }
+  .hist-item { display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; }
+  .hist-item:hover { background: var(--surface-highlight); border-color: var(--border); }
+  .hist-time { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-muted); min-width: 70px; }
+  .hist-action { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .hist-detail { font-size: 13px; color: var(--text-primary); }
+
+  /* footer */
+  footer { margin-top: 20px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 12px; }
+  .muted { color: var(--text-muted); }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="offline" class="offline">Dashboard off-line — dados não estão sendo atualizados.</div>
+
+<header>
+  <div class="brand">
+    <div class="mark"></div>
+    <div>
+      <div>Prova Social</div>
+      <div class="subtitle">Dashboard de Acompanhamento em Tempo Real</div>
+    </div>
+  </div>
+  <div id="status-pill" class="pill pill-gray"><span class="dot"></span>Aguardando</div>
+</header>
+
+<div class="grid">
+  <!-- Overview -->
+  <section class="card overview">
+    <h2 class="card-title">Visão Geral <span class="k">SESSION</span></h2>
+    <div class="overview-row">
+      <div class="stat"><div class="l">Fase</div><div id="ov-phase" class="v gray">—</div></div>
+      <div class="stat"><div class="l">Progresso</div><div id="ov-progress" class="v gray">0%</div></div>
+      <div class="stat"><div class="l">Tempo decorrido</div><div id="ov-elapsed" class="v gray">—</div></div>
+      <div class="stat"><div class="l">Última atualização</div><div id="ov-updated" class="v gray">—</div></div>
+    </div>
+    <div class="meta">
+      <div><strong>Tarefa:</strong> <span id="ov-task" class="muted">—</span></div>
+      <div><strong>Agente:</strong> <span id="ov-agent" class="muted">—</span> &nbsp;|&nbsp; <strong>Sessão:</strong> <span id="ov-session" class="muted mono">—</span></div>
+      <div><strong>Última atividade:</strong> <span id="ov-last" class="muted">—</span></div>
+    </div>
+  </section>
+
+  <!-- Current activity -->
+  <section class="card activity">
+    <h2 class="card-title">Atividade Atual <span class="k">AGENTE</span></h2>
+    <div class="field"><div class="k">O que está fazendo</div><div id="act-what" class="v">—</div></div>
+    <div class="field"><div class="k">Arquivo</div><div id="act-file" class="v mono">—</div></div>
+    <div class="field"><div class="k">Região / linhas</div><div id="act-region" class="v mono">—</div></div>
+    <div class="field"><div class="k">Função / classe / componente</div><div id="act-func" class="v mono">—</div></div>
+    <div class="field"><div class="k">Objetivo da alteração</div><div id="act-objective" class="v">—</div></div>
+    <div class="field"><div class="k">Última ação concluída</div><div id="act-last" class="v">—</div></div>
+    <div class="field"><div class="k">Próxima ação</div><div id="act-next" class="v next">—</div></div>
+    <div class="field"><div class="k">Posição conhecida</div><div id="act-pos" class="v">—</div></div>
+  </section>
+
+  <!-- Steps timeline -->
+  <section class="card">
+    <h2 class="card-title">Etapas do Desenvolvimento <span class="k">LINHA DO TEMPO</span></h2>
+    <div class="timeline" id="steps"></div>
+  </section>
+
+  <!-- Files -->
+  <section class="card">
+    <h2 class="card-title">Arquivos Modificados <span class="k">ARQUIVOS</span></h2>
+    <div class="files-wrap" id="files"></div>
+  </section>
+
+  <!-- Tests -->
+  <section class="card">
+    <h2 class="card-title">Testes e Validações <span class="k">TESTES</span></h2>
+    <div class="tests-wrap" id="tests"></div>
+  </section>
+
+  <!-- Problems -->
+  <section class="card">
+    <h2 class="card-title">Problemas Encontrados <span class="k">PROBLEMAS</span></h2>
+    <div class="prob-list" id="problems"></div>
+  </section>
+
+  <!-- History -->
+  <section class="card" style="grid-column: 1 / -1;">
+    <h2 class="card-title">Histórico de Atividades <span class="k">CRONOLÓGICO</span></h2>
+    <div class="hist-list" id="history"></div>
+  </section>
+</div>
+
+<footer>
+  Prova Social — Dashboard local. Atualiza automaticamente a cada 1 segundo. Não depende de serviços externos.
+</footer>
+
+<script>
+const STATE_URL = new URL("session.json", window.location.href).href;
+let offlineShown = false;
+
+function fmtTime(iso) {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); } catch (e) { return iso; }
+}
+function fmtElapsed(seconds) {
+  if (!seconds && seconds !== 0) return "—";
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return h > 0 ? `${h}h ${m}m ${sec}s` : (m > 0 ? `${m}m ${sec}s` : `${sec}s`);
+}
+function esc(t) { return String(t ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function statusColor(phase) {
+  switch (phase) {
+    case "concluido": return "ok";
+    case "bloqueado": return "err";
+    case "aguardando": return "gray";
+    default: return "warn";
+  }
+}
+function stateColor(st) {
+  switch (st) {
+    case "aprovado": case "resolvido": case "concluida": return "ok";
+    case "reprovado": case "bloqueado": case "bloqueada": return "err";
+    case "executando": case "andamento": return "warn";
+    default: return "nao-executado";
+  }
+}
+
+function render(data) {
+  const st = data.state || {};
+  const meta = data.meta || {};
+  const ca = data.current_activity || {};
+
+  // Status pill
+  const pill = document.getElementById("status-pill");
+  const phase = st.phase || st.overall || "aguardando";
+  pill.className = "pill " + (statusColor(phase) === "ok" ? "pill-ok" : statusColor(phase) === "err" ? "pill-err" : statusColor(phase) === "warn" ? "pill-warn" : "pill-gray");
+  pill.querySelector(".dot").setAttribute("class","dot");
+  pill.querySelector(".dot").classList.add(statusColor(phase) === "ok" ? "" : statusColor(phase) === "err" ? "" : statusColor(phase) === "warn" ? "" : "");
+  pill.querySelector("span:not(.dot)").textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
+
+  // Overview
+  document.getElementById("ov-phase").textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
+  document.getElementById("ov-phase").className = "v " + statusColor(phase);
+  const prog = Math.round(st.progress || 0);
+  document.getElementById("ov-progress").textContent = prog + "%";
+  document.getElementById("ov-progress").className = "v " + (prog >= 100 ? "ok" : prog > 0 ? "warn" : "gray");
+  document.getElementById("ov-elapsed").textContent = fmtElapsed(st.elapsed_seconds);
+  document.getElementById("ov-updated").textContent = fmtTime(st.last_update);
+  document.getElementById("ov-task").textContent = st.main_task || "—";
+  document.getElementById("ov-agent").textContent = meta.agent || "—";
+  document.getElementById("ov-session").textContent = meta.current_session_id || "—";
+  document.getElementById("ov-last").textContent = st.last_activity || "—";
+
+  // Current activity
+  const show = (id, val, cls) => { const el = document.getElementById(id); el.textContent = val === null || val === undefined ? "—" : val; if (cls) el.className = "v " + cls; };
+  show("act-what", ca.what);
+  show("act-file", ca.file, "mono");
+  show("act-region", ca.region, "mono");
+  show("act-func", ca.function, "mono");
+  show("act-objective", ca.objective);
+  show("act-last", ca.last_action);
+  show("act-next", ca.next_action, "next");
+  const posKnown = ca.position_known === true;
+  const posEl = document.getElementById("act-pos");
+  posEl.textContent = posKnown ? "Sim" : "Não";
+  posEl.className = "v " + (posKnown ? "" : "unknown");
+  if (!posKnown) {
+    document.getElementById("act-file").classList.add("unknown");
+    document.getElementById("act-region").classList.add("unknown");
+    document.getElementById("act-func").classList.add("unknown");
+  }
+
+  // Steps timeline
+  const stepsContainer = document.getElementById("steps");
+  stepsContainer.innerHTML = "";
+  const steps = Array.isArray(data.steps) ? data.steps : [];
+  if (steps.length === 0) { stepsContainer.innerHTML = "<div class='empty'>Nenhuma etapa registrada.</div>"; }
+  else {
+    const order = { concluida: 0, andamento: 1, pendente: 2, bloqueada: 3 };
+    steps.slice().sort((a,b) => (order[a.state] || 99) - (order[b.state] || 99) || (a.name||"").localeCompare(b.name||"")).forEach(s => {
+      const div = document.createElement("div");
+      div.className = "step " + s.state;
+      const stateLabel = { concluida: "Concluída", andamento: "Em andamento", pendente: "Pendente", bloqueada: "Bloqueada" }[s.state] || s.state;
+      div.innerHTML = `
+        <div class="step-head">
+          <div class="step-name">${esc(s.name)}</div>
+          <div class="step-state">${stateLabel}</div>
+        </div>
+        <div class="step-time">${fmtTime(s.started_at)} ${s.finished_at ? "→ " + fmtTime(s.finished_at) : ""}</div>
+        ${s.description ? `<div class="step-desc">${esc(s.description)}</div>` : ""}
+        ${s.result ? `<div class="step-result">${esc(s.result)}</div>` : ""}
+      `;
+      stepsContainer.appendChild(div);
+    });
+  }
+
+  // Files
+  const filesWrap = document.getElementById("files");
+  filesWrap.innerHTML = "";
+  const files = data.files || {};
+  const buckets = [
+    { key: "analyzed", label: "Analisados", kind: "analyzed" },
+    { key: "modified", label: "Modificados", kind: "modified" },
+    { key: "created", label: "Criados", kind: "created" },
+    { key: "pending_review", label: "Aguardando revisão", kind: "pending_review" },
+    { key: "problems", label: "Com problemas", kind: "problems" },
+  ];
+  buckets.forEach(b => {
+    const arr = Array.isArray(files[b.key]) ? files[b.key] : [];
+    const group = document.createElement("div");
+    group.className = "file-group";
+    const t = document.createElement("div");
+    t.className = "t";
+    t.textContent = b.label + (arr.length ? ` (${arr.length})` : "");
+    group.appendChild(t);
+    const list = document.createElement("div");
+    list.className = "file-list";
+    if (arr.length === 0) { list.innerHTML = "<div class='empty'>Nenhum.</div>"; }
+    else {
+      arr.forEach(f => {
+        const it = document.createElement("div");
+        it.className = "file-item " + b.kind;
+        it.innerHTML = `
+          <div class="kind">${b.kind}</div>
+          <div class="file-path">${esc(f.path)}</div>
+          <div class="file-note">${fmtTime(f.last_activity)}</div>
+        `;
+        list.appendChild(it);
+      });
+    }
+    group.appendChild(list);
+    filesWrap.appendChild(group);
+  });
+
+  // Tests
+  const testsWrap = document.getElementById("tests");
+  testsWrap.innerHTML = "";
+  const tests = data.tests || {};
+  const tExecuted = tests.executed || 0;
+  const tRunning = tests.running || 0;
+  const tPassed = tests.passed || 0;
+  const tFailed = tests.failed || 0;
+  const tSkipped = tests.skipped || 0;
+  const tTotal = tests.total || 0;
+  const stats = [
+    { v: tExecuted, l: "Executados", cls: "gray" },
+    { v: tRunning, l: "Em execução", cls: "warn" },
+    { v: tPassed, l: "Aprovados", cls: "ok" },
+    { v: tFailed, l: "Reprovados", cls: "err" },
+  ];
+  const statsHtml = stats.map(s => `
+    <div class="tstat"><div class="v ${s.cls}">${s.v}</div><div class="l">${s.l}</div></div>
+  `).join("");
+  let content = `<div class="test-stats">${statsHtml}</div>`;
+  content += `<div class="tstat"><div class="v gray">${tSkipped}</div><div class="l">Ignorados</div></div>`;
+  content += `<div class="tstat"><div class="v gray">${tTotal}</div><div class="l">Total</div></div>`;
+  content += `<div class="tstat"><div class="v gray">${fmtElapsed(tests.duration_seconds)}</div><div class="l">Duração</div></div>`;
+  if (tests.command) content += `<div class="test-cmd">Comando: ${esc(tests.command)}</div>`;
+  content += `<div><strong>Último resultado:</strong> <span class="badge ${stateColor(tests.last_result)}">${tests.last_result ? tests.last_result.charAt(0).toUpperCase() + tests.last_result.slice(1) : "—"}</span> &nbsp; <span class="muted">${fmtTime(tests.last_run)}</span></div>`;
+  const errors = Array.isArray(tests.errors) ? tests.errors : [];
+  if (errors.length) {
+    content += `<div class="test-err"><div class="e">Erros:</div>` + errors.map(e => `<div style="margin-top:4px">${esc(e.test)}: ${esc(e.error)} <span class="muted">(${fmtTime(e.at)})</span></div>`).join("") + `</div>`;
+  }
+  const cases = Array.isArray(tests.cases) ? tests.cases : [];
+  if (cases.length) {
+    content += `<table class="test-table"><thead><tr><th>Teste</th><th>Estado</th><th>Duração</th><th>Última execução</th><th>Erro</th></tr></thead><tbody>`;
+    cases.forEach(c => {
+      content += `<tr><td>${esc(c.name)}</td><td><span class="badge ${stateColor(c.state)}">${c.state.charAt(0).toUpperCase() + c.state.slice(1)}</span></td><td class="mono">${(c.duration || 0).toFixed(2)}s</td><td>${fmtTime(c.last_run)}</td><td>${esc(c.error) || "—"}</td></tr>`;
+    });
+    content += `</tbody></table>`;
+  } else {
+    content += `<div class="empty">Nenhum caso de teste registrado.</div>`;
+  }
+  testsWrap.innerHTML = content;
+
+  // Problems
+  const probWrap = document.getElementById("problems");
+  probWrap.innerHTML = "";
+  const problems = Array.isArray(data.problems) ? data.problems : [];
+  if (problems.length === 0) { probWrap.innerHTML = "<div class='empty'>Nenhum problema registrado.</div>"; }
+  else {
+    problems.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "prob " + (p.status === "bloqueado" ? "blocked" : "");
+      const typeLabel = {
+        bug: "Bug", compilacao: "Compilação", falha_teste: "Falha de teste",
+        arquitetura: "Arquitetura", dependencia: "Dependência", bloqueio_ambiental: "Bloqueio ambiental"
+      }[p.type] || p.type;
+      const histHtml = (Array.isArray(p.history) ? p.history : []).map(h => `<div class="h"><span class="muted">${fmtTime(h.at)}</span> <strong>${esc(h.action)}</strong>: ${esc(h.detail)} <span class="muted">[${esc(h.by)}]</span></div>`).join("");
+      div.innerHTML = `
+        <div class="prob-head">
+          <div class="prob-title">${esc(p.title)}</div>
+          <div class="prob-type ${p.type}">${typeLabel}</div>
+        </div>
+        <div class="prob-desc">${esc(p.description)}</div>
+        ${p.file ? `<div class="prob-file">${esc(p.file)}${p.region ? " (" + esc(p.region) + ")" : ""}</div>` : ""}
+        <div class="prob-status ${p.status}">${p.status.charAt(0).toUpperCase() + p.status.slice(1)}</div>
+        ${histHtml ? `<div class="prob-hist">${histHtml}</div>` : ""}
+      `;
+      probWrap.appendChild(div);
+    });
+  }
+
+  // History
+  const histWrap = document.getElementById("history");
+  histWrap.innerHTML = "";
+  const history = Array.isArray(data.history) ? data.history : [];
+  if (history.length === 0) { histWrap.innerHTML = "<div class='empty'>Sem histórico.</div>"; }
+  else {
+    [...history].reverse().forEach(h => {
+      const div = document.createElement("div");
+      div.className = "hist-item";
+      div.innerHTML = `<div class="hist-time">${fmtTime(h.at)}</div><div class="hist-action">${esc(h.action)}</div><div class="hist-detail">${esc(h.detail)}</div>`;
+      histWrap.appendChild(div);
+    });
+  }
+}
+
+async function fetchState() {
+  try {
+    const res = await fetch(STATE_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    render(data);
+    if (offlineShown) { document.getElementById("offline").style.display = "none"; offlineShown = false; }
+  } catch (e) {
+    if (!offlineShown) { document.getElementById("offline").style.display = "block"; offlineShown = true; }
+  }
+}
+
+fetchState();
+setInterval(fetchState, 1000);
+</script>
+</body>
+</html>

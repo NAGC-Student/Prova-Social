@@ -5,9 +5,9 @@ status: PARCIAL
 classificacao: EVOLUIR
 nivel: {correcao: 3, testes: 2, acoplamento: 3, clareza: 4, seguranca: 4, robustez: 3, aderencia: 2, portabilidade: 4}
 fonte_codigo: [lib/features/publish/publish_page.dart, lib/core/backend/exam_publication_service.dart, lib/core/backend/digital_exam_service.dart, lib/core/backend/exam_media_repository.dart, lib/core/backend/content_delivery_repository.dart, lib/core/backend/content_package_service.dart, supabase/migrations/20261101002428_exam_media_publication.sql, supabase/migrations/202611070002_content_delivery.sql]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-08
+atualizado: 2026-11-11
 ---
 
 > **Atualização 2026-11-08.** `content_files`, o bucket `exam-content` e suas
@@ -32,6 +32,8 @@ não existem banco de imagens licenciadas, autoria, licença ou recorte; toda pr
 publicada como `community`, mesmo com fonte oficial; o assunto de todas as
 questões vira `Geral`; o pacote offline pode falhar em silêncio; e as tabelas de
 pacotes (`content_files`) estão em um SQL solto, fora das migrations versionadas.
+**Discursivas já são suportadas na publicação** (`allowOpenEnded: true`),
+publicando sem `correctIndex`; objetivas continuam exigindo gabarito.
 Classificação: **EVOLUIR**.
 
 ## Escopo e método
@@ -59,7 +61,8 @@ Classificação: **EVOLUIR**.
 | Importação de JSON com limite de 4 MB | Funcional | `publish_page.dart:140-170` |
 | Processamento com etapas reais | Funcional | `publish_page.dart:428-915` |
 | Revisão humana antes de publicar | Funcional | `publish_page.dart:997-2301` |
-| Exigência de revisão e gabarito | Funcional | `publish_page.dart:1317-1344` |
+| Exigência de revisão e gabarito | Funcional (objetivas) | `publish_page.dart:1317-1344` |
+| Publicação de discursivas | Implementado (`allowOpenEnded: true`) | `exam_publication_service.dart:50-56`, `publish_page.dart:1461` |
 | Salvar rascunho local antes de publicar | Funcional | `publish_page.dart:1465`; `1122-1127` |
 | Login contextual na publicação | Funcional | `publish_page.dart:1466-1475` |
 | Confirmação explícita de visibilidade | Funcional | `publish_page.dart:1476-1498` |

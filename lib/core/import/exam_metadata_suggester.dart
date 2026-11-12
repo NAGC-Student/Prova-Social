@@ -86,6 +86,51 @@ final _boardSignatures = <_MetadataSignature>[
   _MetadataSignature('NUPECE', RegExp(r'\bnupece\b')),
   _MetadataSignature('COMPERVE', RegExp(r'\bcomperve\b')),
   _MetadataSignature('IBADE', RegExp(r'\bibade\b')),
+  // The ENEM is organised by INEP. The exam name is printed on the sheet, so
+  // the organizer is the evidence-backed banca even when the acronym itself is
+  // only present in the watermark.
+  _MetadataSignature(
+    'INEP',
+    RegExp(
+      r'\binep\b|instituto nacional de estudos e pesquisas educacionais|'
+      r'enem\s*20\d{2}|enem20\d{2}',
+    ),
+  ),
+  // Military admission exams publish the school/academy as the exam identity,
+  // matching the corpus manifest. The institution keeps the full name.
+  _MetadataSignature(
+    'ITA',
+    RegExp(r'\binstituto tecnologico de aeronautica\b|\bvestibular ita\b'),
+  ),
+  _MetadataSignature(
+    'AFA',
+    RegExp(
+      r'\bacademia da forca aerea\b|\bafa\b|'
+      r'\bcfoav\b|\bcfoint\b|\bcfoinf\b',
+    ),
+  ),
+  _MetadataSignature(
+    'EPCAR',
+    RegExp(r'\bescola preparatoria de cadetes do ar\b|\bepcar\b|\bcpcar\b'),
+  ),
+  _MetadataSignature(
+    'EEAR',
+    RegExp(r'\bescola de especialistas de aeronautica\b|\beear\b'),
+  ),
+  _MetadataSignature(
+    'EsPCEx',
+    RegExp(r'\bescola preparatoria de cadetes do exercito\b|\bespcex\b'),
+  ),
+  // The IME cover names its exam committee instead of the school. In the
+  // audited corpus that phrase appears only in the three IME papers.
+  _MetadataSignature(
+    'IME',
+    RegExp(
+      r'\binstituto militar de engenharia\b|\bime\b|'
+      r'\bcomissao de exame intelectual\b',
+    ),
+  ),
+  _MetadataSignature('Escola Naval', RegExp(r'\bescola naval\b')),
 ];
 
 final _institutionSignatures = <_MetadataSignature>[
@@ -95,7 +140,25 @@ final _institutionSignatures = <_MetadataSignature>[
   ),
   _MetadataSignature(
     'Academia da Força Aérea (AFA)',
-    RegExp(r'\bacademia da forca aerea\b'),
+    RegExp(
+      r'\bacademia da forca aerea\b|\bafa\b|'
+      r'\bcfoav\b|\bcfoint\b|\bcfoinf\b',
+    ),
+  ),
+  _MetadataSignature(
+    'Escola Preparatória de Cadetes do Ar (EPCAR)',
+    RegExp(r'\bescola preparatoria de cadetes do ar\b|\bepcar\b|\bcpcar\b'),
+  ),
+  _MetadataSignature(
+    'Escola de Especialistas de Aeronáutica (EEAR)',
+    RegExp(r'\bescola de especialistas de aeronautica\b|\beear\b'),
+  ),
+  _MetadataSignature(
+    'Instituto Militar de Engenharia (IME)',
+    RegExp(
+      r'\binstituto militar de engenharia\b|\bime\b|'
+      r'\bcomissao de exame intelectual\b',
+    ),
   ),
   _MetadataSignature(
     'Escola Preparatória de Cadetes do Exército (EsPCEx)',
@@ -159,7 +222,11 @@ ExamMetadataSuggestion suggestExamMetadata({
   );
   final institutionMatch = _findInstitution(normalizedPages, inspectedPages);
   final categoryMatch = _findCategory(inspectedPages);
-  final yearMatch = _findYear(normalizedPages);
+  final yearMatch = _findYear(
+    inspectedPages,
+    board: boardMatch?.value,
+    institution: institutionMatch?.value,
+  );
   final year = int.tryParse(yearMatch?.value ?? '');
   final instanceMatch = _findInstance(inspectedPages);
 
@@ -372,7 +439,7 @@ _MetadataMatch? _findCategory(List<String> sourcePages) {
       'Exame nacional',
       r'^(?:exame nacional do ensino medio|enem\s*20\d{2}|enem20\d{2})',
     ),
-    ('Concurso de admissão', r'^concurso de admissao\b'),
+    ('Concurso de admissão', r'^(?:concurso|exame|exames) de admissao\b'),
     ('Concurso público', r'^(?:concurso publico|concurso para provimento)\b'),
     (
       'Vestibular',
@@ -395,40 +462,111 @@ _MetadataMatch? _findCategory(List<String> sourcePages) {
   return null;
 }
 
-_MetadataMatch? _findYear(List<String> pages) {
-  final yearPattern = RegExp(r'\b(19\d{2}|20\d{2}|21\d{2})\b|enem(20\d{2})');
+_MetadataMatch? _findYear(
+  List<String> pages, {
+  String? board,
+  String? institution,
+}) {
+  final yearPattern = RegExp(r'(?<![\d])(19\d{2}|20\d{2}|21\d{2})(?![\d])');
+  final enemPattern = RegExp(r'\benem\s*(20\d{2})\b|enem(20\d{2})');
   final examContext = RegExp(
-    r'\b(?:vestibular|concurso|prova|exame|fuvest|unicamp|ita|espcex|afa|'
-    r'efomm|anm|aeb)\b|'
-    r'\benem\b|enem20\d{2}',
+    r'\b(?:vestibular|concurso|prova|exame|exames|admissao|processo seletivo|'
+    r'certame|selecao|fuvest|unicamp|enem|ita|espcex|afa|epcar|eear|ime|'
+    r'efomm|anm|aeb|cfoav|cfoint|cfoinf|cpcar|cfs)\b|'
+    r'enem20\d{2}',
   );
-  final publicationContext = RegExp(
-    r'\b(?:edital|publicad[oa]|atualizad[oa]|versao|copyright|arquivo)\b',
+  final strongYearPhrase = RegExp(
+    r'(?:vestibular|concurso de admissao|exame[s]? de admissao|'
+    r'processo seletivo|primeiro dia de prova de|segundo dia de prova de|'
+    r'prova de|provas de|ano de ingresso|cpcar|cfs|enem)'
+    r'\D{0,24}(?:19\d{2}|20\d{2}|21\d{2})|'
+    r'(?:19\d{2}|20\d{2}|21\d{2})\D{0,16}'
+    r'(?:vestibular|concurso|exame|prova|cpcar|cfs)',
   );
+  // A year that follows a slash is usually a norm, a law, a census or the
+  // founding year printed in the school name (PNAS/2004, Lei 15.100/2025,
+  // Escola .../1940). A CFS edition (“CFS 1/2023”) is the exception.
+  final legalOrCitationContext = RegExp(
+    r'\b(?:pnas|loas|nob|suas|lei|leis|decreto|portaria|resolucao|instrucao|'
+    r'ideb|censo|edital|publicad[oa]|atualizad[oa]|versao|copyright|arquivo|'
+    r'fonte|disponivel em|acesso em)\b',
+  );
+  final foundingContext = RegExp(
+    r'\b(?:fundad[oa]|criad[oa]|escola preparatoria de cadetes de sao paulo)\b',
+  );
+  final boardKey = board == null ? null : _normalize(board);
+  final institutionKey = institution == null ? null : _normalize(institution);
 
+  final candidates = <({int year, int page, int score, int order})>[];
+  var order = 0;
   for (var index = 0; index < pages.length; index++) {
-    for (final line in pages[index].split('\n')) {
-      final enemYear = RegExp(r'\benem\s*(20\d{2})\b|enem(20\d{2})')
-          .firstMatch(line);
+    final lines = pages[index].split(RegExp(r'\r?\n'));
+    for (var lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      // Keep line boundaries: a page-level normalization would mix a norm
+      // citation in one column with the exam header in another.
+      final line = _normalize(lines[lineIndex]);
+      final enemYear = enemPattern.firstMatch(line);
       if (enemYear != null) {
-        return _MetadataMatch(
-          enemYear.group(1) ?? enemYear.group(2)!,
-          index + 1,
-        );
+        final year = int.tryParse(enemYear.group(1) ?? enemYear.group(2)!);
+        if (year != null) {
+          candidates.add((
+            year: year,
+            page: index + 1,
+            score: 12,
+            order: order++,
+          ));
+        }
       }
-      if (publicationContext.hasMatch(line) || !examContext.hasMatch(line)) {
-        continue;
-      }
-      final match = yearPattern.firstMatch(line);
-      if (match == null) continue;
-      final yearText = match.group(1) ?? match.group(2);
-      final year = int.tryParse(yearText ?? '');
-      if (year != null && year >= 1900 && year <= 2200) {
-        return _MetadataMatch(year.toString(), index + 1);
+      if (legalOrCitationContext.hasMatch(line)) continue;
+      for (final match in yearPattern.allMatches(line)) {
+        final year = int.tryParse(match.group(1)!);
+        if (year == null) continue;
+        var score = 0;
+        if (strongYearPhrase.hasMatch(line)) score += 6;
+        if (examContext.hasMatch(line)) score += 3;
+        if (lineIndex < 8) score += 1;
+        if (index == 0) score += 1;
+        if (boardKey != null && line.contains(boardKey)) score += 3;
+        if (institutionKey != null && line.contains(institutionKey)) score += 2;
+        // A range such as “2023/2024” or “2023-2024” is the academic year of
+        // the edition; the manifest records the later year. Separators are
+        // removed by normalization, so the two years arrive space-separated.
+        final range = RegExp(r'\b((?:19|20)\d{2})\s+((?:19|20)\d{2})\b')
+            .firstMatch(line);
+        if (range != null) {
+          final first = int.tryParse(range.group(1)!);
+          final second = int.tryParse(range.group(2)!);
+          if (first != null && second != null && second == first + 1) {
+            if (year == second) score += 1;
+          }
+        }
+        final windowStart = match.start > 70 ? match.start - 70 : 0;
+        final windowEnd = match.end + 40 < line.length
+            ? match.end + 40
+            : line.length;
+        if (foundingContext.hasMatch(line.substring(windowStart, windowEnd))) {
+          score -= 5;
+        }
+        candidates.add((
+          year: year,
+          page: index + 1,
+          score: score,
+          order: order++,
+        ));
       }
     }
   }
-  return null;
+  if (candidates.isEmpty) return null;
+  candidates.sort((a, b) {
+    final byScore = b.score.compareTo(a.score);
+    if (byScore != 0) return byScore;
+    final byPage = a.page.compareTo(b.page);
+    if (byPage != 0) return byPage;
+    return a.order.compareTo(b.order);
+  });
+  final best = candidates.first;
+  if (best.score < 2) return null;
+  return _MetadataMatch(best.year.toString(), best.page);
 }
 
 _MetadataMatch? _findInstance(List<String> pages) {
@@ -548,6 +686,21 @@ String? _findTitle(
   if (institution?.contains('(AFA)') == true) {
     return _joinTitle('Seleção AFA${year == null ? '' : ' $year'}', instance);
   }
+  if (institution?.contains('(EPCAR)') == true) {
+    return _joinTitle('CPCAR${year == null ? '' : ' $year'}', instance);
+  }
+  if (institution?.contains('(EEAR)') == true) {
+    return _joinTitle('EEAR${year == null ? '' : ' $year'}', instance);
+  }
+  if (institution?.contains('(EsPCEx)') == true) {
+    return _joinTitle('EsPCEx${year == null ? '' : ' $year'}', instance);
+  }
+  if (institution?.contains('(IME)') == true) {
+    return _joinTitle(
+      'IME — Concurso de Admissão${year == null ? '' : ' $year'}',
+      instance,
+    );
+  }
   if (board == 'FGV' &&
       RegExp(r'\bjuiz substituto\b').hasMatch(allText) &&
       RegExp(r'\bprova escrita discursiva\b').hasMatch(allText)) {
@@ -663,7 +816,11 @@ bool _isInformativeTitle(String value) {
     r'^(?:prefeitura municipal(?: de| do| da)?|'
     r'assembleia legislativa(?: do| de| da)?|'
     r'ministerio (?:da|do|de) [a-z ]+|exercito brasileiro|'
-    r'marinha do brasil|forca aerea brasileira)$',
+    r'marinha do brasil|forca aerea brasileira|'
+    r'comando da aeronautica|diretoria de ensino|'
+    r'academia da forca aerea|'
+    r'escola preparatoria de cadetes (?:do ar|do exercito)|'
+    r'escola de especialistas de aeronautica)$',
   ).hasMatch(value)) {
     return false;
   }

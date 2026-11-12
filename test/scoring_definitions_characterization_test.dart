@@ -65,8 +65,8 @@ void main() {
 
   final tentativa = ExamResult(
     exam: cincoQuestoes,
-    answers: const {0: 1, 1: 1, 3: 5},
-    markedForReview: const {1},
+    answers: const {'q0': 1, 'q1': 1, 'q3': 5},
+    markedForReview: const {'q1'},
     durationSeconds: 90,
     finishedAt: DateTime.utc(2026, 11, 5),
   );
@@ -74,7 +74,7 @@ void main() {
   group('cinco definições de pontuação sobre a mesma tentativa', () {
     test('correct ignora se o gabarito cabe nas alternativas', () {
       expect(tentativa.correct, 2);
-      expect(tentativa.wrongQuestionIndices, [1]);
+      expect(tentativa.wrongQuestionIds, ['q1']);
     });
 
     test('correctableCount exige gabarito dentro do intervalo', () {
@@ -139,7 +139,7 @@ void main() {
           ),
         ],
       ),
-      answers: const {0: 1, 1: 0, 2: 5},
+      answers: const {'q0': 1, 'q1': 0, 'q2': 5},
       markedForReview: const {},
       durationSeconds: 30,
       finishedAt: DateTime.utc(2026, 11, 5),
@@ -261,7 +261,7 @@ void main() {
                   ),
                 ],
               ),
-              answers: const {0: 1},
+              answers: const {'q0': 1},
               markedForReview: const {},
               durationSeconds: 10,
               finishedAt: DateTime.utc(2026, 11, 5),
@@ -327,7 +327,7 @@ void main() {
                   ),
                 ],
               ),
-              answers: const {0: 5},
+              answers: const {'q0': 5},
               markedForReview: const {},
               durationSeconds: 10,
               finishedAt: DateTime.utc(2026, 11, 5),

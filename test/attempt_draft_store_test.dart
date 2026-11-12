@@ -33,7 +33,7 @@ class ControlledStorage implements DraftStorage {
 }
 
 AttemptDraft draft(int answer) => AttemptDraft(
-  answers: {0: answer},
+  answers: {'q1': answer},
   review: const {},
   current: 0,
   elapsedSeconds: 3,
@@ -47,17 +47,15 @@ void main() {
     () async {
       final storage = ControlledStorage();
       final store = AttemptDraftStore(storage: storage);
-      final mutable = draft(0).answers;
       final first = store.save(
         'exam',
-        AttemptDraft(
-          answers: mutable,
-          review: const {},
+        const AttemptDraft(
+          answers: {'q1': 0},
+          review: {},
           current: 0,
           elapsedSeconds: 3,
         ),
       );
-      mutable[0] = 1;
       final second = store.save('exam', draft(1));
       final third = store.save('exam', draft(2));
       await tick();
@@ -73,8 +71,8 @@ void main() {
       storage.gates[2].complete();
       await Future.wait([first, second, third, store.flush()]);
       expect(store.status.value, DraftSaveStatus.saved);
-      expect((await store.load('exam'))!.answers[0], 2);
-      expect((jsonDecode(storage.started.first) as Map)['answers']['0'], 0);
+      expect((await store.load('exam'))!.answers['q1'], 2);
+      expect((jsonDecode(storage.started.first) as Map)['answers']['q1'], 0);
       store.dispose();
     },
   );
@@ -100,7 +98,7 @@ void main() {
       expect(completed, isFalse);
       storage.gates[1].complete();
       await flushing;
-      expect((await store.load('exam'))!.answers[0], 1);
+expect((await store.load('exam'))!.answers['q1'], 1);
       store.dispose();
     },
   );
@@ -122,7 +120,7 @@ void main() {
       expect(store.status.value, DraftSaveStatus.saving);
       storage.gates[1].complete();
       await retry;
-      expect((await store.load('exam'))!.answers[0], 4);
+      expect((await store.load('exam'))!.answers['q1'], 4);
       expect(store.status.value, DraftSaveStatus.saved);
       store.dispose();
     },
@@ -131,11 +129,11 @@ void main() {
   test('lê o formato v1 existente sem migração', () async {
     final storage = ControlledStorage();
     storage.values['attempt_draft_v1_exam'] =
-        '{"answers":{"0":3},"review":[0],"current":0,"elapsedSeconds":12}';
+        '{"answers":{"q1":3},"review":["q1"],"current":0,"elapsedSeconds":12}';
     final store = AttemptDraftStore(storage: storage);
     final loaded = await store.load('exam');
-    expect(loaded!.answers[0], 3);
-    expect(loaded.review, {0});
+    expect(loaded!.answers['q1'], 3);
+    expect(loaded.review, {'q1'});
     expect(loaded.elapsedSeconds, 12);
     expect(loaded.clientAttemptId, isNull);
     expect(loaded.examContentHash, isNull);
@@ -148,7 +146,7 @@ void main() {
     final saving = store.save(
       'exam',
       const AttemptDraft(
-        answers: {0: 1},
+        answers: {'q1': 1},
         review: {},
         current: 0,
         elapsedSeconds: 8,
@@ -168,7 +166,7 @@ void main() {
     final saving = store.save(
       'exam',
       const AttemptDraft(
-        answers: {0: 1},
+        answers: {'q1': 1},
         review: {},
         current: 0,
         elapsedSeconds: 8,
@@ -188,7 +186,7 @@ void main() {
   test('migra rascunho antigo para arquivo e remove o legado', () async {
     SharedPreferences.setMockInitialValues({
       'attempt_draft_v1_exam':
-          '{"answers":{"0":3},"review":[0],"current":0,"elapsedSeconds":12}',
+          '{"answers":{"q1":3},"review":["q1"],"current":0,"elapsedSeconds":12}',
     });
     final directory = await Directory.systemTemp.createTemp('draft_migration');
     addTearDown(() async {
@@ -201,7 +199,7 @@ void main() {
     );
 
     final loaded = await store.load('exam');
-    expect(loaded!.answers[0], 3);
+    expect(loaded!.answers['q1'], 3);
     expect(
       await File('${directory.path}/attempt_draft_v1_exam.json').exists(),
       isTrue,
@@ -220,7 +218,7 @@ void main() {
     await store.save(
       'exam',
       const AttemptDraft(
-        answers: {0: 1},
+        answers: {'q1': 1},
         review: {},
         current: 0,
         elapsedSeconds: 8,
@@ -229,7 +227,7 @@ void main() {
 
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString('attempt_draft_v1_exam'), isNotNull);
-    expect((await store.load('exam'))!.answers[0], 1);
+    expect((await store.load('exam'))!.answers['q1'], 1);
     store.dispose();
   });
 }

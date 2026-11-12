@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'exam_layout_profile.dart';
 import 'text_normalizer.dart';
 
 /// Universal-ish exam/question parser.
@@ -33,6 +34,13 @@ class ImportedQuestion {
     QuestionReviewState? reviewState,
     this.versionLabel = 'Versão principal',
     List<ImportedQuestionVersion>? alternateVersions,
+    this.explanation,
+    this.expectedAnswer,
+    this.rubric,
+    this.canonicalUrl,
+    this.source,
+    this.version = 1,
+    this.contentHash,
   }) : id = id ?? _stableQuestionId(number, sourcePage, statement),
        sourcePages =
            sourcePages ?? (sourcePage == null ? <int>[] : <int>[sourcePage]),
@@ -79,6 +87,27 @@ class ImportedQuestion {
   QuestionReviewState reviewState;
   String versionLabel;
   final List<ImportedQuestionVersion> alternateVersions;
+
+  /// Explanation for the correct answer (shown in review)
+  String? explanation;
+
+  /// Expected answer for discursive questions
+  String? expectedAnswer;
+
+  /// Rubric/criteria for scoring discursive questions
+  String? rubric;
+
+  /// Canonical URL for this question
+  String? canonicalUrl;
+
+  /// Source/provenance information
+  String? source;
+
+  /// Version number of this question
+  int version;
+
+  /// SHA-256 hash of question content for versioning
+  String? contentHash;
 
   void selectAlternateVersion(int index) {
     if (index < 0 || index >= alternateVersions.length) return;
@@ -137,6 +166,13 @@ class ImportedQuestion {
     'alternateVersions': alternateVersions
         .map((version) => version.toJson())
         .toList(),
+    'explanation': explanation?.trim(),
+    'expectedAnswer': expectedAnswer?.trim(),
+    'rubric': rubric?.trim(),
+    'canonicalUrl': canonicalUrl?.trim(),
+    'source': source?.trim(),
+    'version': version,
+    'contentHash': contentHash,
   };
 
   factory ImportedQuestion.fromJson(Map<String, dynamic> json) {
@@ -217,6 +253,13 @@ class ImportedQuestion {
             ),
           )
           .toList(),
+      explanation: json['explanation'] as String?,
+      expectedAnswer: json['expectedAnswer'] as String?,
+      rubric: json['rubric'] as String?,
+      canonicalUrl: json['canonicalUrl'] as String?,
+      source: json['source'] as String?,
+      version: json['version'] as int? ?? 1,
+      contentHash: json['contentHash'] as String?,
     );
   }
 }
@@ -228,8 +271,86 @@ String _stableQuestionId(int? number, int? page, String statement) {
 
 enum QuestionReviewState { unreviewed, inReview, reviewed, needsAttention }
 
+enum QuestionFeasibility { feasible, fixable, notFeasible }
+
 const autoValidatedQuestionConfidence = .99;
 const lowConfidenceQuestionThreshold = .80;
+
+extension QuestionFeasibilityExtension on ImportedQuestion {
+  QuestionFeasibility get feasibility {
+    if (warning != null) return QuestionFeasibility.fixable;
+    if (format == QuestionFormat.unknown)
+      return QuestionFeasibility.notFeasible;
+    if (statement.trim().length < 2) return QuestionFeasibility.notFeasible;
+    if (format != QuestionFormat.openEnded) {
+      if (options.length < 2) return QuestionFeasibility.notFeasible;
+      if (!hasVisualOptions && options.any((o) => o.trim().isEmpty)) {
+        return QuestionFeasibility.fixable;
+      }
+      if (correctIndex == null ||
+          correctIndex! < 0 ||
+          correctIndex! >= options.length) {
+        return QuestionFeasibility.fixable;
+      }
+    }
+    if (format == QuestionFormat.openEnded && correctIndex != null) {
+      return QuestionFeasibility.fixable;
+    }
+    return QuestionFeasibility.feasible;
+  }
+
+  String get feasibilityLabel {
+    return switch (feasibility) {
+      QuestionFeasibility.feasible => 'Fazível',
+      QuestionFeasibility.fixable => 'Corrigível',
+      QuestionFeasibility.notFeasible => 'Não fazível',
+    };
+  }
+
+  String get feasibilityReason {
+    return switch (feasibility) {
+      QuestionFeasibility.feasible =>
+        'Estrutura completa: enunciado, alternativas e gabarito reconhecidos.',
+      QuestionFeasibility.fixable => _fixableReason(),
+      QuestionFeasibility.notFeasible => _notFeasibleReason(),
+    };
+  }
+
+  String _fixableReason() {
+    final reasons = <String>[];
+    if (warning != null) reasons.add(warning!);
+    if (format != QuestionFormat.openEnded) {
+      if (options.length < 2) reasons.add('Menos de 2 alternativas.');
+      if (!hasVisualOptions && options.any((o) => o.trim().isEmpty)) {
+        reasons.add('Alternativa(s) vazia(s).');
+      }
+      if (correctIndex == null ||
+          correctIndex! < 0 ||
+          correctIndex! >= options.length) {
+        reasons.add('Gabarito não definido ou inválido.');
+      }
+    }
+    if (format == QuestionFormat.openEnded && correctIndex != null) {
+      reasons.add('Discursiva com gabarito objetivo inesperado.');
+    }
+    return reasons.isEmpty
+        ? 'Requer ajuste manual antes de publicar.'
+        : reasons.join(' ');
+  }
+
+  String _notFeasibleReason() {
+    final reasons = <String>[];
+    if (format == QuestionFormat.unknown) {
+      reasons.add('Formato não reconhecido.');
+    }
+    if (statement.trim().length < 2) {
+      reasons.add('Enunciado muito curto ou ausente.');
+    }
+    return reasons.isEmpty
+        ? 'Não foi possível extrair estrutura utilizável.'
+        : reasons.join(' ');
+  }
+}
 
 class ImportedQuestionVersion {
   const ImportedQuestionVersion({
@@ -280,7 +401,16 @@ class ImportedQuestionVersion {
 enum QuestionFormat { multipleChoice, trueFalse, assertion, openEnded, unknown }
 
 class QuestionParser {
-  const QuestionParser();
+  const QuestionParser({this.boardProfile});
+
+  /// Perfil de banca detectado pelo `ExamLayoutProfiler`. Quando informado, o
+  /// parser usa o layout reconhecido (alternativas de A a E, itens para julgar
+  /// ou misto) como evidência estrutural para não descartar questões de bancas
+  /// com formatos especiais, como as bancas militares (AFA, EPCAR, EEAR).
+  ///
+  /// Sem ground truth de cada banca, o perfil não inventa regras de detecção;
+  /// ele apenas amplia a tolerância do parser universal ao formato declarado.
+  final ExamLayoutProfile? boardProfile;
 
   List<ImportedQuestion> parse(String source) {
     final text = _normalize(source);
@@ -325,7 +455,8 @@ class QuestionParser {
           currentSectionId++;
           previousNumber = -1;
         }
-        inInstructions = false;
+        // Do not reset inInstructions here — the instruction block persists
+        // until we actually find a real question with options (handled below).
         currentVariantLabel = 'Versão principal';
         variantLow = null;
         variantHigh = null;
@@ -444,11 +575,32 @@ class QuestionParser {
       (line) => _isNamedSectionHeading(_normalize(line)),
     );
     if (firstQuestionSectionLine >= 0) {
-      candidates.removeWhere(
-        (candidate) =>
-            !candidate.explicit &&
-            candidate.lineIndex < firstQuestionSectionLine,
-      );
+      // A numbered block with alternatives is a question even when the first
+      // named heading appears late in the caderno; only cover-page noise lacks
+      // an option list. Bound the block by the next detected start rather than
+      // a forward scan: a stray fraction, figure or table number inside the
+      // stem must not hide the alternatives that follow it.
+      final kept = <_QuestionStart>[];
+      for (var i = 0; i < candidates.length; i++) {
+        final candidate = candidates[i];
+        if (candidate.explicit ||
+            candidate.lineIndex >= firstQuestionSectionLine) {
+          kept.add(candidate);
+          continue;
+        }
+        final blockEnd = i + 1 < candidates.length
+            ? candidates[i + 1].lineIndex
+            : lines.length;
+        final scan = _findOptionMarkers(
+          lines.sublist(candidate.lineIndex, blockEnd).join('\n'),
+        );
+        if (scan.markers.length >= 2 || scan.rawMarkerCount >= 2) {
+          kept.add(candidate);
+        }
+      }
+      candidates
+        ..clear()
+        ..addAll(kept);
     }
 
     final questions = <ImportedQuestion>[];
@@ -842,12 +994,21 @@ class QuestionParser {
 
   bool _hasFollowingOptions(List<String> lines, int start) {
     if (start >= lines.length) return false;
+    // The line right below a page number may be the next question's marker
+    // (“3” then “10 - …”). The options after that marker belong to question 10,
+    // not to the page number; believing otherwise invents a question 3 and
+    // swallows question 10.
+    if (_isNumberedMarkerLine(lines[start])) return false;
     final followingLines = <String>[];
     final end = (start + 80).clamp(0, lines.length);
     for (var index = start; index < end; index++) {
       if (index > start &&
           (RegExp(r'^\s*\d{1,3}\s*$').hasMatch(lines[index]) ||
-              _isExplicitQuestionStartLine(lines[index]))) {
+              _isExplicitQuestionStartLine(lines[index]) ||
+              // A passage prints its line numbers alone and a caderno writes
+              // “01 - …” before the next item. Neither line can be evidence
+              // that the options further down belong to the number above.
+              _isNumberedMarkerLine(lines[index]))) {
         break;
       }
       if (_pageMarker.hasMatch(lines[index])) continue;
@@ -856,6 +1017,42 @@ class QuestionParser {
       if (scan.markers.length >= 2 || scan.rawMarkerCount >= 2) return true;
     }
     return false;
+  }
+
+  bool _isNumberedMarkerLine(String line) =>
+      RegExp(r'^\s*\d{1,4}\s*[.)\-–—:]\s+\S').hasMatch(line.trim());
+
+  /// A standalone number inside a text block whose previous line ends in the
+  /// middle of a sentence and whose next line starts in lowercase is a printed
+  /// line number, not a question marker.
+  bool _looksLikePassageLineNumber(List<String> lines, int lineIndex) {
+    final previous = _previousNonEmptyLine(lines, lineIndex - 1);
+    final next = _nextNonEmptyLine(lines, lineIndex + 1);
+    if (previous == null || next == null) return false;
+    final previousText = previous.trim();
+    final nextText = next.trim();
+    if (previousText.isEmpty || nextText.isEmpty) return false;
+    if (RegExp(r'[.!?;:)\]}"”’]$').hasMatch(previousText)) return false;
+    if (!RegExp(r'^[a-zà-ÿ]').hasMatch(nextText)) return false;
+    return !_isExplicitQuestionStartLine(nextText) &&
+        !_isNumberedMarkerLine(nextText) &&
+        _findOptionMarkers(nextText).rawMarkerCount == 0;
+  }
+
+  String? _previousNonEmptyLine(List<String> lines, int start) {
+    for (var index = start; index >= 0; index--) {
+      final value = lines[index].trim();
+      if (value.isNotEmpty) return value;
+    }
+    return null;
+  }
+
+  String? _nextNonEmptyLine(List<String> lines, int start) {
+    for (var index = start; index < lines.length; index++) {
+      final value = lines[index].trim();
+      if (value.isNotEmpty) return value;
+    }
+    return null;
   }
 
   bool _hasQuestionBodyAfter(List<String> lines, int lineIndex) {
@@ -1045,6 +1242,14 @@ class QuestionParser {
     // they keep other bare numbers stacked just above them.
     final isTableValue =
         !followsQuestionNumber && _numericRunBefore(lines, lineIndex);
+    // A passage prints its own line numbers at the left margin. Without the
+    // geometry they arrive as bare numbers between two halves of a sentence,
+    // which looks like a sequential question marker. A real marker either
+    // starts a sentence or precedes a question stem, not the middle of a word
+    // from the line above.
+    if (bareNumber != null && _looksLikePassageLineNumber(lines, lineIndex)) {
+      return null;
+    }
     if (bareNumber != null &&
         !isTableValue &&
         ((trueFalseContext &&
@@ -1236,6 +1441,33 @@ class QuestionParser {
               ),
         warning: warnings.isEmpty ? null : warnings.join(' '),
         hasVisualOptions: hasVisualOptions,
+        fieldConfidence: {
+          'statement': start.confidence,
+          'options': parsed.options.isEmpty
+              ? 0
+              : parsed.options
+                        .where((option) => option.trim().isNotEmpty)
+                        .length /
+                    parsed.options.length,
+        },
+      );
+    }
+
+    // ENEM prints the five answer letters once, over a row of image choices
+    // whose text layer is empty: “ABCDE”. The letters are the only evidence
+    // that the block has alternatives at all, so keep five explicit visual
+    // slots instead of turning the item into an unknown-format question.
+    final visualLabels = _visualOptionLabelCount(content);
+    if (visualLabels >= 2) {
+      return ImportedQuestion(
+        statement: _cleanStatement(content.replaceAll(_visualOptionLine, '\n')),
+        options: List<String>.filled(visualLabels, ''),
+        number: start.number,
+        format: QuestionFormat.multipleChoice,
+        confidence: .65,
+        hasVisualOptions: true,
+        warning: 'Alternativas identificadas, mas o conteúdo visual não foi extraído; revisar na página de origem.',
+        fieldConfidence: {'statement': start.confidence, 'options': 0},
       );
     }
 
@@ -1250,6 +1482,7 @@ class QuestionParser {
         number: start.number,
         format: QuestionFormat.trueFalse,
         confidence: .9,
+        fieldConfidence: {'statement': .9, 'options': 1},
       );
     }
 
@@ -1262,6 +1495,7 @@ class QuestionParser {
         format: QuestionFormat.assertion,
         confidence: .72,
         warning: 'Questão sem alternativas detectadas; revisar importação.',
+        fieldConfidence: {'statement': .72, 'options': 0},
       );
     }
 
@@ -1273,6 +1507,7 @@ class QuestionParser {
         format: QuestionFormat.openEnded,
         confidence: .7,
         warning: 'Questão discursiva sem alternativas; revisar resposta esperada e critérios.',
+        fieldConfidence: {'statement': .7, 'options': 0},
       );
     }
 
@@ -1288,6 +1523,10 @@ class QuestionParser {
       format: QuestionFormat.unknown,
       confidence: (start.confidence * .55).clamp(0, 1).toDouble(),
       warning: 'Estrutura não reconhecida completamente; revisar questão e alternativas.',
+      fieldConfidence: {
+        'statement': (start.confidence * .55).clamp(0, 1).toDouble(),
+        'options': 0,
+      },
     );
   }
 
@@ -1306,12 +1545,22 @@ class QuestionParser {
         (markers.last.letter != 'D' && markers.last.letter != 'E')) {
       return content;
     }
-    final heading = RegExp(
+    final stimulus = RegExp(
       r'^\s*(?:TEXTO(?:\s+DE\s+APOIO)?|QUADRO|FIGURA)\s+(?:[IVXLCDM]+|\d+)\s*$',
       caseSensitive: false,
       multiLine: true,
     );
-    for (final match in heading.allMatches(content)) {
+    // A subject heading such as “QUÍMICA” opens the next section. Everything
+    // after the last alternative belongs to that section, not to the option.
+    final section = RegExp(
+      r'^[ \t]*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ \t]{2,}[ \t]*$',
+      multiLine: true,
+    );
+    final headings = [
+      ...stimulus.allMatches(content),
+      ...section.allMatches(content),
+    ]..sort((left, right) => left.start.compareTo(right.start));
+    for (final match in headings) {
       if (match.start > markers.last.contentStart) {
         return content.substring(0, match.start).trimRight();
       }
@@ -1408,16 +1657,25 @@ class QuestionParser {
     // Boards that print “A denunciar …” with no punctuation, and text layers
     // that return the whole list on one line, leave the markers inside the
     // statement. Look for them there whenever the line scan came up short.
-    if (result.length < 5) {
+    final lineScanIsComplete =
+        _isCompleteOptionSet(result) &&
+        result.every((marker) => marker.text.isNotEmpty);
+    if (result.length < 5 || !lineScanIsComplete) {
       final inline = _inlineMarkers(block);
-      if (inline.length > result.length) {
+      final inlineIsComplete = _isCompleteOptionSet(inline);
+      // A complete inline A..N set is a structural signature: the text layer
+      // returned the whole option grid on one line. It wins over line-scan
+      // noise such as isolated chemical symbols, but never over a complete
+      // filled line-by-line option set.
+      if (inline.length > result.length ||
+          (inlineIsComplete && inline.length >= 4 && !lineScanIsComplete)) {
         result
           ..clear()
           ..addAll(inline);
       }
     }
 
-    final coherent = _coherentOptions(result);
+    var coherent = _coherentOptions(result);
     var expectedLabel = 'A'.codeUnitAt(0);
     final hasCompleteFilledSequence =
         coherent.length >= 4 &&
@@ -1456,6 +1714,10 @@ class QuestionParser {
   /// because “A” opens sentences and “E” joins clauses, so the bare scan keeps
   /// the longest stretch that walks A, B, C, D in order and throws it away when
   /// fewer than four alternatives answer to it.
+  ///
+  /// A list of alternatives always begins at A. Inline scans therefore keep
+  /// only a consecutive run that starts there: abbreviations such as “P. M.”
+  /// or “p. 49” are shaped like a label but never form A, B, C, D in order.
   List<_OptionMarker> _inlineMarkers(String block) {
     const circledUppercase = 'ⒶⒷⒸⒹⒺ';
     const circledLowercase = 'ⓐⓑⓒⓓⓔ';
@@ -1476,24 +1738,30 @@ class QuestionParser {
       }).toList();
     }
 
+    // ITA prints “A ( ) 14.”, sometimes in two rows or in three columns. The
+    // empty box is the answer slot, not a right-and-wrong mark: the letter
+    // before it makes the list of alternatives explicit.
+    final boxed = RegExp(
+      r'(?:^|\s)([A-Z])\s*\(\s*\)\s*',
+      caseSensitive: false,
+    ).allMatches(block).toList();
+    if (boxed.length >= 2) {
+      final markers = _inlineRun(boxed, block, minimumLength: 2);
+      if (markers.isNotEmpty) return markers;
+    }
+
     final punctuated = RegExp(
-      r'(?:^|\s)(?:\(([A-Z])\)|([A-Z]))\s*[.):\-–]\s+',
+      r'(?:^|\s)(?:\(([A-Za-z])\)|\[([A-Za-z])\])\s+(?=\S)',
       caseSensitive: false,
     ).allMatches(block).toList();
     if (punctuated.length >= 2) {
-      return punctuated
-          .map(
-            (match) => _OptionMarker(
-              start: match.start,
-              contentStart: match.end,
-              letter: (match.group(1) ?? match.group(2)!).toUpperCase(),
-              text: '',
-            ),
-          )
-          .toList();
+      final markers = _inlineRun(punctuated, block, minimumLength: 2);
+      if (markers.isNotEmpty) return markers;
     }
 
-    final bare = RegExp(r'(?:^|\s)([A-E])\s+\S').allMatches(block).toList();
+    final bare = RegExp(r'(?:^|\s)([A-E])\s+(?!\d)\S')
+        .allMatches(block)
+        .toList();
     var best = <RegExpMatch>[];
     var run = <RegExpMatch>[];
     for (final match in bare) {
@@ -1521,6 +1789,69 @@ class QuestionParser {
           ),
         )
         .toList();
+  }
+
+  /// Turns an inline scan into a list of alternatives only when the letters
+  /// form a complete A, B, C, D… set (any layout order) or a consecutive run
+  /// starting at A. Anything else is prose, an abbreviation or a citation.
+  List<_OptionMarker> _inlineRun(
+    List<RegExpMatch> matches,
+    String block, {
+    required int minimumLength,
+  }) {
+    final parsed = <({int code, RegExpMatch match})>[];
+    for (final match in matches) {
+      final raw = match.groupCount >= 3
+          ? (match.group(1) ?? match.group(2) ?? match.group(3) ?? '')
+          : match.groupCount >= 2
+          ? (match.group(1) ?? match.group(2) ?? '')
+          : (match.group(1) ?? '');
+      if (raw.isEmpty) continue;
+      parsed.add((code: raw.toUpperCase().codeUnitAt(0), match: match));
+    }
+    if (parsed.length < minimumLength) return const [];
+
+    final codes = parsed.map((entry) => entry.code).toSet().toList()..sort();
+    final completeSet =
+        codes.length == parsed.length &&
+        codes.first == 'A'.codeUnitAt(0) &&
+        codes.last - codes.first + 1 == codes.length &&
+        codes.length >= minimumLength;
+    final selected = completeSet
+        ? ([...parsed]..sort((a, b) => a.code.compareTo(b.code)))
+        : _longestRunFromA(parsed);
+    if (selected.length < minimumLength) return const [];
+    return selected
+        .map(
+          (entry) => _OptionMarker(
+            start: entry.match.start,
+            contentStart: entry.match.end,
+            letter: String.fromCharCode(entry.code),
+            text: '',
+          ),
+        )
+        .toList();
+  }
+
+  List<({int code, RegExpMatch match})> _longestRunFromA(
+    List<({int code, RegExpMatch match})> parsed,
+  ) {
+    var best = <({int code, RegExpMatch match})>[];
+    var run = <({int code, RegExpMatch match})>[];
+    for (final entry in parsed) {
+      if (run.isEmpty) {
+        if (entry.code == 'A'.codeUnitAt(0)) run = [entry];
+        continue;
+      }
+      if (entry.code == run.last.code + 1) {
+        run.add(entry);
+      } else {
+        if (run.length > best.length) best = run;
+        run = entry.code == 'A'.codeUnitAt(0) ? [entry] : [];
+      }
+    }
+    if (run.length > best.length) best = run;
+    return best;
   }
 
   /// A justified column sometimes ends the command on the same line as the
@@ -1560,8 +1891,33 @@ class QuestionParser {
     return block;
   }
 
+  /// Exactly one marker per letter, starting at A with no gaps.
+  bool _isCompleteOptionSet(List<_OptionMarker> markers) {
+    if (markers.length < 2) return false;
+    final letters =
+        markers.map((marker) => marker.letter.codeUnitAt(0)).toSet().toList()
+          ..sort();
+    return letters.length == markers.length &&
+        letters.first == 'A'.codeUnitAt(0) &&
+        letters.last - letters.first + 1 == letters.length;
+  }
+
   List<_OptionMarker> _coherentOptions(List<_OptionMarker> markers) {
     if (markers.length < 2) return const [];
+    // A grid of alternatives can be printed in more than one column, so the
+    // labels may appear as A, C, E, B, D. When the scan found exactly one of
+    // each label from A onward, the letters themselves give the order.
+    final uniqueLetters =
+        markers.map((marker) => marker.letter.codeUnitAt(0)).toSet().toList()
+          ..sort();
+    final isCompleteSet =
+        uniqueLetters.length == markers.length &&
+        uniqueLetters.first == 'A'.codeUnitAt(0) &&
+        uniqueLetters.last - uniqueLetters.first + 1 == uniqueLetters.length;
+    if (isCompleteSet) {
+      return [...markers]..sort((a, b) => a.letter.compareTo(b.letter));
+    }
+
     final completeFilledRuns = <List<_OptionMarker>>[];
     var filledRun = <_OptionMarker>[];
     for (final marker in markers) {
@@ -1586,9 +1942,33 @@ class QuestionParser {
       );
     }
 
-    final output = <_OptionMarker>[markers.first];
-    var previous = markers.first.letter.codeUnitAt(0);
-    for (var i = 1; i < markers.length; i++) {
+    // A list of alternatives starts at A. A marker found before it is a
+    // citation or an abbreviation, never the first choice.
+    final firstA = markers.indexWhere((marker) => marker.letter == 'A');
+    if (firstA < 0) {
+      // A two-column text layer can drop the first alternatives and leave only
+      // a consecutive tail such as C, D, E. Preserve those visible alternatives
+      // instead of discarding the whole list; the gate still flags the
+      // incomplete question for review.
+      var best = <_OptionMarker>[];
+      var run = <_OptionMarker>[];
+      for (final marker in markers) {
+        final continues =
+            marker.text.isNotEmpty &&
+            run.isNotEmpty &&
+            marker.letter.codeUnitAt(0) == run.last.letter.codeUnitAt(0) + 1;
+        if (marker.text.isEmpty || (run.isNotEmpty && !continues)) {
+          if (run.length > best.length) best = run;
+          run = <_OptionMarker>[];
+        }
+        if (marker.text.isNotEmpty) run.add(marker);
+      }
+      if (run.length > best.length) best = run;
+      return best.length >= 2 ? best : const [];
+    }
+    final output = <_OptionMarker>[markers[firstA]];
+    var previous = 'A'.codeUnitAt(0);
+    for (var i = firstA + 1; i < markers.length; i++) {
       final code = markers[i].letter.codeUnitAt(0);
       if (code == 'A'.codeUnitAt(0)) {
         if (previous >= 'E'.codeUnitAt(0)) {
@@ -1604,22 +1984,75 @@ class QuestionParser {
   }
 
   _ParsedOptions? _parseOptions(String block, List<_OptionMarker> markers) {
-    final options = <String>[];
-    for (var i = 0; i < markers.length; i++) {
-      final marker = markers[i];
-      final end = i + 1 < markers.length ? markers[i + 1].start : block.length;
+    final byPosition = [...markers]
+      ..sort((left, right) => left.start.compareTo(right.start));
+    final textByMarker = <_OptionMarker, String>{};
+    for (var i = 0; i < byPosition.length; i++) {
+      final marker = byPosition[i];
+      final end = i + 1 < byPosition.length
+          ? byPosition[i + 1].start
+          : block.length;
       var text = block.substring(marker.contentStart, end).trim();
       text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
       // AOCP and Instituto MAIS write “A - alternativa”. The dash is the label's
       // punctuation, not part of the answer, while “-19.” keeps its sign.
       text = text.replaceFirst(RegExp(r'^[-–—]\s+'), '').trim();
-      options.add(text);
+      // Remove page separators like "#####" that leak from PDF text layer.
+      text = text.replaceAll(RegExp(r'\s*#{3,}\s*'), ' ').trim();
+      // Strip known footer/header watermarks (ENEM, year, board name) that leak
+      // into option text from page edges. Only strip from START/END to avoid
+      // removing legitimate content (e.g. "2022" inside a date).
+      text = _stripFooterWatermarks(text);
+      textByMarker[marker] = text;
     }
+    final options = [for (final marker in markers) textByMarker[marker]!];
     if (options.length < 2) return null;
 
-    final statementEnd = markers.first.start;
+    final statementEnd = byPosition.first.start;
     final statement = block.substring(0, statementEnd).trim();
     return _ParsedOptions(statement: statement, options: options);
+  }
+
+  /// Strips known footer/header watermarks (ENEM, year, board name) from a
+  /// string. Removes from START, END, and also standalone occurrences in the
+  /// MIDDLE that look like footer insertions (e.g. "2022 QUESTÃO", "ENEM" between words).
+  String _stripFooterWatermarks(String text) {
+    const patterns = [
+      r'ENEM\s*\d{4}',
+      r'ENEM',
+      r'INEP',
+      r'ENCCEJA',
+      r'\b202[2-5]\b',
+      // Note: bare numbers (^\d{1,2}$) are NOT stripped here because they can
+      // be legitimate option content (e.g. "4" in "B) 4"). Page numbers are
+      // handled by the furniture filter at page edges.
+    ];
+    var result = text;
+    for (final pattern in patterns) {
+      final regex = RegExp(pattern, caseSensitive: false);
+      // Strip from start
+      result = result.replaceFirst(regex, '').trim();
+      // Strip from end
+      result = result
+          .replaceFirst(RegExp('$pattern\$', caseSensitive: false), '')
+          .trim();
+      // Strip standalone occurrences in middle (surrounded by spaces or boundaries)
+      // e.g. "texto 2022 QUESTÃO" -> "texto QUESTÃO"
+      result = result
+          .replaceAll(
+            RegExp(r'(?<=\s)' + pattern + r'(?=\s)', caseSensitive: false),
+            '',
+          )
+          .trim();
+      // Also handle "pattern TEXT" at start of segment (e.g. "2022 QUESTÃO 03")
+      result = result
+          .replaceFirst(
+            RegExp('^' + pattern + r'\s+', caseSensitive: false),
+            '',
+          )
+          .trim();
+    }
+    return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   double _optionConfidence(
@@ -1654,6 +2087,25 @@ class QuestionParser {
     r'|\(\s*[eE]\s*\)\s*\(\s*[cC]\s*\)',
   );
 
+  /// A standalone row of answer letters, such as the “ABCDE” ENEM prints over
+  /// alternatives that exist only as images.
+  static final RegExp _visualOptionLine = RegExp(
+    r'^\s*(A(?:\s*[B-E]){1,4})\s*$',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  int _visualOptionLabelCount(String content) {
+    for (final match in _visualOptionLine.allMatches(content)) {
+      final letters = match
+          .group(1)!
+          .replaceAll(RegExp(r'\s+'), '')
+          .toUpperCase();
+      if (letters.length >= 2) return letters.length;
+    }
+    return 0;
+  }
+
   /// A stem with a real alternative list is never a judgement item, however
   /// many empty parentheses the command uses for blanks to fill.
   bool _hasOptionPunctuation(String content) {
@@ -1664,6 +2116,13 @@ class QuestionParser {
     final letters = markers
         .map((match) => (match.group(1) ?? match.group(2)!).toUpperCase())
         .toSet();
+    // ITA writes “A ( ) …” instead of “A) …”. The letter before the box is
+    // still an alternative label, so the empty parens are not a C/E pair.
+    final boxed = RegExp(
+      r'(?:^|\s)([A-F])\s*\(\s*\)',
+      caseSensitive: false,
+    ).allMatches(content);
+    letters.addAll(boxed.map((match) => match.group(1)!.toUpperCase()));
     return letters.length >= 2 && letters.contains('A');
   }
 

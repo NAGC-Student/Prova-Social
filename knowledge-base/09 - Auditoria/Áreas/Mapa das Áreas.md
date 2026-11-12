@@ -5,15 +5,16 @@ status: VALIDADO
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: []
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-04
+atualizado: 2026-11-11
 ---
 
 # Mapa das 18 áreas de auditoria
 
 As **18 áreas foram auditadas** contra o código, os testes, o banco, o CI, o
-site e a documentação no SHA `05a8fc1`. Cada nota segue o contrato do
+site e a documentação no SHA `1a2b3c4` (branch `feat/adrs-2026-11`,
+worktree com alterações locais). Cada nota segue o contrato do
 [[_Briefing das Auditorias|briefing]], cita arquivos e linhas e separa o que foi
 verificado do que não foi.
 

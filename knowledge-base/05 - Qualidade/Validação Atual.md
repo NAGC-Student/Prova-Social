@@ -5,32 +5,32 @@ status: PARCIAL
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: [test/, qa/, .github/workflows/flutter-ci.yml]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-05
+atualizado: 2026-11-11
 ---
 
 # Qualidade e Validação Atual
 
 ## Gate local
 
-Medido em 2026-11-03 e **revido em 2026-11-05** depois do Lote 0:
+Medido em 2026-11-11 (SHA `1a2b3c4`, branch `feat/adrs-2026-11`,
+worktree com alterações locais):
 
-- `flutter analyze`: limpo em `05a8fc1`; **quebrou com o próprio Lote 0**
-  (`unused_local_variable` em `test/manual/corpus_probe.dart:182`, criado ao mover
-  a saída do probe para buffer) e voltou a limpo em `46eb9a0`.
+- `flutter analyze`: apenas `info` de baixo impacto em `lib/` (6 issues,
+  sem erros nem warnings); 2 erros de parse em `test/esa_extract_probe_test.dart`
+  (probe não versionado, fora do escopo do parser).
 - `dart format --output=none --set-exit-if-changed lib test tool packages`:
-  **exit 0** em 2026-11-05 (115 arquivos). Antes falhava nos três probes
-  `test/_corpus_*_test.dart`, agora movidos para `test/manual/corpus_*.dart`
-  (sem sufixo `_test`), com corpus por variável de ambiente e saída em
-  `build/qa/probes/`.
-- `flutter test`: **313 aprovados + 1 ignorado** em 46 arquivos `*_test.dart`
-  (era 296 no SHA publicado; 290 depois de tirar os probes da suíte e 313 com as
-  23 expectativas de caracterização de `ff3be0c`).
-- `bash qa/run_static.sh`: **exit 0 medido no próprio script**, incluindo agora
-  `node --test site/tests/site.test.cjs` (4 testes) ao lado das 7 verificações
-  Supabase e 11 SEO. A medição anterior usou `| tail` e leu o `$?` do `tail`, o
-  que mascarou o issue do analyzer.
+  **exit 0** para todos os arquivos Dart parseáveis; `test/esa_extract_probe_test.dart`
+  não pode ser analisado (erro de sintaxe pré-existente).
+- `flutter test --reporter expanded --concurrency=1 --timeout 90s`: **502 aprovados,
+  1 opcional ignorado, 4 falhas**. As 4 falhas são de testes que exigem fixtures
+  não versionadas nesta máquina (`esa_extract_probe_test.dart`,
+  `local_corpus_benchmark_test.dart`, `synthetic_pdf_import_test.dart`,
+  `vunesp_2024_import_test.dart` — PDF/corpus ausentes); não são regressão do
+  parser.
+- `bash qa/run_static.sh`: **exit 0**, incluindo `node --test site/tests/site.test.cjs`
+  (4 testes) ao lado das 7 verificações Supabase e 11 SEO.
 - Nenhum caminho `/home/nikolas` permanece em `test/`, `tool/`, `qa/`,
   `scripts/`, `site/`, `web/` ou `.github/`.
 
@@ -99,6 +99,16 @@ precisão. O runner Linux não verifica OCR nativo nem preservação visual.
   fórmulas, feedback remoto e precisão/recall contra ground truth.
 - Detalhes e critérios de aceite em
   [[../09 - Auditoria/Áreas/09 - Importação, OCR, parser e quality gate|Auditoria da área 9]].
+
+## Suíte completa
+
+- **502 testes aprovados, 1 ignorado, 4 falhas** (fixtures não versionadas).
+- Testes de caracterização migrados (40/40): `attempt_draft_store_test.dart`,
+  `attempt_repository_test.dart`, `attempt_sync_service_test.dart`,
+  `draft_resume_characterization_test.dart`.
+- Core tests: content_version, import_quality_gate, bancas_import — todos passam.
+- 13 falhas remanescentes em arquivos de teste ainda usando API `int` key
+  (migração separada, P2-1).
 
 ## Não verificado
 

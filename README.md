@@ -6,6 +6,16 @@ Encontre ou importe uma prova, resolva no seu ritmo e descubra exatamente o que 
 
 Transforme provas em aprendizado real. Não é apenas outro app de estudos — é uma plataforma completa para descobrir, importar, resolver, revisar e discutir provas e questões.
 
+## ⚠️ Importante: Não Armazenamos Provas Completas
+
+> **O Prova Social é um resolvedor e digitalizador, não um repositório de provas.**
+
+- O usuário **importa seu próprio PDF/texto** — o arquivo original **permanece no dispositivo do usuário**
+- A app **extrai apenas o texto estruturado** (enunciados, alternativas, gabarito, metadados) para resolução
+- O **PDF original NÃO é hospedado nem redistribuído** pelo backend
+- O backend guarda **apenas o modelo estruturado** (JSON) para sincronização e resolução
+- A biblioteca é **carregada pelos usuários**; não redistribuímos provas completas
+
 ## 🚀 Fluxo Principal
 
 **Descobrir → Salvar → Fazer → Errar → Entender → Discutir → Melhorar → Refazer**

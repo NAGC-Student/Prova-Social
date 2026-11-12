@@ -23,7 +23,7 @@ Question question(String id, String topic) => Question(
 
 ExamResult result({
   required Exam exam,
-  required Map<int, int> answers,
+  required Map<String, int> answers,
   required DateTime finishedAt,
 }) => ExamResult(
   exam: exam,
@@ -49,10 +49,10 @@ void main() {
       history: [
         result(
           exam: source,
-          answers: const {0: 1, 1: 1},
+          answers: const {'recurring': 1, 'recent': 1},
           finishedAt: firstAttempt,
         ),
-        result(exam: source, answers: const {0: 1}, finishedAt: secondAttempt),
+        result(exam: source, answers: const {'recurring': 1}, finishedAt: secondAttempt),
       ],
       request: const WrongQuestionPracticeRequest(questionLimit: 2),
       generatedAt: secondAttempt,
@@ -89,12 +89,12 @@ void main() {
       history: [
         result(
           exam: firstVersion,
-          answers: const {0: 1},
+          answers: const {'same-question': 1},
           finishedAt: firstAttempt,
         ),
         result(
           exam: reorderedVersion,
-          answers: const {1: 1},
+          answers: const {'same-question': 1},
           finishedAt: secondAttempt,
         ),
       ],
@@ -113,8 +113,8 @@ void main() {
     final source = exam(questions: [question('learned', 'História')]);
     final outcome = service.generate(
       history: [
-        result(exam: source, answers: const {0: 1}, finishedAt: firstAttempt),
-        result(exam: source, answers: const {0: 0}, finishedAt: secondAttempt),
+        result(exam: source, answers: const {'learned': 1}, finishedAt: firstAttempt),
+        result(exam: source, answers: const {'learned': 0}, finishedAt: secondAttempt),
       ],
       request: const WrongQuestionPracticeRequest(questionLimit: 1),
     );
@@ -133,7 +133,7 @@ void main() {
     );
     final outcome = service.generate(
       history: [
-        result(exam: source, answers: const {0: 1}, finishedAt: firstAttempt),
+        result(exam: source, answers: const {'wrong': 1}, finishedAt: firstAttempt),
       ],
       request: const WrongQuestionPracticeRequest(questionLimit: 2),
     );
@@ -148,7 +148,7 @@ void main() {
     final source = exam(questions: [question('correct', 'Biologia')]);
     final outcome = service.generate(
       history: [
-        result(exam: source, answers: const {0: 0}, finishedAt: firstAttempt),
+        result(exam: source, answers: const {'correct': 0}, finishedAt: firstAttempt),
       ],
       request: const WrongQuestionPracticeRequest(questionLimit: 1),
     );
@@ -169,7 +169,7 @@ void main() {
       history: [
         result(
           exam: source,
-          answers: const {0: 1, 1: 1},
+          answers: const {'math': 1, 'history': 1},
           finishedAt: firstAttempt,
         ),
       ],
@@ -189,7 +189,7 @@ void main() {
     final source = exam(questions: [question('q1', 'Geografia')]);
     final current = result(
       exam: source,
-      answers: const {0: 1},
+      answers: const {'q1': 1},
       finishedAt: firstAttempt,
     );
     final outcome = service.generate(

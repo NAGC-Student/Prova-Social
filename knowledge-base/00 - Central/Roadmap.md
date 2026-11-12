@@ -5,9 +5,9 @@ status: INTENÇÃO
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: []
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-07
+atualizado: 2026-11-11
 ---
 
 # Roadmap
@@ -19,12 +19,12 @@ exigem evidência e ADR aprovado.
 | Ordem | Fase | Resultado esperado | Estado |
 |---:|---|---|---|
 | 1 | Auditoria e congelamento | Baseline, inventário, CI, docs e pendências mensurados | **Concluída:** 18 áreas auditadas, 18 notas e [[../09 - Auditoria/Síntese da Refatoração\|síntese global]]. |
-| 2 | Obsidian e arquitetura | Vault, fluxos reais, dependências e ADRs | **Parcial (avançou):** [[../02 - Arquitetura/Fluxos Reais|fluxos reais]], [[../02 - Arquitetura/Mapa de Dependências|dependências medidas]], [[../03 - Domínios/Modelo de Domínio Atual|domínio atual]] e [[../04 - Infraestrutura/Inventário de Persistência e Dados|persistência]] prontos; [[../03 - Domínios/Contratos de Domínio Alvo|contratos alvo C1–C7]] especificados; vault versionado (`eebb2b0`) e caracterização de pontuação/publicação/rascunho executada (`ff3be0c`). Os 12 ADRs foram **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]), incluindo a licença do app — **distribuição restrita, todos os direitos reservados** (`LICENSE` na raiz). Nenhuma decisão de produto segue aberta. Faltam, no [[../05 - Qualidade/Critério de Prontidão para Refatoração Global|gate]]: SQL solto promovido a migrations com `local_db_test.sh` no CI, caracterização da tela de publicação e do `QuizPage`, `integration_test/`. O PR que levava tudo ao `main` do upstream **foi mesclado** (`2c62e30`). |
+| 2 | Obsidian e arquitetura | Vault, fluxos reais, dependências e ADRs | **Concluída:** [[../02 - Arquitetura/Fluxos Reais|fluxos reais]], [[../02 - Arquitetura/Mapa de Dependências|dependências medidas]], [[../03 - Domínios/Modelo de Domínio Atual|domínio atual]] e [[../04 - Infraestrutura/Inventário de Persistência e Dados|persistência]] prontos; [[../03 - Domínios/Contratos de Domínio Alvo|contratos alvo C1–C7]] especificados; vault versionado (`eebb2b0`) e caracterização de pontuação/publicação/rascunho executada (`ff3be0c`). Os 12 ADRs foram **aceitos em 2026-11-07** ([[../06 - Decisões/ADR/README|índice]]), incluindo a licença do app — **distribuição restrita, todos os direitos reservados** (`LICENSE` na raiz). Nenhuma decisão de produto segue aberta. Faltam, no [[../05 - Qualidade/Critério de Prontidão para Refatoração Global\|gate]]: SQL solto promovido a migrations com `local_db_test.sh` no CI, caracterização da tela de publicação e do `QuizPage`, `integration_test/`. O PR que levava tudo ao `main` do upstream **foi mesclado** (`2c62e30`). |
 | 3 | Fundação e confiabilidade | Persistência transacional, migração reversível e testes de falha | **Não iniciada;** ADR-0004 aceito em 2026-11-07; falta tarefa de implementação autorizada. |
 | 4 | Refatoração modular | Extrair responsabilidades mantendo comportamento/contratos | **Não iniciada;** depende de testes de caracterização e contratos de domínio. |
-| 5 | Importação e OCR | Fixtures autorizadas, ground truth e regressões mensuráveis | **Parcial:** auditoria profunda concluída e escopo P1.0–P1.3 fechado. Faltam câmera, feedback, discursivas na publicação e validação em aparelho. |
-| 6 | Modelo e publicação | Questões mistas e sem gabarito, tópico/procedência preservados | **Pendente;** é pré-requisito de importação avançada e social. |
-| 7 | Versionamento | Tentativa ligada à versão exata do conteúdo resolvido | **Pendente;** ADR-0003 aceito em 2026-11-07; falta tarefa de implementação autorizada. |
+| 5 | Importação e OCR | Fixtures autorizadas, ground truth e regressões mensuráveis | **Parcial (P1.0 concluído):** auditoria profunda concluída e escopo P1.0–P1.3 fechado. UI sem porcentagem feita (P0-1). Faltam câmera, feedback remoto, discursivas na publicação (feitas em código) e validação em aparelho. |
+| 6 | Modelo e publicação | Questões mistas e sem gabarito, tópico/procedência preservados | **Concluído (código):** objetiva/discursiva (`question_type`), `exam_versions`, `expected_answer`, `rubric`, `canonical_url`, `source`, `version`, `content_hash` (migration `20261110220000`); `allowOpenEnded: true` permite publicação de discursivas; `topic` preservado no payload. Pendente de aplicação no banco remoto. |
+| 7 | Versionamento | Tentativa ligada à versão exata do conteúdo resolvido | **Concluído (código):** `ExamVersion`, `ExamResult.examVersionId`, `answers`/`markedForReview` migrados para `Map<String,int>`/`Set<String>` (questionId). Pendente de aplicação no banco remoto. |
 | 8 | Motor de aprendizagem | Revisão determinística e comparação de evolução | **Parcial;** prática local de erros existe, cobertura histórica precisa de contrato. |
 | 9 | Observabilidade | Medidas úteis sem coletar conteúdo privado | **Pendente;** nenhum plano de telemetria aprovado. |
 
@@ -45,7 +45,8 @@ exigem evidência e ADR aprovado.
   implementação continua pendente de tarefa autorizada.
 - Supabase remoto, políticas aplicadas e produção não foram verificados.
 - Identidade dividida entre app, site e `AGENTS.md`: ADR-0001 e ADR-0012
-  aceitos em 2026-11-07; implementação pendente.
+  aceitos em 2026-11-07; implementação pendente (Inter já empacotada, `ExamListTile`
+  já existe; paleta única e `textMuted` corrigidos, ainda faltam goldens/contraste).
 - Release sem APK universal e site sem detecção de ABI: ADR-0005 aceito em
   2026-11-07; implementação pendente.
 - Benchmark EPCAR/AFA carece de arquivos e ground truth autorizados.
@@ -55,6 +56,8 @@ exigem evidência e ADR aprovado.
 - Licença do aplicativo: única decisão de produto ainda em aberto no ADR-0007.
 - O contrato social (comunidades, denúncia, moderação) ainda não existe:
   ADR-0010 aceito em 2026-11-07 (moderação mínima primeiro; comunidades depois).
+- 13 testes com API `int`-key ainda não migrados para String-key (questionId).
+- `integration_test/` não existe: fluxo crítico importar→revisar→publicar→fazer→finalizar sem teste ponta a ponta.
 
 Atualizar esta nota após cada fase concluída e manter
 [[../08 - Agentes/Progresso|Progresso]] sincronizado.

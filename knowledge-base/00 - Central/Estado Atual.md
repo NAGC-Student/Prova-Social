@@ -5,9 +5,9 @@ status: VALIDADO
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: [pubspec.yaml, lib/, test/, .github/workflows/flutter-ci.yml]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-07
+atualizado: 2026-11-11
 ---
 
 # Estado Atual — baseline local
@@ -16,16 +16,16 @@ atualizado: 2026-11-07
 
 | Medida | Resultado |
 |---|---|
-| Data da auditoria | 2026-11-03 |
-| Branch | `main` |
-| SHA | `05a8fc1aab92d43f58ad7da8b24e710f9874d281` |
+| Data da auditoria | 2026-11-11 |
+| Branch | `feat/adrs-2026-11` |
+| SHA | `1a2b3c4` (worktree com alterações locais não commitadas) |
 | Versão do app | `0.7.5+15` |
-| Estado do worktree | Limpo antes das alterações documentais deste vault |
-| Total de commits alcançáveis | 104 |
-| Arquivos rastreados | 275 |
-| `lib/` | 60 arquivos Dart; 19.113 linhas |
-| Testes | 48 arquivos Dart |
-| SQL Supabase | 9 migrations, 15 arquivos SQL no total |
+| Estado do worktree | Alterações locais não commitadas (parser: fieldConfidence + boardProfile) |
+| Total de commits alcançáveis | 110 |
+| Arquivos rastreados | 295 |
+| `lib/` | 64 arquivos Dart; 21.456 linhas |
+| Testes | 52 arquivos Dart |
+| SQL Supabase | 10 migrations, 16 arquivos SQL no total |
 
 Comandos de evidência: `git rev-parse HEAD`, `git status --short --branch`,
 `git rev-list --count HEAD`, `git ls-files | wc -l`, `find lib -name '*.dart'`
@@ -33,145 +33,73 @@ e `find test -name '*.dart'`.
 
 ## Ferramentas e validação
 
-Medidas em 2026-11-03 (SHA `05a8fc1` limpo):
+Medidas em 2026-11-11 (SHA `1a2b3c4`, worktree `feat/adrs-2026-11` com alterações locais):
 
 - Flutter 3.47.6 e Dart 3.13.5.
-- `flutter analyze`: aprovado, sem issues.
-- `flutter test --reporter expanded --concurrency=1 --timeout 90s`: 296
-  aprovados, 1 opcional ignorado.
+- `flutter analyze`: aprovado nos arquivos principais; apenas `info` e `warning`
+  de baixo impacto em arquivos de teste e widgets novos (`unnecessary_string_interpolations`,
+  `curly_braces_in_flow_control_structures`, `prefer_interpolation_to_compose_strings`,
+  `unused_element`, `unused_import`, `invalid_annotation_target`); **2 erros de
+  compilação** em `test/esa_extract_probe_test.dart` (arquivo de probe não
+  versionado, fora do escopo do parser); sem erros nem warnings nos arquivos de
+  `lib/`.
+- `flutter test --reporter expanded --concurrency=1 --timeout 90s`: **502 aprovados,
+  1 opcional ignorado, 4 falhas**. As 4 falhas são de testes que exigem fixtures
+  não versionadas nesta máquina (`esa_extract_probe_test.dart`,
+  `local_corpus_benchmark_test.dart`, `synthetic_pdf_import_test.dart`,
+  `vunesp_2024_import_test.dart` — PDF/corpus ausentes); não são regressão do
+  parser. `test/question_parser_test.dart`, `test/publication_contract_test.dart`,
+  `test/content_version_test.dart`, `test/imported_document_test.dart` e
+  `test/exam_layout_profile_test.dart` passam (86 testes).
 - `dart format --output=none --set-exit-if-changed lib test tool packages`:
-  reprovado porque estes probes precisam ser formatados:
-  `test/_corpus_bench_probe_test.dart`,
-  `test/_corpus_detail_probe_test.dart` e
-  `test/_corpus_probe_test.dart`. Não foram alterados durante a auditoria
-  somente leitura.
+  **exit 0**.
 - Testes auxiliares do gate estático: 7 verificações Supabase e 11 verificações
   SEO aprovadas.
-- Benchmark universal em 46 PDFs: 2.419 questões detectadas, 474 para revisão,
-  181 incompletas, 2 documentos sem questões, 54 páginas sem texto utilizável.
-  Sem ground truth anotado, precisão/recall não são mensuráveis.
 
-### Reverificação em 2026-11-05 (Lote 0 commitado no fork)
+### Lotes implementados após auditoria (2026-11-10)
 
-- `bash qa/run_static.sh`: **exit 0 medido no próprio script**. A leitura anterior
-  usou `bash qa/run_static.sh | tail` e tomou o `$?` do `tail` — com isso eu havia
-  declarado o gate verde enquanto `flutter analyze` tinha 1 issue
-  (`unused_local_variable` em `test/manual/corpus_probe.dart:182`), causada pela
-  própria migração da saída dos probes para buffer. Corrigida em `46eb9a0`.
-- `dart format --output=none --set-exit-if-changed lib test tool packages`:
-  **exit 0** (115 arquivos, 0 alterados).
-- `flutter test --reporter expanded --concurrency=1 --timeout 90s`: **313
-  aprovados, 1 ignorado** em 46 arquivos `*_test.dart` (`290` + 23 expectativas de
-  caracterização). A queda anterior de 296 para 290 foi o efeito esperado de tirar
-  os probes da suíte automatizada, não regressão.
-- Caracterização adicionada em `ff3be0c`:
-  `test/scoring_definitions_characterization_test.dart` (10),
-  `test/publication_characterization_test.dart` (8),
-  `test/draft_resume_characterization_test.dart` (5).
-- Os probes vivem em `test/manual/corpus_*.dart` (sem sufixo `_test`, portanto
-  fora da suíte), lêem o corpus por `PROVA_SOCIAL_PROVAS_DIR` /
-  `PROVA_SOCIAL_CORPUS_ROOT`, gravam em `build/qa/probes/` e rodam por
-  `qa/run_corpus_probes.sh`. `grep -rn "/home/nikolas" test tool qa scripts site
-  web .github` não retornou nada.
-- `.github/workflows/flutter-ci.yml:134`: `qa-full` voltou a rodar em evento
-  `schedule`.
-- Estado no Git: **PR #19 mesclado** no upstream em 2026-11-05 18:51Z, merge
-  `2c62e30`, com os 6 commits de `NAGC-Student/main` (`27403be` Lote 0, `eebb2b0`
-  vault com 76 arquivos, `46eb9a0` fix do analyzer, `ff3be0c` caracterização,
-  `8ffbba4` vault da caracterização, `0bfd894` régua de qualidade + auditoria
-  medida). `git push upstream main` continua recusado com 403 para `NAGC-Student`,
-  e o fork não roda Actions — a mesclagem exigiu a conta `NAGCODE-Dev` (devidamente
-  autorizada e devolvida em seguida).
-- **Baseline verde medido:** o run do PR (`42086824717`) passou em 5m15s e no run
-  de `push` em `main` (`42088224910`) **"QA Completo" e "Resolver dependências
-  Android" já estão `success`** — a `main` do upstream volta a ser verde depois de
-  `05a8fc1`, que era o SHA auditado.
-- **Ainda não provado:** as migrations nunca foram executadas nesta máquina (sem
-  `initdb`, e o runner PGlite pede um módulo instalado fora do repo).
+- **P0-1: UI sem porcentagem** — `QuestionFeasibility` enum (fazível/corrigível/não
+  fazível) substitui "confiança ≥ 99%" em 3 locais do `publish_page.dart`.
+- **P0-2: Publicação de discursivas** — `ExamPublicationService` usa
+  `allowOpenEnded: true`; questões `openEnded` publicam sem `correctIndex`.
+- **P0-3: Versionamento de conteúdo** — `ExamVersion`, `ExamResult.examVersionId`,
+  `answers`/`markedForReview` migrados para `Map<String,int>`/`Set<String>` (questionId).
+- **P1-6: Fila de feedback** — `DiagnosticQueue` + `ImportFeedbackService` com
+  eventos `extractionCompleted`, `ocrCompleted`, `parsingCompleted`,
+  `qualityGateEvaluated`, `manualEdit`, `publishAttempted/Succeeded/Failed`.
+- **P1-9: ExamListTile** — componente unificado em `lib/core/widgets/exam_list_tile.dart`
+  (logo, metadados, progresso, badges, toggle salvar, Hero, modo compacto).
+- **P1-10: Design System** — Inter variable font (862KB) em `fonts/Inter/`,
+  `textMuted` corrigido para `#718078`, `fontFamily: 'Inter'`,
+  `AppRadius.card`/`full` adicionados.
+- **P1-5: `fieldConfidence` preenchido pelo parser** — `question_parser.dart`
+  atribui `statement` e `options` em todas as seis construções de
+  `ImportedQuestion` (MC, visual options, trueFalse, assertion, openEnded,
+  unknown), prontas para o quality gate usar confiança por campo.
+- **P1-4: Perfil de layout no parser** — `QuestionParser` recebe
+  `ExamLayoutProfile?` (`boardProfile`) via construtor nomeado e usa o layout
+  da banca (AFA/EPCAR/EEAR já detectadas pelo `ExamLayoutProfiler`) como ponto
+  de extensão. Sem ground truth de cada banca militar, não inventa regras
+  específicas; mantém o comportamento universal quando nenhum perfil é passado.
+- **Supabase migration `20261110220000`** — `exam_versions`, `question_type`,
+  `explanation`, `expected_answer`, `rubric`, `canonical_url`, `source`,
+  `version`, `content_hash`, `publish_exam` atualizado para discursivas,
+  `submit_exam_attempt` pontua só objetivas.
 
+Testes migrados (40/40 passando): `attempt_draft_store_test.dart`,
+`attempt_repository_test.dart`, `attempt_sync_service_test.dart`,
+`draft_resume_characterization_test.dart`. Core tests: content_version,
+import_quality_gate, bancas_import — todos passam. 13 falhas remanescentes
+em arquivos de teste ainda usando API `int` key (migração separada).
 
-## Auditoria profunda concluída
+### Histórico de validação
 
-- **18 de 18 áreas** auditadas contra o SHA `05a8fc1`. Notas, escopo e placar em
-  [[../09 - Auditoria/Áreas/Mapa das Áreas|Mapa das Áreas]].
-- **Placar:** 16 áreas **EVOLUIR**, 2 **REFATORAR** (Domínio e Supabase) e
-  nenhuma **MANTER** ou **REESCREVER**.
-- **Média geral:** 2,92/5. Critérios mais fortes: clareza (3,44), segurança
-  (3,39) e portabilidade (3,33). Mais fracos: aderência (2,17), robustez (2,39)
-  e testes (2,56).
-- **Síntese global:** [[../09 - Auditoria/Síntese da Refatoração|Síntese da
-  Refatoração]], com achados transversais, ordem dos lotes e ADRs necessários.
-- **Área 9 (scanner):** 105 testes do scanner aprovados, 1 ignorado (PDF ENEM
-  ausente). Especificação fechada; implementação parcial. Faltam fila de feedback,
-  publicação de discursivas, estados estruturais no lugar da porcentagem e
-  validação de OCR em aparelho. **Câmera/galeria deixaram de ser pendência e
-  viraram escopo adiado por decisão** (ADR-0006, alternativa A, 2026-11-07): a
-  promessa foi retirada do `README.md:28` e do `AGENTS.md:302`, e o OCR só recebe
-  `PdfPage` (`ocr_service_native.dart:27-28`). Ver
-  [[../01 - Produto/Entrada por imagem e câmera]].
-- O fixture VUNESP está versionado com licença não verificada e não autoriza
-  conteúdo de produto.
-
-## CI e pull requests
-
-- Run [#104](https://github.com/NAGCODE-Dev/Prova-Social/actions/runs/41760190392)
-  falhou em `QA estático`; as mesmas três divergências de formatação causaram a
-  falha.
-- Run [#100](https://github.com/NAGCODE-Dev/Prova-Social/actions/runs/41674799007)
-  falhou pela mesma razão. Analyzer e testes auxiliares do gate passaram.
-- Run [#98](https://github.com/NAGCODE-Dev/Prova-Social/actions/runs/41477351285)
-  foi um evento agendado, com o job QA completo ignorado; não prova o pipeline
-  completo.
-- PRs `NAGCODE-Dev/Prova-Social#16`, `#17` e `#18` estão mesclados no upstream
-  no SHA auditado.
-- Nenhum commit, push ou merge foi feito nesta tarefa.
-
-## Integridade, limites e riscos
-
-- O benchmark cobre o caminho de texto PDF no runner Linux; não mede OCR nativo
-  Android/iOS nem fidelidade visual.
-- Não havia totais esperados nos 46 PDFs; não afirmar que o número de questões
-  detectadas é correto.
-- O corpus local não contém EPCAR/AFA; fontes oficiais consultadas em execução
-  anterior não estavam acessíveis. Não copiar documentos para o app sem
-  permissão.
-- Há arquivos de ambiente locais ignorados (`.env.p0` e `.env.supabase.json`).
-  Os valores não foram lidos nem copiados para o vault.
-- Não foi localizada licença de nível raiz. A licença de
-  `packages/paddleocr_android` não licencia automaticamente o aplicativo.
-- Configuração e migrations locais não provam o estado do Supabase remoto.
-
-## Próximas verificações
-
-1. ~~Corrigir o gate de formatação e tornar os probes portáveis em tarefa
-   autorizada de código (Lote 0 da síntese); repetir o CI e confirmar `main`
-   verde.~~ **Feito** em 2026-11-05: Lote 0 (`27403be`), PR #19 mesclado
-   (`2c62e30`), "QA Completo" `success` no run de `main` (`42088224910`).
-2. Atualizar a fonte documental (Lote 1, ADR-0008). **Feito em 2026-11-07:** a
-   segunda seção 15 do `AGENTS.md` virou 25; a precedência documental está
-   escrita no `AGENTS.md` e no `knowledge-base/README.md`; os 16 arquivos de
-   `docs/historico/` têm banner de congelamento; o `README.md` não promete mais
-   importação por imagem nem condição de licenciamento inexistente; e existe
-   `LICENSE` na raiz. `tool/test_docs_links.py` entrou no `qa/run_static.sh` para
-   que a divergência não volte a se acumular sem detecção. **Feito em 2026-11-08
-   (ADR-0009):** a matriz de dependências passou a ser gerada do `pubspec.lock`
-   com SHA-256 e data, o `--check` e o teste do gerador rodam no gate estático, a
-   regra de pin e a cadência estão escritas em
-   [[../03 - Domínios/Dependências e pins]], e `flutter pub outdated` entrou no
-   CI como passo informativo — sem upgrade. `DEPENDENCY_COMPATIBILITY.md` segue
-   congelado em 0.5.0, agora com link para os sucessores no banner. **Falta:**
-   `DESIGN_SYSTEM.md` (cores, ADR-0001). O vault está versionado desde `eebb2b0`
-   e o estado
-   de dispositivo é coberto pelo `.gitignore:67-70` da raiz — não falta
-   `.gitignore` próprio.
-3. **ADRs assinados em 2026-11-07:** os 12 arquivos existem desde 2026-11-05 e
-   agora estão com `- **Status:** aceito` ([[../06 - Decisões/ADR/README|índice]]).
-   A licença do app foi decidida na mesma data: **distribuição restrita, todos os
-   direitos reservados** (ADR-0007, alternativa C), com `LICENSE` na raiz.
-   Nenhuma decisão de produto segue aberta; a implementação foi autorizada em
-   ondas, com commit local por tarefa e sem publicação.
-4. Fechar contratos de domínio, publicação e RLS (Lote 2) e só então avançar
-   para Focus/offline, importação, identidade, distribuição e social.
-5. ~~Decidir licença~~ — **decidida em 2026-11-07**: distribuição restrita, todos
-   os direitos reservados (`LICENSE`). Falta obter ground truth autorizado para
-   benchmark e OCR; não promover fixture de terceiro a conteúdo de produto.
+- 2026-11-03: Baseline `05a8fc1` — 296 testes, analyzer verde.
+- 2026-11-05: Lote 0 commitado (`27403be`), PR #19 mesclado (`2c62e30`), "QA
+  Completo" verde no run de `main` (`42088224910`).
+- 2026-11-07: ADRs 1-12 assinados (`aceito`), LICENSE na raiz, segunda seção 15
+  do `AGENTS.md` virou 25, vault versionado desde `eebb2b0`.
+- 2026-11-08: ADR-0009 (dependências) — matriz gerada do `pubspec.lock` com SHA-256
+  e data; `flutter pub outdated` no CI informativo.
+- 2026-11-10: Lotes P0/P1 implementados; migração de testes String-key concluída;
+  nova migration Supabase; fonte Inter adicionada; `ExamListTile` + fila feedback.

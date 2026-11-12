@@ -119,15 +119,19 @@ const exam = Exam(
       topic: 'Geral',
       statement: 'Pergunta?',
       options: ['Um', 'Dois'],
+      correctIndex: 1,
     ),
   ],
 );
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   test(
     'fila offline sobrevive a um reinício com armazenamento em arquivo',
     () async {
-      SharedPreferences.setMockInitialValues({});
       final directory = await Directory.systemTemp.createTemp('queue_restart');
       addTearDown(() async {
         if (await directory.exists()) await directory.delete(recursive: true);
@@ -146,7 +150,7 @@ void main() {
         AttemptSubmission(
           clientAttemptId: clientAttemptId,
           exam: exam,
-          answers: const {0: 1},
+          answers: const {'q1': 1},
           markedForReview: const {},
           durationSeconds: 30,
           finishedAt: DateTime.utc(2026, 11, 8),
@@ -157,7 +161,7 @@ void main() {
       final pending = await openQueue().store.pending();
       expect(pending, hasLength(1));
       expect(pending.single.submission.clientAttemptId, clientAttemptId);
-      expect(pending.single.submission.answers, {0: 1});
+      expect(pending.single.submission.answers, {'q1': 1});
       expect(pending.single.state, AttemptSyncState.pendingSync);
     },
   );
@@ -237,7 +241,7 @@ void main() {
     await drafts.save(
       exam.id,
       AttemptDraft(
-        answers: const {0: 1},
+        answers: const {'q1': 1},
         review: const {},
         current: 0,
         elapsedSeconds: 15,
@@ -371,7 +375,7 @@ void main() {
     await tester.tap(find.text('Entregar prova'));
     await tester.pump();
     await tester.pump();
-    expect((await drafts.load('exam'))!.answers[0], 1);
+    expect((await drafts.load('exam'))!.answers['q1'], 1);
     expect(find.byType(QuizPage), findsOneWidget);
     drafts.dispose();
   });
@@ -385,7 +389,7 @@ void main() {
     final submission = AttemptSubmission(
       clientAttemptId: '22222222-2222-4222-8222-222222222222',
       exam: exam,
-      answers: {0: 1},
+      answers: {'q1': 1},
       markedForReview: {},
       durationSeconds: 5,
       finishedAt: DateTime.utc(2026, 9, 21),
@@ -425,7 +429,7 @@ void main() {
       AttemptSubmission(
         clientAttemptId: clientAttemptId,
         exam: exam,
-        answers: {0: 1},
+        answers: {'q1': 1},
         markedForReview: {},
         durationSeconds: 5,
         finishedAt: DateTime.utc(2026, 9, 21),

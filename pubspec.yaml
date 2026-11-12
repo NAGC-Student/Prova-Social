@@ -40,6 +40,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/app_icon.png
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter/Inter-VariableFont_slnt,wght.ttf
 
 flutter_launcher_icons:
   android: true

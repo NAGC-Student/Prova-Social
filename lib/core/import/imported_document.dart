@@ -239,6 +239,7 @@ class SupportingMaterial {
     this.sourcePosition,
     this.confidence,
     this.raw = const {},
+    this.imageBytes,
   });
 
   final String id;
@@ -250,6 +251,7 @@ class SupportingMaterial {
   final int? sourcePosition;
   final double? confidence;
   final Map<String, Object?> raw;
+  final Uint8List? imageBytes;
 
   Map<String, Object?> toJson() => {
     'id': id,

@@ -11,8 +11,8 @@ class AttemptSubmission {
   });
   final String clientAttemptId;
   final Exam exam;
-  final Map<int, int> answers;
-  final Set<int> markedForReview;
+  final Map<String, int> answers;
+  final Set<String> markedForReview;
   final int durationSeconds;
   final DateTime finishedAt;
 }

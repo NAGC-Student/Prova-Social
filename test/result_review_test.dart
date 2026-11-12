@@ -34,7 +34,7 @@ void main() {
     );
     final result = ExamResult(
       exam: exam,
-      answers: {0: 0, 1: 1, 3: 1},
+      answers: {'question-0': 0, 'question-1': 1, 'question-3': 1},
       markedForReview: const {},
       durationSeconds: 120,
       finishedAt: DateTime.utc(2026, 10, 31),
@@ -99,7 +99,7 @@ void main() {
     );
     final result = ExamResult(
       exam: exam,
-      answers: const {0: 1, 1: 1},
+      answers: const {'math': 1, 'language': 1},
       markedForReview: const {},
       durationSeconds: 30,
       finishedAt: DateTime.utc(2026, 10, 31),
@@ -176,7 +176,7 @@ void main() {
     );
     final result = ExamResult(
       exam: exam,
-      answers: {0: 0, 1: 1, 2: 1},
+      answers: {'q0': 0, 'q1': 1, 'q2': 1},
       markedForReview: const {},
       durationSeconds: 90,
       finishedAt: DateTime.utc(2026, 10, 31),

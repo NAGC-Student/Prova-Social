@@ -1001,4 +1001,279 @@ E ( ) quinta expressão.
     expect(questions.single.number, 18);
     expect(questions.single.options, hasLength(5));
   });
+
+  test('não transforma abreviações de citação em alternativas', () {
+    const source = '''
+QUESTÃO 1
+Em termos cartográficos, o conceito de escala é fundamental.
+(MENEZES, P. M. L.; FERNANDES, M. C. Roteiros de Cartografia. São Paulo: Oficina de Textos, p. 49-53, 2013.)
+Tendo em vista seus conhecimentos, assinale a alternativa correta.
+a) Atlas escolares apresentam mapas com escala menor.
+b) Os mapas elaborados para estudos de impactos ambientais.
+c) Atlas escolares apresentam mapas com escala maior.
+d) Os mapas elaborados para estudos de infraestrutura.
+''';
+    final question = parser.parse(source).single;
+
+    expect(question.format, QuestionFormat.multipleChoice);
+    expect(question.options, hasLength(4));
+    expect(question.options.first, startsWith('Atlas escolares'));
+    expect(question.options.last, startsWith('Os mapas elaborados'));
+  });
+
+  test('lê alternativas A ( ) dispostas em colunas na mesma linha', () {
+    const source = '''
+Questão 2. Considere as afirmações sobre poliedros.
+A ( ) I e II.          C ( ) II e III.          E ( ) apenas II.
+B ( ) I e III.         D ( ) apenas III.
+''';
+    final question = parser.parse(source).single;
+
+    expect(question.format, QuestionFormat.multipleChoice);
+    expect(question.options, [
+      'I e II.',
+      'I e III.',
+      'II e III.',
+      'apenas III.',
+      'apenas II.',
+    ]);
+  });
+
+  test('preserva alternativas visuais marcadas por uma linha ABCDE', () {
+    const source = '''
+Questão 102. A figura apresenta a herança genética de uma característica.
+Qual alternativa representa a proporção fenotípica da prole?
+ABCDE
+''';
+    final question = parser.parse(source).single;
+
+    expect(question.format, QuestionFormat.multipleChoice);
+    expect(question.options, ['', '', '', '', '']);
+    expect(question.hasVisualOptions, isTrue);
+    expect(question.warning, contains('conteúdo visual não foi extraído'));
+  });
+
+  test(
+    'prefere o conjunto completo A ( ) em linha única ao ruído da tabela',
+    () {
+      const source = '''
+Questão 24. O efeito Raman ocorre no espalhamento inelástico da luz.
+Assinale a alternativa que corresponde ao comprimento de onda do fóton espalhado.
+A ( ) 565 nm C ( ) 602 nm E ( ) 653 nm B ( ) 590 nm D ( ) 640 nm
+
+QUÍMICA
+
+Constantes
+
+C
+
+N
+
+O
+
+P
+
+I
+
+S
+
+K
+''';
+      final question = parser.parse(source).single;
+
+      expect(question.format, QuestionFormat.multipleChoice);
+      expect(question.options, [
+        '565 nm',
+        '590 nm',
+        '602 nm',
+        '640 nm',
+        '653 nm',
+      ]);
+    },
+  );
+
+  test('não cria alternativas a partir de abreviações sem lista A-E', () {
+    const source = '''
+Questão 1. A figura apresenta um sensor orgânico.
+ABCDE
+SILVA, M. M. et al. Fabricação de sensor. Tecnol. Metal. Mater. Miner., n. 3, jul.-set. 2011.
+''';
+    final question = parser.parse(source).single;
+
+    expect(question.format, QuestionFormat.multipleChoice);
+    expect(question.options, ['', '', '', '', '']);
+    expect(question.hasVisualOptions, isTrue);
+  });
+
+  test('mantém questões com alternativas antes de seção nomeada tardia', () {
+    final questions = parser.parse('''
+001. PROVA OBJETIVA
+2
+CIÊNCIAS HUMANAS E SUAS TECNOLOGIAS
+01
+Para consolidar o Estado franco, Carlos Magno multiplicou as concessões de terras.
+(A) proporcionou a criação das comunas.
+(B) representou uma forma de divisão da riqueza.
+(C) garantiu a unificação política.
+(D) fortaleceu as monarquias nacionais.
+(E) subordinou a autoridade fiscal.
+02
+No seu estado natural, os homens nascem numa verdadeira igualdade.
+(A) a sociedade estamental fundamenta-se em um contrato social.
+(B) o indivíduo deve renunciar à igualdade.
+(C) a igualdade entre os cidadãos é garantida.
+(D) a origem familiar do indivíduo é a base dos privilégios.
+(E) a igualdade primordial reaparece como igualdade jurídica.
+CONHECIMENTOS ESPECÍFICOS
+03
+Uma operação policial está sendo organizada em área sob forte influência.
+(A) primeira medida cautelar.
+(B) segunda medida cautelar.
+(C) terceira medida cautelar.
+(D) quarta medida cautelar.
+(E) quinta medida cautelar.
+''');
+
+    expect(questions.map((question) => question.number), [1, 2, 3]);
+    expect(questions.every((question) => question.options.length == 5), isTrue);
+  });
+
+  test('não descarta questão cujo enunciado tem número solto antes das alternativas', () {
+    final questions = parser.parse('''
+MATEMÁTICA
+51
+No plano cartesiano, seis quadrados têm um de seus lados sobre o eixo x.
+(A) 30.
+(B) 35.
+(C) 40.
+(D) 45.
+(E) 50.
+52
+Dada a constante real k > 0, seja f a função definida por f(x) = (21 - 8k)x + 4k2 - 15.
+O gráfico intersecta o eixo x no ponto de abscissa 2 e intersecta o eixo
+3
+y no ponto cuja ordenada pertence ao intervalo:
+(A) primeira faixa.
+(B) segunda faixa.
+(C) terceira faixa.
+(D) quarta faixa.
+(E) quinta faixa.
+53
+Os vértices de um triângulo são três dos vértices de um dodecágono regular.
+(A) 12 + 9 3
+(B) 18 + 9 3
+(C) 6 + 12 3
+(D) 9 + 12 3
+(E) 12 + 12 3
+54
+No plano, o hexágono regular ABCDEF e o triângulo retângulo DGH são tais que
+72
+72
+o ponto D pertence tanto ao segmento AG quanto ao segmento EH. A medida de DG é:
+(A) primeira medida.
+(B) segunda medida.
+(C) terceira medida.
+(D) quarta medida.
+(E) quinta medida.
+CONHECIMENTOS ESPECÍFICOS
+55
+A respeito da Segurança Pública, com base na Constituição do Estado, tem-se que:
+(A) primeira assertiva.
+(B) segunda assertiva.
+(C) terceira assertiva.
+(D) quarta assertiva.
+(E) quinta assertiva.
+''');
+
+    expect(questions.map((question) => question.number), [51, 52, 53, 54, 55]);
+    expect(questions.every((question) => question.options.length == 5), isTrue);
+  });
+
+  test('preserva alternativas visíveis quando a extração perde as primeiras letras', () {
+    final question = parser.parse('''
+Questão 41
+TEXTO I
+TEXTO II
+perceptível por meio da
+C anulação dos traços que permitem reconhecer o animal representado.
+D presença de grafismos na forma animal representada no banco.
+E criação de figuras fantásticas baseadas em formas animais.
+''').single;
+
+    expect(question.number, 41);
+    expect(question.options, hasLength(3));
+    expect(question.options.first, contains('anulação dos traços'));
+    expect(question.options.last, contains('figuras fantásticas'));
+  });
+
+  test('não corta alternativa quando o texto do rótulo é só a letra '
+      '(FUVEST 2025 Q22: (A) Material A.)', () {
+    final question = parser.parse('''
+22 Questão com alternativas onde o texto do rótulo é só a letra.
+O material que permite o maior intervalo de ângulos é:
+(A) Material A.
+(B) Material B.
+(C) Material C.
+(D) Material D.
+(E) Material E.
+''').single;
+
+    expect(question.number, 22);
+    expect(question.options, hasLength(5));
+    expect(question.options[0], 'Material A.');
+    expect(question.options[1], 'Material B.');
+    expect(question.options[2], 'Material C.');
+    expect(question.options[3], 'Material D.');
+    expect(question.options[4], 'Material E.');
+  });
+
+  test('não absorve a tabela do enunciado como alternativas '
+      '(FUVEST 2025 Q22: coluna Material/Índice antes dos marcadores)', () {
+    final question = parser.parse('''
+22 Questão com tabela de materiais candidatos.
+Material Índice de refração
+A 1,0002
+B 1,0003
+C 1,1503
+D 1,3204
+E 1,4889
+O material que permite o maior intervalo é:
+(A) Material A.
+(B) Material B.
+(C) Material C.
+(D) Material D.
+(E) Material E.
+''').single;
+
+    expect(question.number, 22);
+    expect(question.options, hasLength(5));
+    expect(question.options[0], 'Material A.');
+    expect(question.options[4], 'Material E.');
+    // A coluna do enunciado (1,0002 … 1,4889) não vira opções.
+    expect(
+      question.options.every((option) => !option.contains(RegExp(r'^1,'))),
+      isTrue,
+    );
+  });
+
+  test('não transforma número de linha de um texto em questão', () {
+    final questions = parser.parse('''
+TEXTO II
+
+superfícies eram compostas por vários pedaços de
+20
+madeira, aproximadamente do tamanho de um dado, porém alguns eram maiores
+25
+diversos modos, tempos e declinações, porém sem nenhuma ordem.
+
+10 - É correto afirmar que o texto trata de
+a) uma máquina de escrever.
+b) um mecanismo de criação de sentenças.
+c) um painel de madeira sem função.
+d) uma prensa tipográfica.
+''');
+
+    expect(questions.map((question) => question.number), [10]);
+    expect(questions.single.options, hasLength(4));
+  });
 }

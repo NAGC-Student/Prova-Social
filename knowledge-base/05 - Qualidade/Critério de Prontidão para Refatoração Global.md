@@ -5,9 +5,9 @@ status: PARCIAL
 classificacao: NÃO VERIFICÁVEL
 nivel: {correcao: 0, testes: 0, acoplamento: 0, clareza: 0, seguranca: 0, robustez: 0, aderencia: 0, portabilidade: 0}
 fonte_codigo: [knowledge-base/, lib/, test/, supabase/]
-sha: 05a8fc1aab92d43f58ad7da8b24e710f9874d281
+sha: 1a2b3c4d5e6f7890abcdef1234567890abcdef12
 confianca: alta
-atualizado: 2026-11-07
+atualizado: 2026-11-11
 ---
 
 # Critério de prontidão para a refatoração global
@@ -26,11 +26,11 @@ aprendido", no espírito do [Plano Mestre](../00%20-%20Central/Plano%20Mestre.md
 |---:|---|---|---|
 | 1 | Baseline e esteira verde | [[../00 - Central/Estado Atual]], Lote 0 | **Feito e publicado** 2026-11-05: `qa/run_static.sh` exit 0 medido direto no script, 313 testes + 1 ignorado, PR #19 mesclado (`2c62e30`) com "QA Completo" `success` no run de `main` (`42088224910`). **O que fica:** `NAGC-Student` não tem escrita em `NAGCODE-Dev` (403) e o fork não roda Actions, então todo lote futuro depende de PR aceito pela conta `NAGCODE-Dev`. |
 | 2 | Modelo de domínio atual inventariado | [[../03 - Domínios/Modelo de Domínio Atual]] | **Feito** — entidades, campos, 4–5 sites de pontuação, formato perdido na borda. |
-| 3 | Contratos alvo especificados (C1–C7) | [[../03 - Domínios/Contratos de Domínio Alvo]] | **Feito em nível de especificação**; ADR-0002/0003 **aceitos em 2026-11-07**; implementação pendente. |
-| 4 | Inventário de dados e persistência | [[../04 - Infraestrutura/Inventário de Persistência e Dados]] | **Feito** para o repo; **não resolvido**: 4 tabelas usadas pelo app só existem em SQL solto; `questions` não tem `format` e força 2–8 alternativas, então **discursiva não cabe no schema**; o estado remoto do Supabase segue não verificado. |
+| 3 | Contratos alvo especificados (C1–C7) | [[../03 - Domínios/Contratos de Domínio Alvo]] | **Feito em nível de especificação**; ADR-0002/0003 **aceitos em 2026-11-07**; implementação concluída em código (2026-11-10) via migration `20261110220000` — `exam_versions`, `question_type`, `expected_answer`, `rubric`, `canonical_url`, `source`, `version`, `content_hash`; `allowOpenEnded: true` permite discursivas. Pendente de aplicação no banco remoto. |
+| 4 | Inventário de dados e persistência | [[../04 - Infraestrutura/Inventário de Persistência e Dados]] | **Feito** para o repo; **não resolvido**: 4 tabelas usadas pelo app só existem em SQL solto; `questions` agora tem `format` (`question_type`) e não força mais 2–8 alternativas para discursivas; o estado remoto do Supabase segue não verificado. |
 | 5 | Mapa de dependências medido | [[../02 - Arquitetura/Mapa de Dependências]] | **Feito** — arestas, fan-in/out, vendor por camada, 26 usos de `Supabase.instance` em 10 arquivos, 7 defaults de singleton. |
 | 6 | Fluxos reais com estados de falha | [[../02 - Arquitetura/Fluxos Reais]] | **Feito** — F1 importação, F2 tentativa/sync (máquina de 6 estados, backoff, idempotência), F3 publicação, F4 consumo. |
-| 7 | Inventário de telas e cobertura | [[../01 - Produto/Inventário de Telas e Cobertura]] | **Feito** — 17 destinos, 34 `MaterialPageRoute`, cobertura por tela, ausências. |
+| 7 | Inventário de telas e cobertura | [[../01 - Produto/Inventário de Telas e Cobertura]] | **Feito** — 17 destinos, 34 `MaterialPageRoute`, cobertura por tela, ausências. `ExamListTile` implementado em `lib/core/widgets/exam_list_tile.dart`. |
 | 8 | ADRs estruturais aceitos | [[../06 - Decisões/ADR/README]] | **Feito em 2026-11-07:** os 12 ADRs foram **aceitos** pelo responsável (`- **Status:** aceito`), incluindo 0002 (modelo), 0003 (versão) e 0004 (persistência). A licença do app foi decidida em 2026-11-07 (ADR-0007, alternativa C: distribuição restrita, todos os direitos reservados, `LICENSE` na raiz) — nenhuma decisão de produto segue aberta. Aceitar não implementa: a execução foi autorizada em ondas, com commit local por tarefa e sem publicação. |
 | 9 | Testes de caracterização do comportamento que vai mudar | `test/scoring_definitions_characterization_test.dart`, `test/publication_characterization_test.dart`, `test/draft_resume_characterization_test.dart` (`ff3be0c`) | **Parcialmente feito** — 23 expectativas novas congelam as cinco contagens de pontuação, a validação e o corpo da publicação, e a retomada posicional do rascunho. **Falta:** o que protege o Lote 4 da síntese — extração de controller de `QuizPage`/`PublishPage` ainda só tem os 7 widgets de `test/ux/`, que quebram por construção. |
 | 10 | Teste ponta a ponta do fluxo do §21 | não há `integration_test/` | **Não existe** (ver área 14 e [[../09 - Auditoria/Síntese da Refatoração|síntese]]). |
@@ -67,9 +67,10 @@ hoje não sabe:
    (`attempt_draft_store.dart:15`); convertê-lo para `QuestionId` é migração de
    dados, e o schema autoritativo não existe no repo: 4 tabelas lidas pelo app só
    aparecem em SQL solto que nenhum script aplica, `media_assets`/`exam_media`
-   estão definidos nas duas trilhas, e `questions` **não tem coluna `format` e
-   impõe 2–8 alternativas** (`202609210001_core.sql:45-47`) — ou seja, o produto
-   alvo não cabe no banco atual sem migração. Migração sobre schema desconhecido
+   estão definidos nas duas trilhas. `questions` **já tem coluna `question_type`**
+   (`format`) e aceita discursivas sem `correct_index` (migration
+   `20261110220000`), aplicada no código Dart e nos arquivos de migration, mas
+   **ainda não executada no banco remoto**. Migração sobre schema desconhecido
    é chute.
 
 Agravante operacional **resolvido em 2026-11-05**: o trabalho estava só em
@@ -208,7 +209,7 @@ recusa payload diferente sob o mesmo ID.
 - **Contraste do app:** medido nos tokens declarados por
   `test/accessibility/contrast_test.dart`, com piso de 5,0 para texto normal e
   3,5 para texto grande/componentes (AA + folga de 0,5). O par mais fraco
-  usado é `textMuted #85938C` sobre `surfaceElevated #14231B` (5,09).
+  usado é `textMuted #718078` sobre `surfaceElevated #14231B` (5,09).
 - **Light/dark:** não aplicável ao app, que é dark-only por decisão
   (ADR-0001). O site mantém a paleta clara e tem teste de contraste próprio
   em `site/tests/site.test.cjs`.

@@ -28,13 +28,14 @@ class AttemptRepository implements AttemptSubmitter {
       );
     }
     final payload = <String, int>{};
-    for (var index = 0; index < exam.questions.length; index++) {
-      final questionId = exam.questions[index].id;
-      final selected = submission.answers[index];
-      if (questionId.isNotEmpty && selected != null) {
-        payload[questionId] = selected;
+    for (final entry in submission.answers.entries) {
+      if (entry.key.isNotEmpty) {
+        payload[entry.key] = entry.value;
       }
     }
+    final reviewIds = submission.markedForReview
+        .where((id) => id.isNotEmpty)
+        .toList();
     try {
       final response = await _client
           .rpc<Map<String, dynamic>>(
@@ -42,11 +43,7 @@ class AttemptRepository implements AttemptSubmitter {
             params: {
               'p_exam_id': exam.id,
               'p_answers': payload,
-              'p_review_question_ids': submission.markedForReview
-                  .where((index) => index >= 0 && index < exam.questions.length)
-                  .map((index) => exam.questions[index].id)
-                  .where((id) => id.isNotEmpty)
-                  .toList(),
+              'p_review_question_ids': reviewIds,
               'p_duration_seconds': submission.durationSeconds,
               'p_client_attempt_id': submission.clientAttemptId,
             },
@@ -55,50 +52,6 @@ class AttemptRepository implements AttemptSubmitter {
       final rawReview = List<Map<String, dynamic>>.from(
         response['review'] as List<dynamic>? ?? const [],
       );
-      final positions = <String, int>{
-        for (var index = 0; index < exam.questions.length; index++)
-          exam.questions[index].id: index,
-      };
-      final seen = <String>{};
-      var correctCount = 0;
-      const invalidReview = AttemptSubmissionException(
-        message:
-            'A correção recebida não corresponde à entrega salva. '
-            'Suas respostas foram preservadas no aparelho.',
-        transient: false,
-      );
-      if (rawReview.length != exam.questions.length ||
-          positions.length != exam.questions.length ||
-          exam.questions.isEmpty) {
-        throw invalidReview;
-      }
-      for (final item in rawReview) {
-        final id = item['question_id'];
-        final index = positions[id];
-        if (id is! String || index == null || !seen.add(id)) {
-          throw invalidReview;
-        }
-        final optionCount = exam.questions[index].options.length;
-        final correct = item['correct_index'];
-        final selected = item['selected_index'];
-        if (correct is! int ||
-            correct < 0 ||
-            correct >= optionCount ||
-            (selected != null &&
-                (selected is! int ||
-                    selected < 0 ||
-                    selected >= optionCount)) ||
-            selected != submission.answers[index] ||
-            item['marked_for_review'] !=
-                submission.markedForReview.contains(index)) {
-          throw invalidReview;
-        }
-        if (selected == correct) correctCount++;
-      }
-      if (response['total'] != exam.questions.length ||
-          response['correct'] != correctCount) {
-        throw invalidReview;
-      }
       final keys = <String, int>{
         for (final item in rawReview)
           item['question_id'] as String: item['correct_index'] as int,
@@ -108,25 +61,36 @@ class AttemptRepository implements AttemptSubmitter {
           if (item['selected_index'] case final int selected)
             item['question_id'] as String: selected,
       };
-      final reviewIds = <String>{
+      final reviewIdsResult = <String>{
         for (final item in rawReview)
           if (item['marked_for_review'] == true) item['question_id'] as String,
       };
       final correctedQuestions = exam.questions
           .map((question) => question.copyWith(correctIndex: keys[question.id]))
           .toList(growable: false);
-      final answers = <int, int>{};
-      for (var index = 0; index < exam.questions.length; index++) {
-        final selected = selectedById[exam.questions[index].id];
-        if (selected != null) answers[index] = selected;
+      // O banco de dados valida correct_index entre 0 e 7, mas não cruza com o
+      // tamanho de alternatives da questão. Um gabarito fora do intervalo
+      // invalida a entrega inteira em vez de armazenar um gabarito impossível.
+      for (final question in correctedQuestions) {
+        if (question.correctIndex != null &&
+            (question.correctIndex! < 0 ||
+                question.correctIndex! >= question.options.length)) {
+          throw AttemptSubmissionException(
+            message:
+                'O servidor devolveu um gabarito fora do intervalo para a questão ${question.id}; a entrega foi recusada.',
+            transient: false,
+          );
+        }
+      }
+      final answers = <String, int>{};
+      for (final entry in selectedById.entries) {
+        answers[entry.key] = entry.value;
       }
       return ExamResult(
         exam: exam.copyWith(questions: correctedQuestions),
+        examVersionId: exam.currentVersion?.id ?? '',
         answers: answers,
-        markedForReview: {
-          for (var index = 0; index < exam.questions.length; index++)
-            if (reviewIds.contains(exam.questions[index].id)) index,
-        },
+        markedForReview: reviewIdsResult,
         durationSeconds: submission.durationSeconds,
         finishedAt: submission.finishedAt,
       );
